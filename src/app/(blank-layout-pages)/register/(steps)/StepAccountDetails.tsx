@@ -72,6 +72,7 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
   const confirmPasswordValue = watch('confirmePassword')
 
   const onSubmit = (data: RegisterUserType) => {
+    console.log('submitou')
     dispatch(setAccountDetails(data))
 
     handleNext()
@@ -202,7 +203,6 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
             <Button
               variant='contained'
               disabled={!isValid || !isDirty || !passwordsMatch || !watch('confirmePassword')}
-              onClick={handleNext}
               type='submit'
               endIcon={<DirectionalIcon ltrIconClass='ri-arrow-right-line' rtlIconClass='ri-arrow-left-line' />}
             >

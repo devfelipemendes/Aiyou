@@ -1,6 +1,6 @@
 // MUI Imports
 'use client'
-import { forwardRef, useEffect, useState } from 'react'
+import { forwardRef, useEffect, useState, useCallback } from 'react'
 
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
@@ -50,25 +50,29 @@ const CustomInput = forwardRef<HTMLInputElement, TextFieldProps>(({ label, value
 const StepPersonalInfoSchema = v.object({
   radio: v.pipe(v.string(), v.minLength(1, 'Selecione uma opção')),
   dataNascimento: v.pipe(v.string(), v.minLength(1, 'Data de nascimento é obrigatória')),
+
+  // CPF - sempre validado, mas será condicional no form
   cpf: v.pipe(
     v.string(),
-    v.minLength(1, 'CPF é obrigatório'),
-    v.custom(value => {
-      if (!value) return true
+    v.custom((value: any) => {
+      if (!value || value.trim() === '') return true // Permite vazio, validação condicional no form
       const cleanValue = unmaskValue(typeof value === 'string' ? value : '')
 
       return cpf.isValid(cleanValue)
     }, 'CPF inválido')
   ),
+
+  // CNPJ - sempre validado, mas será condicional no form
   cnpj: v.pipe(
     v.string(),
-    v.custom(value => {
-      if (!value) return true
+    v.custom((value: any) => {
+      if (!value || value.trim() === '') return true // Permite vazio, validação condicional no form
       const cleanValue = unmaskValue(typeof value === 'string' ? value : '')
 
       return cnpj.isValid(cleanValue)
-    }, 'CNPJ Inválido')
+    }, 'CNPJ inválido')
   ),
+
   whatsApp: v.pipe(v.string(), v.minLength(1, 'WhatsApp é obrigatório')),
   celular: v.pipe(v.string(), v.minLength(1, 'Celular é obrigatório')),
   cep: v.pipe(v.string(), v.minLength(1, 'CEP é obrigatório')),
@@ -76,46 +80,23 @@ const StepPersonalInfoSchema = v.object({
   cidade: v.pipe(v.string(), v.minLength(1, 'Cidade é obrigatória')),
   logradouro: v.pipe(v.string(), v.minLength(1, 'Logradouro é obrigatório')),
   numero: v.pipe(v.string(), v.minLength(1, 'Número é obrigatório')),
-  complemento: v.pipe(v.string()),
+  complemento: v.pipe(v.string()), // Opcional
   bairro: v.pipe(v.string(), v.minLength(1, 'Bairro é obrigatório')),
-  razaoSocial: v.pipe(
-    v.string(),
 
-    //@ts-ignore
-    v.custom((value, ctx) => {
-      return ctx.parent.radio === 'cnpj' ? !!value && value.trim() !== '' : true
-    }, 'Razão social é obrigatória')
-  ),
-  dataFundacao: v.pipe(
-    v.string(),
-
-    //@ts-ignore
-    v.custom((value, ctx) => {
-      if (ctx.parent.radio !== 'cnpj') return true
-      if (!value) return false
-      const [day, month, year] = value.split('/').map(Number)
-      const date = new Date(year, month - 1, day)
-
-      return !isNaN(date.getTime())
-    }, 'Data de fundação inválida ou obrigatória')
-  ),
+  // Campos empresariais - sem validação condicional no schema
+  razaoSocial: v.string(),
+  dataFundacao: v.string(),
   emailCorp: v.pipe(
     v.string(),
-    v.email('Email corporativo inválido'),
+    v.custom((value: any) => {
+      if (!value || value.trim() === '') return true // Permite vazio
 
-    //@ts-ignore
-    v.custom((value, ctx) => {
-      return ctx.parent.radio === 'cnpj' ? !!value && value.trim() !== '' : true
-    }, 'Email corporativo é obrigatório')
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+      return emailRegex.test(value)
+    }, 'Email corporativo inválido')
   ),
-  whatsAppCorp: v.pipe(
-    v.string(),
-
-    //@ts-ignore
-    v.custom((value, ctx) => {
-      return ctx.parent.radio === 'cnpj' ? !!value && value.trim() !== '' : true
-    }, 'WhatsApp corporativo é obrigatório')
-  )
+  whatsAppCorp: v.string()
 })
 
 const Content = styled(Typography, {
@@ -171,7 +152,6 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
   const [shouldSkipCepQuery, setShouldSkipCepQuery] = useState(true)
 
   //Redux
-
   const dispatch = useAppDispatch()
   const savedAccountDetails = useAppSelector((state: RootState) => selectAccountDetails(state))
   const savedPersonalInfo = useAppSelector((state: RootState) => selectPersonalInfo(state))
@@ -184,6 +164,8 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
     watch,
     handleSubmit,
     setValue,
+    setError,
+    clearErrors,
     trigger,
     formState: { errors }
   } = useForm<StepPersonalInfoType>({
@@ -212,54 +194,111 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
 
   const radioValue = watch('radio')
 
-  const onSubmit = async (data: StepPersonalInfoType) => {
-    try {
-      console.log('Iniciando processo de registro...')
-
-      // 1. Salvar dados pessoais no Redux
-      console.log('Salvando dados pessoais no Redux:', data)
-      dispatch(setPersonalInfo(data))
-
-      // 2. Verificar se temos os dados da conta
-      if (!savedAccountDetails) {
-        toast.error('Dados da conta não encontrados. Por favor, volte ao primeiro step.')
-
-        return
-      }
-
-      // 3. Combinar todos os dados
-      const completeData = transformRegistrationData(savedAccountDetails, data)
-
-      console.log('Dados completos para envio:', completeData)
-
-      // 4. Enviar para a API
-      console.log('Enviando registro para a API...')
-      const response = await registerUser(completeData).unwrap()
-
-      console.log('Registro bem-sucedido:', response)
-
-      // 5. Se sucesso, salvar token e redirecionar
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token)
-        toast.success('Cadastro realizado! Prossiga para o próximo passo.')
-        handleNext()
-      }
-    } catch (error: any) {
-      console.error('Erro no registro:', error)
-
-      // Tratar diferentes tipos de erro
-      if (error?.data?.message) {
-        toast.error(`Erro: ${error.data.message}`)
-      } else if (error?.message) {
-        toast.error(`Erro: ${error.message}`)
-      } else {
-        toast.error('Erro inesperado. Tente novamente.')
-      }
+  // Função para validar campos condicionais SEM modificar o estado
+  const checkConditionalFields = useCallback((formData: StepPersonalInfoType, currentRadio: string) => {
+    if (currentRadio === 'cpf') {
+      return !!(formData.cpf && formData.cpf.trim() !== '')
+    } else if (currentRadio === 'cnpj') {
+      return !!(
+        formData.cnpj &&
+        formData.cnpj.trim() !== '' &&
+        formData.razaoSocial &&
+        formData.razaoSocial.trim() !== '' &&
+        formData.dataFundacao &&
+        formData.dataFundacao.trim() !== '' &&
+        formData.emailCorp &&
+        formData.emailCorp.trim() !== '' &&
+        formData.whatsAppCorp &&
+        formData.whatsAppCorp.trim() !== ''
+      )
     }
-  }
 
-  //Functions
-  const isFormValid = () => {
+    return true
+  }, [])
+
+  // Função para aplicar validações condicionais (modifica estado)
+  const applyConditionalValidation = useCallback(() => {
+    const formData = watch()
+
+    // Limpar erros condicionais primeiro
+    clearErrors(['cpf', 'cnpj', 'razaoSocial', 'dataFundacao', 'emailCorp', 'whatsAppCorp'])
+
+    if (radioValue === 'cpf') {
+      // Validar CPF obrigatório
+      if (!formData.cpf || formData.cpf.trim() === '') {
+        setError('cpf', { message: 'CPF é obrigatório' })
+
+        return false
+      }
+    } else if (radioValue === 'cnpj') {
+      // Validar campos empresariais
+      const cnpjErrors: Array<{ field: keyof StepPersonalInfoType; message: string }> = []
+
+      if (!formData.cnpj || formData.cnpj.trim() === '') {
+        cnpjErrors.push({ field: 'cnpj', message: 'CNPJ é obrigatório' })
+      }
+
+      if (!formData.razaoSocial || formData.razaoSocial.trim() === '') {
+        cnpjErrors.push({ field: 'razaoSocial', message: 'Razão social é obrigatória' })
+      }
+
+      if (!formData.dataFundacao || formData.dataFundacao.trim() === '') {
+        cnpjErrors.push({ field: 'dataFundacao', message: 'Data de fundação é obrigatória' })
+      }
+
+      if (!formData.emailCorp || formData.emailCorp.trim() === '') {
+        cnpjErrors.push({ field: 'emailCorp', message: 'Email corporativo é obrigatório' })
+      }
+
+      if (!formData.whatsAppCorp || formData.whatsAppCorp.trim() === '') {
+        cnpjErrors.push({ field: 'whatsAppCorp', message: 'WhatsApp corporativo é obrigatório' })
+      }
+
+      cnpjErrors.forEach(({ field, message }) => {
+        setError(field, { message })
+      })
+
+      return cnpjErrors.length === 0
+    }
+
+    return true
+  }, [radioValue, watch, clearErrors, setError])
+
+  const handleCepChange = useCallback(
+    (value: string) => {
+      const maskedValue = maskCep(value)
+
+      setCepValue(maskedValue)
+      setValue('cep', maskedValue)
+
+      // Habilita a query quando o CEP tem 8 dígitos
+      if (unmaskValue(maskedValue).length === 8) {
+        setShouldSkipCepQuery(false)
+      } else {
+        setShouldSkipCepQuery(true)
+
+        // Limpa os campos de endereço se CEP incompleto
+        setValue('uf', '')
+        setValue('cidade', '')
+        setValue('logradouro', '')
+        setValue('bairro', '')
+      }
+    },
+    [setValue]
+  )
+
+  const {
+    data: cepData,
+    isLoading: loadingCep,
+    error: cepError
+  } = useGetCepInfoQuery(unmaskValue(cepValue), {
+    skip: shouldSkipCepQuery || unmaskValue(cepValue).length !== 8
+  })
+
+  // Definir isFormValid APÓS loadingCep estar disponível
+  const isFormValid = useCallback(() => {
+    const formData = watch()
+
     const requiredFields = [
       'radio',
       'dataNascimento',
@@ -273,53 +312,86 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
       'bairro'
     ]
 
-    // Adiciona campos específicos baseado no tipo de pessoa
-    if (radioValue === 'cpf') {
-      requiredFields.push('cpf')
-    } else if (radioValue === 'cnpj') {
-      requiredFields.push('cnpj', 'razaoSocial', 'dataFundacao', 'emailCorp', 'whatsAppCorp')
-    }
-
-    // Verifica se todos os campos obrigatórios estão preenchidos
+    // Verificar campos preenchidos
     const allRequiredFieldsFilled = requiredFields.every(field => {
-      const value = watch(field as keyof StepPersonalInfoType)
+      const value = formData[field as keyof StepPersonalInfoType]
 
-      return value && value.trim() !== ''
+      return value && value.toString().trim() !== ''
     })
 
-    // Verifica se não há erros de validação
-    const noValidationErrors = requiredFields.every(field => !errors[field as keyof typeof errors])
+    // Verificar erros
+    const hasNoErrors = Object.keys(errors).length === 0
 
-    return allRequiredFieldsFilled && noValidationErrors && !loadingCep && !isRegistering
-  }
+    // Validação condicional SEM modificar estado
+    const conditionalValid = checkConditionalFields(formData, radioValue)
 
-  const handleCepChange = (value: string) => {
-    const maskedValue = maskCep(value)
+    return allRequiredFieldsFilled && hasNoErrors && conditionalValid && !loadingCep && !isRegistering
+  }, [watch, errors, radioValue, loadingCep, isRegistering, checkConditionalFields])
 
-    setCepValue(maskedValue)
-    setValue('cep', maskedValue)
+  const onSubmit = async (data: StepPersonalInfoType) => {
+    console.log('🚀 [DEBUG] onSubmit iniciado!')
+    console.log('📋 [DEBUG] Dados do formulário:', data)
+    console.log('🔍 [DEBUG] savedAccountDetails:', savedAccountDetails)
 
-    // Habilita a query quando o CEP tem 8 dígitos
-    if (unmaskValue(maskedValue).length === 8) {
-      setShouldSkipCepQuery(false)
-    } else {
-      setShouldSkipCepQuery(true)
+    try {
+      // Validação condicional final
+      if (!applyConditionalValidation()) {
+        console.error('❌ Validação condicional falhou')
+        toast.error('Por favor, preencha todos os campos obrigatórios')
 
-      // Limpa os campos de endereço se CEP incompleto
-      setValue('uf', '')
-      setValue('cidade', '')
-      setValue('logradouro', '')
-      setValue('bairro', '')
+        return
+      }
+
+      console.log('💾 Salvando dados pessoais no Redux...')
+      dispatch(setPersonalInfo(data))
+
+      if (!savedAccountDetails) {
+        toast.error('Dados da conta não encontrados. Volte ao primeiro step.')
+
+        return
+      }
+
+      console.log('🔄 Combinando dados...')
+      const completeData = transformRegistrationData(savedAccountDetails, data)
+
+      console.log('📦 Dados completos:', completeData)
+
+      console.log('🌐 Chamando API...')
+      const response = await registerUser(completeData).unwrap()
+
+      console.log('✅ Resposta da API:', response)
+
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token)
+        toast.success('Cadastro realizado com sucesso!')
+        handleNext()
+      } else {
+        toast.success('Cadastro realizado! Prosseguindo...')
+        handleNext()
+      }
+    } catch (error: any) {
+      console.error('💥 Erro:', error)
+
+      if (error?.data?.message) {
+        toast.error(`Erro: ${error.data.message}`)
+      } else if (error?.message) {
+        toast.error(`Erro: ${error.message}`)
+      } else {
+        toast.error('Erro inesperado. Tente novamente.')
+      }
     }
   }
 
-  const {
-    data: cepData,
-    isLoading: loadingCep,
-    error: cepError
-  } = useGetCepInfoQuery(unmaskValue(cepValue), {
-    skip: shouldSkipCepQuery || unmaskValue(cepValue).length !== 8
-  })
+  // Effect para aplicar validação condicional quando radio muda
+  useEffect(() => {
+    if (radioValue) {
+      const timeoutId = setTimeout(() => {
+        applyConditionalValidation()
+      }, 100)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [radioValue, applyConditionalValidation])
 
   useEffect(() => {
     if (cepData && !cepData.erro) {
@@ -363,7 +435,6 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
         />
 
         {/* CPF Field - only show when radio is 'cpf' */}
-
         <Grid size={{ xs: 12, sm: 6 }}>
           <Controller
             name='cpf'

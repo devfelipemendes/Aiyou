@@ -6,13 +6,13 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux
 // Slice Imports
 import authReducer from './slices/auth'
 import register from './slices/register'
-import chatReducer from '@/redux-store/slices/chat'
+
+// import chatReducer from '@/redux-store/slices/chat'
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 import { externalApi } from '@/api/ApiCreate/cepApi'
 
 export const store = configureStore({
   reducer: {
-    chatReducer,
     authReducer,
     registration: register,
     [apiSlice.reducerPath]: apiSlice.reducer,
