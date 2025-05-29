@@ -14,7 +14,7 @@ export const store = configureStore({
   reducer: {
     chatReducer,
     authReducer,
-    register,
+    registration: register,
     [apiSlice.reducerPath]: apiSlice.reducer,
     [externalApi.reducerPath]: externalApi.reducer
   },

@@ -20,7 +20,11 @@ const AccountDetailsRegisterSchema = v.object({
 })
 
 // Component Imports
+import { useDispatch } from 'react-redux'
+
 import DirectionalIcon from '@components/DirectionalIcon'
+import { useAppSelector, type RootState } from '@/redux-store'
+import { selectAccountDetails, setAccountDetails } from '@/redux-store/slices/register'
 
 type StepAccountDetailsProps = {
   handleNext: () => void
@@ -35,6 +39,11 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
   const [isConfirmPasswordShown, setIsConfirmPasswordShown] = useState<boolean>(false)
   const [passwordsMatch, setPasswordsMatch] = useState(true)
 
+  //Redux
+
+  const dispatch = useDispatch()
+  const savedAccountDetails = useAppSelector((state: RootState) => selectAccountDetails(state))
+
   const {
     watch,
     control,
@@ -44,10 +53,10 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
   } = useForm<RegisterUserType>({
     resolver: valibotResolver(AccountDetailsRegisterSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      confirmePassword: ''
+      name: savedAccountDetails?.name || '',
+      email: savedAccountDetails?.email || '',
+      password: savedAccountDetails?.password || '',
+      confirmePassword: savedAccountDetails?.confirmePassword || ''
     }
   })
 
@@ -61,6 +70,12 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
 
   const passwordValue = watch('password')
   const confirmPasswordValue = watch('confirmePassword')
+
+  const onSubmit = (data: RegisterUserType) => {
+    dispatch(setAccountDetails(data))
+
+    handleNext()
+  }
 
   useEffect(() => {
     if (confirmPasswordValue && passwordValue !== confirmPasswordValue) {
@@ -78,7 +93,7 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
         <Typography variant='h4'>Informações da conta</Typography>
         <Typography>Adicione os dados para acesso ao sistema</Typography>
       </div>
-      <form onSubmit={handleSubmit(() => console.log('enviou'))}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={5}>
           <Grid size={{ xs: 12 }}>
             <Controller

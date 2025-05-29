@@ -1,44 +1,87 @@
+// src/api/endpoints/authUser/register.ts
 import { apiSlice } from '../../ApiCreate/apiSlice'
-
-type DataResponse = {
-  name: string
-  email: string
-  token: string
-}
+import type { RegisterUserType } from '@/app/(blank-layout-pages)/register/(steps)/StepAccountDetails'
+import type { StepPersonalInfoType } from '@/app/(blank-layout-pages)/register/(steps)/StepPersonalInfo'
 
 type RegisterResponse = {
-  data: DataResponse
+  data: {
+    name: string
+    email: string
+    token: string
+    permissions: string[]
+    device: string
+  }
+  message: string
 }
 
-type RegisterBody = {
+export type CompleteRegistrationData = {
   name: string
   email: string
   password: string
   password_confirmation: string
-  nome: string
-  confirmePassword: string
-  cardNumber: string
-  plan: string
-  nameOnCard: string
-  expiryDate: string
-  cvv: string
-  cpfCnpj: string
-  dataNasicmento: string
+
+  radio: string // 'cpf' ou 'cnpj'
+  dataNascimento: string
+  cpf?: string
+  cnpj?: string
   whatsApp: string
+  celular: string
   cep: string
+  uf: string
+  cidade: string
+  logradouro: string
+  numero: string
+  complemento?: string
   bairro: string
-  complemento: string
-  numeroendereco: string
+
+  razaoSocial?: string
+  dataFundacao?: string
+  emailCorp?: string
+  whatsAppCorp?: string
 }
 
-export const Register = apiSlice.injectEndpoints({
+export const transformRegistrationData = (
+  accountDetails: RegisterUserType,
+  personalInfo: StepPersonalInfoType
+): CompleteRegistrationData => {
+  return {
+    // Dados da conta
+    name: accountDetails.name,
+    email: accountDetails.email,
+    password: accountDetails.password,
+    password_confirmation: accountDetails.confirmePassword,
+
+    // Dados pessoais
+    radio: personalInfo.radio,
+    dataNascimento: personalInfo.dataNascimento,
+    cpf: personalInfo.cpf,
+    cnpj: personalInfo.cnpj,
+    whatsApp: personalInfo.whatsApp,
+    celular: personalInfo.celular,
+    cep: personalInfo.cep,
+    uf: personalInfo.uf,
+    cidade: personalInfo.cidade,
+    logradouro: personalInfo.logradouro,
+    numero: personalInfo.numero,
+    complemento: personalInfo.complemento,
+    bairro: personalInfo.bairro,
+    razaoSocial: personalInfo.razaoSocial,
+    dataFundacao: personalInfo.dataFundacao,
+    emailCorp: personalInfo.emailCorp,
+    whatsAppCorp: personalInfo.whatsAppCorp
+  }
+}
+
+export const registerApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    postLogin: builder.mutation<RegisterResponse, RegisterBody>({
-      query: credentials => ({
+    registerUser: builder.mutation<RegisterResponse, CompleteRegistrationData>({
+      query: registrationData => ({
         url: '/v1/register',
         method: 'POST',
-        body: credentials
+        body: registrationData
       })
     })
   })
 })
+
+export const { useRegisterUserMutation } = registerApi

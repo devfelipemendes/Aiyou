@@ -23,6 +23,8 @@ import { mask } from 'remask'
 
 import { cpf, cnpj } from 'cpf-cnpj-validator'
 
+import { toast } from 'react-toastify'
+
 import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
 import DirectionalIcon from '@components/DirectionalIcon'
 import type { CustomInputVerticalData } from '@/@core/components/custom-inputs/types'
@@ -31,6 +33,9 @@ import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 // Import masks
 import { maskCpf, maskCnpj, maskCelular, maskCep, maskUF, unmaskValue } from '@/utils/masks'
 import { useGetCepInfoQuery } from '@/api/endpoints/cep'
+import { useAppDispatch, useAppSelector, type RootState } from '@/redux-store'
+import { selectAccountDetails, selectPersonalInfo, setPersonalInfo } from '@/redux-store/slices/register'
+import { transformRegistrationData, useRegisterUserMutation } from '@/api/endpoints/authUser/register'
 
 type StepPersonalInfoProps = {
   handleNext: () => void
@@ -165,6 +170,14 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
   const [cepValue, setCepValue] = useState('')
   const [shouldSkipCepQuery, setShouldSkipCepQuery] = useState(true)
 
+  //Redux
+
+  const dispatch = useAppDispatch()
+  const savedAccountDetails = useAppSelector((state: RootState) => selectAccountDetails(state))
+  const savedPersonalInfo = useAppSelector((state: RootState) => selectPersonalInfo(state))
+
+  const [registerUser, { isLoading: isRegistering }] = useRegisterUserMutation()
+
   //hook-form
   const {
     control,
@@ -177,31 +190,72 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
     resolver: valibotResolver(StepPersonalInfoSchema),
     mode: 'onChange',
     defaultValues: {
-      radio: 'cpf',
-      dataNascimento: '',
-      cpf: '',
-      cnpj: '',
-      whatsApp: '',
-      celular: '',
-      cep: '',
-      uf: '',
-      cidade: '',
-      logradouro: '',
-      numero: '',
-      complemento: '',
-      bairro: '',
-      razaoSocial: '',
-      dataFundacao: '',
-      emailCorp: '',
-      whatsAppCorp: ''
+      radio: savedPersonalInfo?.radio || 'cpf',
+      dataNascimento: savedPersonalInfo?.dataNascimento || '',
+      cpf: savedPersonalInfo?.cpf || '',
+      cnpj: savedPersonalInfo?.cnpj || '',
+      whatsApp: savedPersonalInfo?.whatsApp || '',
+      celular: savedPersonalInfo?.celular || '',
+      cep: savedPersonalInfo?.cep || '',
+      uf: savedPersonalInfo?.uf || '',
+      cidade: savedPersonalInfo?.cidade || '',
+      logradouro: savedPersonalInfo?.logradouro || '',
+      numero: savedPersonalInfo?.numero || '',
+      complemento: savedPersonalInfo?.complemento || '',
+      bairro: savedPersonalInfo?.bairro || '',
+      razaoSocial: savedPersonalInfo?.razaoSocial || '',
+      dataFundacao: savedPersonalInfo?.dataFundacao || '',
+      emailCorp: savedPersonalInfo?.emailCorp || '',
+      whatsAppCorp: savedPersonalInfo?.whatsAppCorp || ''
     }
   })
 
   const radioValue = watch('radio')
 
-  const onSubmit = (data: StepPersonalInfoType) => {
-    console.log('Form data:', data)
-    handleNext()
+  const onSubmit = async (data: StepPersonalInfoType) => {
+    try {
+      console.log('Iniciando processo de registro...')
+
+      // 1. Salvar dados pessoais no Redux
+      console.log('Salvando dados pessoais no Redux:', data)
+      dispatch(setPersonalInfo(data))
+
+      // 2. Verificar se temos os dados da conta
+      if (!savedAccountDetails) {
+        toast.error('Dados da conta não encontrados. Por favor, volte ao primeiro step.')
+
+        return
+      }
+
+      // 3. Combinar todos os dados
+      const completeData = transformRegistrationData(savedAccountDetails, data)
+
+      console.log('Dados completos para envio:', completeData)
+
+      // 4. Enviar para a API
+      console.log('Enviando registro para a API...')
+      const response = await registerUser(completeData).unwrap()
+
+      console.log('Registro bem-sucedido:', response)
+
+      // 5. Se sucesso, salvar token e redirecionar
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token)
+        toast.success('Cadastro realizado! Prossiga para o próximo passo.')
+        handleNext()
+      }
+    } catch (error: any) {
+      console.error('Erro no registro:', error)
+
+      // Tratar diferentes tipos de erro
+      if (error?.data?.message) {
+        toast.error(`Erro: ${error.data.message}`)
+      } else if (error?.message) {
+        toast.error(`Erro: ${error.message}`)
+      } else {
+        toast.error('Erro inesperado. Tente novamente.')
+      }
+    }
   }
 
   //Functions
@@ -236,7 +290,7 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
     // Verifica se não há erros de validação
     const noValidationErrors = requiredFields.every(field => !errors[field as keyof typeof errors])
 
-    return allRequiredFieldsFilled && noValidationErrors && !loadingCep
+    return allRequiredFieldsFilled && noValidationErrors && !loadingCep && !isRegistering
   }
 
   const handleCepChange = (value: string) => {
@@ -681,9 +735,15 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
             type='submit'
             variant='contained'
             disabled={!isFormValid()}
-            endIcon={<DirectionalIcon ltrIconClass='ri-arrow-right-line' rtlIconClass='ri-arrow-left-line' />}
+            endIcon={
+              isRegistering ? (
+                <CircularProgress size={20} color='inherit' />
+              ) : (
+                <DirectionalIcon ltrIconClass='ri-arrow-right-line' rtlIconClass='ri-arrow-left-line' />
+              )
+            }
           >
-            Próximo passo
+            {isRegistering ? 'Processando...' : 'Finalizar Cadastro'}
           </Button>
         </Grid>
       </Grid>
