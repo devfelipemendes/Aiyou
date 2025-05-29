@@ -35,7 +35,7 @@ import { maskCpf, maskCnpj, maskCelular, maskCep, maskUF, unmaskValue } from '@/
 import { useGetCepInfoQuery } from '@/api/endpoints/cep'
 import { useAppDispatch, useAppSelector, type RootState } from '@/redux-store'
 import { selectAccountDetails, selectPersonalInfo, setPersonalInfo } from '@/redux-store/slices/register'
-import { transformRegistrationData, useRegisterUserMutation } from '@/api/endpoints/authUser/register'
+import { useRegisterUserMutation } from '@/api/endpoints/authUser/register'
 
 type StepPersonalInfoProps = {
   handleNext: () => void
@@ -352,7 +352,33 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
       }
 
       console.log('🔄 Combinando dados...')
-      const completeData = transformRegistrationData(savedAccountDetails, data)
+
+      const completeData = {
+        // Dados do passo anterior
+        name: savedAccountDetails.name,
+        email: savedAccountDetails.email,
+        password: savedAccountDetails.password,
+        password_confirmation: savedAccountDetails.confirmePassword,
+
+        // Dados do passo atual
+        radio: data.radio,
+        dataNascimento: data.dataNascimento,
+        cpf: data.cpf,
+        cnpj: data.cnpj,
+        whatsApp: data.whatsApp,
+        celular: data.celular,
+        cep: data.cep,
+        uf: data.uf,
+        cidade: data.cidade,
+        logradouro: data.logradouro,
+        numero: data.numero,
+        complemento: data.complemento,
+        bairro: data.bairro,
+        razaoSocial: data.razaoSocial,
+        dataFundacao: data.dataFundacao,
+        emailCorp: data.emailCorp,
+        whatsAppCorp: data.whatsAppCorp
+      }
 
       console.log('📦 Dados completos:', completeData)
 

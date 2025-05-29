@@ -12,13 +12,6 @@ import { valibotResolver } from '@hookform/resolvers/valibot'
 import * as v from 'valibot'
 import { Controller, useForm } from 'react-hook-form'
 
-const AccountDetailsRegisterSchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1, 'Nome é obrigatório')),
-  email: v.pipe(v.string(), v.minLength(1, 'Email é obrigatório'), v.email('Email inválido')),
-  password: v.pipe(v.string(), v.minLength(6, 'Senha deve ter pelo menos 6 caracteres')),
-  confirmePassword: v.pipe(v.string(), v.minLength(6, 'Confirmação de senha deve ter pelo menos 6 caracteres'))
-})
-
 // Component Imports
 import { useDispatch } from 'react-redux'
 
@@ -30,6 +23,13 @@ type StepAccountDetailsProps = {
   handleNext: () => void
   activeStep: number
 }
+
+const AccountDetailsRegisterSchema = v.object({
+  name: v.pipe(v.string(), v.minLength(1, 'Nome é obrigatório')),
+  email: v.pipe(v.string(), v.minLength(1, 'Email é obrigatório'), v.email('Email inválido')),
+  password: v.pipe(v.string(), v.minLength(6, 'Senha deve ter pelo menos 6 caracteres')),
+  confirmePassword: v.pipe(v.string(), v.minLength(6, 'Confirmação de senha deve ter pelo menos 6 caracteres'))
+})
 
 export type RegisterUserType = v.InferInput<typeof AccountDetailsRegisterSchema>
 
@@ -53,10 +53,10 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
   } = useForm<RegisterUserType>({
     resolver: valibotResolver(AccountDetailsRegisterSchema),
     defaultValues: {
-      name: savedAccountDetails?.name || '',
-      email: savedAccountDetails?.email || '',
-      password: savedAccountDetails?.password || '',
-      confirmePassword: savedAccountDetails?.confirmePassword || ''
+      name: savedAccountDetails?.name,
+      email: savedAccountDetails?.email,
+      password: savedAccountDetails?.password,
+      confirmePassword: savedAccountDetails?.confirmePassword
     }
   })
 
