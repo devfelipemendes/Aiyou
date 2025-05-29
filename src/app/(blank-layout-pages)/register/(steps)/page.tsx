@@ -121,7 +121,7 @@ const RegisterMultiSteps = () => {
           <Stepper className='mbe-12 mbs-16 sm:mbs-0' activeStep={activeStep}>
             {steps.map((step, index) => {
               return (
-                <Step key={index} onClick={() => setActiveStep(index)}>
+                <Step key={index}>
                   <StepLabel
                     slots={{
                       stepIcon: StepperCustomDot

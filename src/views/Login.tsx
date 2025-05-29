@@ -199,7 +199,11 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
             </Button>
             <div className='flex justify-center items-center flex-wrap gap-2'>
               <Typography>Novo na AiYou?</Typography>
-              <Typography component={Link} color='primary.main'>
+              <Typography
+                sx={{ cursor: 'pointer', textDecoration: 'underline' }}
+                color='primary.main'
+                onClick={() => navigation.push('/register')}
+              >
                 Criar uma conta
               </Typography>
             </div>
