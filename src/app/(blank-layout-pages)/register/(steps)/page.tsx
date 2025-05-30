@@ -91,7 +91,7 @@ const RegisterMultiSteps = () => {
     <div className='flex bs-full justify-between items-center'>
       <div
         className={classnames(
-          'fixed start-0 top-0 h-screen is-[594px] flex items-center justify-center overflow-hidden z-10 max-md:hidden',
+          'fixed start-0 top-0 h-screen w-[30vw] flex items-center justify-center overflow-hidden z-10 ',
           {
             'border-ie': settings.skin === 'bordered'
           }
@@ -100,17 +100,19 @@ const RegisterMultiSteps = () => {
         <Image
           src='/images/logoimg.png'
           alt='multi-steps-character-background'
-          className={classnames('object-cover zInde', {
+          className={classnames('object-cover ', {
             'scale-x-[-1]': theme.direction === 'rtl'
           })}
-          width={594}
-          height={1080}
+          fill
+          priority
           unoptimized={true}
           quality={100}
-          priority
+          style={{
+            objectFit: 'cover' // Garante que cubra todo o espaço
+          }}
         />
       </div>
-      <div className='ms-[594px] flex justify-center items-center bs-full is-full bg-backgroundPaper'>
+      <div className='ms-[30vw] flex justify-center items-center bs-full is-full bg-backgroundPaper'>
         <Link
           href={locale ? getLocalizedUrl('/', locale as Locale) : '/'}
           className='absolute block-start-5 sm:block-start-[25px] inline-start-6 sm:inline-start-[25px] z-[20]'
