@@ -343,7 +343,7 @@ const StepCreateProject = ({ activeStep, handleNext, steps }: Props) => {
 
           {/* Assistant Form */}
           <Collapse in={isCreatingAssistant}>
-            <Box sx={{ mt: 3, p: 3, bgcolor: 'background.default', borderRadius: 1 }}>
+            <Box sx={{ mt: 3, p: 3, borderRadius: 1 }}>
               <Typography variant='h6' gutterBottom>
                 Novo Assistente
               </Typography>
