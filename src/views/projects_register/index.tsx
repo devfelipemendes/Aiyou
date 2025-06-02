@@ -15,12 +15,12 @@ import { styled } from '@mui/material/styles'
 
 // Component Imports
 import StepCreateProject from './StepCreateProject'
-import StepPropertyFeatures from './StepPropertyFeatures'
 
 // Styled Component Imports
 import StepperWrapper from '@core/styles/stepper'
 import StepperCustomDot from '@components/stepper-dot'
 import StepCreateFunction from './StepCreateFunctions'
+import StepReviewProject from './StepReviewConfigs'
 
 // Vars
 const steps = [
@@ -45,7 +45,7 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
       : step === 1
         ? StepCreateFunction
         : step === 2
-          ? StepPropertyFeatures
+          ? StepReviewProject
           : StepCreateProject
 
   return <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
