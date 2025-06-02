@@ -14,7 +14,7 @@ import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 
 // Component Imports
-import StepPersonalDetails from './StepPersonalDetails'
+import StepPersonalDetails from './StepCreateProject'
 import StepPropertyDetails from './StepPropertyDetails'
 import StepPropertyFeatures from './StepPropertyFeatures'
 import StepPropertyArea from './StepPropertyArea'
