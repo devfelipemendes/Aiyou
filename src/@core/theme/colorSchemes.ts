@@ -242,8 +242,8 @@ const colorSchemes = (skin: Skin): Theme['colorSchemes'] => {
         divider: `rgb(var(--mui-mainColorChannels-dark) / 0.12)`,
         dividerChannel: 'var(--mui-mainColorChannels-dark)',
         background: {
-          default: skin === 'bordered' ? '#090909  ' : '#090909',
-          paper: '#0a1202'
+          default: skin === 'bordered' ? '#1A1A1A  ' : '#1A1A1A',
+          paper: '#004D61'
         },
         action: {
           active: `rgb(var(--mui-mainColorChannels-dark) / 0.6)`,

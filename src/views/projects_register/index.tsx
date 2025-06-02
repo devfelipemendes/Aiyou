@@ -39,6 +39,13 @@ const steps = [
 ]
 
 const getStepContent = (step: number, handleNext: () => void, handlePrev: () => void) => {
+  // Definir imagens diferentes para cada step
+  const stepImages: Record<number, string> = {
+    0: '/images/iaImages/icons.png',
+    1: '/images/iaImages/icons.png',
+    2: '/images/iaImages/icons.png'
+  }
+
   const Tag =
     step === 0
       ? StepCreateProject
@@ -48,7 +55,19 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
           ? StepReviewProject
           : StepCreateProject
 
-  return <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
+  return (
+    <>
+      <div className='mb-6'>
+        <img
+          src={stepImages[step] || stepImages[0]}
+          alt={`Step ${step + 1} Header`}
+          className='w-full h-52 object-cover rounded-lg'
+        />
+      </div>
+
+      <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
+    </>
+  )
 }
 
 // Styled Components
@@ -77,7 +96,7 @@ const PropertyListingWizard = () => {
   }
 
   return (
-    <Card className='flex flex-col lg:flex-row'>
+    <Card className='flex flex-col lg:flex-row '>
       <CardContent className='max-lg:border-be lg:border-ie lg:min-is-[300px]'>
         <StepperWrapper className='bs-full'>
           <Stepper activeStep={activeStep} connector={<ConnectorHeight />} orientation='vertical'>
@@ -109,7 +128,7 @@ const PropertyListingWizard = () => {
         </StepperWrapper>
       </CardContent>
 
-      <CardContent className='flex-1 !pbs-5'>{getStepContent(activeStep, handleNext, handlePrev)}</CardContent>
+      <CardContent className='flex-1 !pbs-5 w-full'>{getStepContent(activeStep, handleNext, handlePrev)}</CardContent>
     </Card>
   )
 }

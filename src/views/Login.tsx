@@ -118,9 +118,9 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
         )}
       >
         <Image
-          src='/images/logoimg.png'
+          src='/images/iaImages/logoApi.png'
           alt='logo3d'
-          className={mode === 'dark' ? 'object-cover blur-sm brightness-50' : 'object-cover '}
+          className={'object-cover '}
           unoptimized={true}
           fill
           quality={100}

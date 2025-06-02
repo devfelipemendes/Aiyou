@@ -74,7 +74,7 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         <MenuItem href='/chat' icon={<i className='ri-chat-2-line' />}>
           Chat
         </MenuItem>
-        <MenuItem href='/projects' icon={<i className='ri-chat-2-line' />}>
+        <MenuItem href='/projects' icon={<i className='ri-folder-6-line' />}>
           Projetos
         </MenuItem>
       </Menu>

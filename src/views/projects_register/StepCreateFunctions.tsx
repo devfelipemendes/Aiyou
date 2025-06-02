@@ -345,7 +345,7 @@ const StepCreateFunction = ({ activeStep, handleNext, handlePrev, steps }: Props
   )
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ mx: 'auto' }}>
       {/* Statistics */}
       <Alert severity='info' sx={{ mb: 3 }}>
         <Typography variant='body2'>
@@ -627,7 +627,7 @@ const StepCreateFunction = ({ activeStep, handleNext, handlePrev, steps }: Props
                               render={({ field }) => (
                                 <FormControlLabel
                                   control={<Switch {...field} checked={field.value} />}
-                                  label='É Header'
+                                  label='Header'
                                 />
                               )}
                             />
@@ -635,10 +635,7 @@ const StepCreateFunction = ({ activeStep, handleNext, handlePrev, steps }: Props
                               name='in_api'
                               control={parameterForm.control}
                               render={({ field }) => (
-                                <FormControlLabel
-                                  control={<Switch {...field} checked={field.value} />}
-                                  label='Incluir na API'
-                                />
+                                <FormControlLabel control={<Switch {...field} checked={field.value} />} label='Body' />
                               )}
                             />
                           </Box>

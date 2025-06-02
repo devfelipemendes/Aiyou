@@ -366,7 +366,7 @@ const StepReviewProject = ({ activeStep, handleNext, handlePrev, steps }: Props)
   )
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ mx: 'auto' }}>
       {/* Header */}
       <Box textAlign='center' mb={4}>
         <Typography variant='h4' gutterBottom>

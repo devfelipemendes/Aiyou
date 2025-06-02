@@ -171,7 +171,7 @@ const StepCreateProject = ({ activeStep, handleNext, steps }: Props) => {
   }, [])
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ mx: 'auto' }}>
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant='h5' gutterBottom>
