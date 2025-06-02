@@ -14,25 +14,19 @@ import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 
 // Component Imports
-import StepPersonalDetails from './StepCreateProject'
-import StepPropertyDetails from './StepPropertyDetails'
+import StepCreateProject from './StepCreateProject'
 import StepPropertyFeatures from './StepPropertyFeatures'
-import StepPropertyArea from './StepPropertyArea'
-import StepPriceDetails from './StepPriceDetails'
 
 // Styled Component Imports
 import StepperWrapper from '@core/styles/stepper'
 import StepperCustomDot from '@components/stepper-dot'
+import StepCreateFunction from './StepCreateFunctions'
 
 // Vars
 const steps = [
   {
     title: 'Projeto',
     subtitle: 'Criar projeto'
-  },
-  {
-    title: 'Assistente',
-    subtitle: 'Criar assistente'
   },
   {
     title: 'Cadastrar funções',
@@ -47,14 +41,12 @@ const steps = [
 const getStepContent = (step: number, handleNext: () => void, handlePrev: () => void) => {
   const Tag =
     step === 0
-      ? StepPersonalDetails
+      ? StepCreateProject
       : step === 1
-        ? StepPropertyDetails
+        ? StepCreateFunction
         : step === 2
           ? StepPropertyFeatures
-          : step === 3
-            ? StepPropertyArea
-            : StepPriceDetails
+          : StepCreateProject
 
   return <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
 }
