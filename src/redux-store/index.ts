@@ -3,6 +3,8 @@ import { configureStore } from '@reduxjs/toolkit'
 
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux'
 
+import chatReducer from '@/redux-store/slices/chat'
+
 // Slice Imports
 import authReducer from './slices/auth'
 import register from './slices/register'
@@ -14,6 +16,7 @@ import { externalApi } from '@/api/ApiCreate/cepApi'
 export const store = configureStore({
   reducer: {
     authReducer,
+    chatReducer,
     registration: register,
     [apiSlice.reducerPath]: apiSlice.reducer,
     [externalApi.reducerPath]: externalApi.reducer

@@ -9,6 +9,8 @@ import IconButton from '@mui/material/IconButton'
 import CardContent from '@mui/material/CardContent'
 
 // Type Imports
+import { useColorScheme } from '@mui/material'
+
 import type { AppDispatch } from '@/redux-store'
 import type { ChatDataType, ContactType } from '@/types/chatTypes'
 
@@ -21,6 +23,8 @@ import SendMsgForm from './SendMsgForm'
 import UserProfileRight from './UserProfileRight'
 import CustomAvatar from '@core/components/mui/Avatar'
 
+import type { Mode } from '@core/types'
+
 type Props = {
   chatStore: ChatDataType
   dispatch: AppDispatch
@@ -31,6 +35,15 @@ type Props = {
   isBelowLgScreen: boolean
   isBelowSmScreen: boolean
   messageInputRef: RefObject<HTMLDivElement>
+  mode: Mode
+}
+
+// Configuração do background - ALTERE AQUI
+const BACKGROUND_CONFIG = {
+  image: '/images/iaImages/bgChat.png', // Caminho para sua imagem
+  opacity: 0.1, // Ajuste a opacity conforme necessário (0.05 - 0.2)
+  enableBlur: false, // true para adicionar blur effect
+  blurAmount: '5px'
 }
 
 // Renders the user avatar with badge and user information
@@ -57,13 +70,23 @@ const UserAvatar = ({
       badgeColor={statusObj[activeUser?.status || 'offline']}
     />
     <div>
-      <Typography color='text.primary'>{activeUser?.fullName}</Typography>
-      <Typography variant='body2'>{activeUser?.role}</Typography>
+      <Typography color='white'>{activeUser?.fullName}</Typography>
+      <Typography variant='body2' color='white'>
+        {activeUser?.role}
+      </Typography>
     </div>
   </div>
 )
 
 const ChatContent = (props: Props) => {
+  const { mode } = props
+
+  const { mode: muiMode, systemMode: muiSystemMode } = useColorScheme()
+
+  const currentMode = muiMode === 'system' ? muiSystemMode : muiMode || mode
+
+  const isDark = currentMode === 'dark'
+
   // Props
   const {
     chatStore,
@@ -90,16 +113,34 @@ const ChatContent = (props: Props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backdropOpen])
 
+  // Estilo para o background aplicado diretamente no container
+  const backgroundStyle = {
+    backgroundImage: `url(${BACKGROUND_CONFIG.image})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundBlendMode: 'overlay' as const,
+    backgroundColor: isDark
+      ? `rgb(0, 77, 97, ${1 - BACKGROUND_CONFIG.opacity})`
+      : `rgb(2, 129, 117, ${1 - BACKGROUND_CONFIG.opacity})`,
+    filter: BACKGROUND_CONFIG.enableBlur ? `blur(${BACKGROUND_CONFIG.blurAmount})` : 'none'
+  }
+
   return !chatStore.activeUser ? (
-    <CardContent className='flex flex-col flex-auto items-center justify-center bs-full gap-[18px] bg-[var(--mui-palette-customColors-chatBg)]'>
+    <CardContent
+      className='flex flex-col flex-auto items-center justify-center bs-full gap-[18px]'
+      style={backgroundStyle}
+    >
       <CustomAvatar variant='circular' size={98} color='primary' skin='light'>
-        <i className='ri-wechat-line text-[50px]' />
+        <i className='ri-wechat-line text-[50px] text-zinc-50' />
       </CustomAvatar>
-      <Typography className='text-center'>Select a contact to start a conversation.</Typography>
+      <Typography className='text-center font-medium text-zinc-50' color='white'>
+        Select a contact to start a conversation.
+      </Typography>
       {isBelowMdScreen && (
         <Button
           variant='contained'
-          className='rounded-full'
+          className='rounded-full shadow-lg'
           onClick={() => {
             setSidebarOpen(true)
             isBelowSmScreen ? setBackdropOpen(false) : setBackdropOpen(true)
@@ -110,10 +151,11 @@ const ChatContent = (props: Props) => {
       )}
     </CardContent>
   ) : (
-    <>
+    <div className='flex flex-col flex-grow bs-full' style={backgroundStyle}>
       {activeUser && (
-        <div className='flex flex-col flex-grow bs-full'>
-          <div className='flex items-center justify-between border-be plb-[17px] pli-5 bg-[var(--mui-palette-customColors-chatBg)]'>
+        <>
+          {/* Header do Chat */}
+          <div className='flex items-center justify-between border-be plb-[17px] pli-5 backdrop-blur-sm bg-[var(--mui-palette-customColors-chatBg)]/90 border-white/20'>
             {isBelowMdScreen ? (
               <div className='flex items-center gap-4'>
                 <IconButton
@@ -140,7 +182,7 @@ const ChatContent = (props: Props) => {
             )}
             {isBelowMdScreen ? (
               <OptionMenu
-                iconClassName='text-textSecondary'
+                iconClassName='text-textSecondary '
                 options={[
                   {
                     text: 'View Contact',
@@ -190,22 +232,29 @@ const ChatContent = (props: Props) => {
             )}
           </div>
 
-          <ChatLog
-            chatStore={chatStore}
-            isBelowMdScreen={isBelowMdScreen}
-            isBelowSmScreen={isBelowSmScreen}
-            isBelowLgScreen={isBelowLgScreen}
-          />
+          {/* Área de Mensagens */}
+          <div className='flex-1 overflow-hidden'>
+            <ChatLog
+              chatStore={chatStore}
+              isBelowMdScreen={isBelowMdScreen}
+              isBelowSmScreen={isBelowSmScreen}
+              isBelowLgScreen={isBelowLgScreen}
+            />
+          </div>
 
-          <SendMsgForm
-            dispatch={dispatch}
-            activeUser={activeUser}
-            isBelowSmScreen={isBelowSmScreen}
-            messageInputRef={messageInputRef}
-          />
-        </div>
+          {/* Área de Input de Mensagem */}
+          <div className='backdrop-blur-sm bg-zinc-800/90 border-t border-white/20'>
+            <SendMsgForm
+              dispatch={dispatch}
+              activeUser={activeUser}
+              isBelowSmScreen={isBelowSmScreen}
+              messageInputRef={messageInputRef}
+            />
+          </div>
+        </>
       )}
 
+      {/* User Profile Right Drawer */}
       {activeUser && (
         <UserProfileRight
           open={userProfileRightOpen}
@@ -218,8 +267,38 @@ const ChatContent = (props: Props) => {
           isBelowLgScreen={isBelowLgScreen}
         />
       )}
-    </>
+    </div>
   )
 }
 
 export default ChatContent
+
+/* 
+📝 INSTRUÇÕES DE USO:
+
+1. CONFIGURAÇÃO DO BACKGROUND:
+   - Altere BACKGROUND_CONFIG.image para o caminho da sua imagem
+   - Ajuste BACKGROUND_CONFIG.opacity (recomendado: 0.05 - 0.15)
+   - Use BACKGROUND_CONFIG.enableBlur para adicionar blur effect
+
+2. ESTRUTURA DOS ARQUIVOS:
+   public/
+   ├── assets/
+   │   ├── chat-background.jpg
+   │   └── outras-imagens...
+
+3. CUSTOMIZAÇÃO RÁPIDA:
+   - Para background mais sutil: opacity: 0.05
+   - Para background mais visível: opacity: 0.15
+   - Para adicionar blur: enableBlur: true
+
+4. BACKGROUND INTEGRADO:
+   - O background é aplicado diretamente no container
+   - Usa backgroundBlendMode para melhor integração
+   - Não requer elementos separados ou z-index
+
+5. PERFORMANCE:
+   - Otimize suas imagens (WebP recomendado)
+   - Mantenha tamanhos adequados (1920x1080 para desktop)
+   - Background integrado = melhor performance
+*/
