@@ -9,7 +9,7 @@ const ROUTE_CONFIG = {
 
   REGISTRATION_ROUTES: ['/register'],
 
-  PROTECTED_ROUTES: ['/home', '/dashboard', '/profile', '/chat', '/settings'],
+  PROTECTED_ROUTES: ['/painel', '/dashboard', '/profile', '/chat', '/settings'],
 
   API_ROUTES: ['/api'],
 
@@ -19,7 +19,7 @@ const ROUTE_CONFIG = {
 // Constantes
 const AUTH_COOKIE_NAME = 'token'
 const LOGIN_ROUTE = '/login'
-const DASHBOARD_ROUTE = '/home'
+const DASHBOARD_ROUTE = '/painel'
 
 // Função helper para verificar tipo de rota
 const getRouteType = (pathname: string): keyof typeof ROUTE_CONFIG | null => {

@@ -318,7 +318,7 @@ const colorSchemes = (skin: Skin): Theme['colorSchemes'] => {
           chatBg: '#0a1202',
           greyLightBg: '#373350',
           inputBorder: `rgb(var(--mui-mainColorChannels-dark) / 0.22)`,
-          tableHeaderBg: '#3D3759',
+          tableHeaderBg: '#001f27',
           tooltipText: '#312D4B',
           trackBg: '#2a361d'
         }

@@ -66,14 +66,17 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
       >
-        <MenuItem href='/home' icon={<i className='ri-home-smile-line' />}>
-          Home
+        <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
+          Painel
         </MenuItem>
 
         <MenuItem href='/historico_interacoes' icon={<i className='ri-file-edit-line' />}>
           Histórico de interações
         </MenuItem>
-        <MenuItem href='/projects' icon={<i className='ri-folder-6-line' />}>
+        <MenuItem href='/assistentes' icon={<i className='ri-robot-3-line' />}>
+          Assistentes
+        </MenuItem>
+        <MenuItem href='/projetos' icon={<i className='ri-folder-6-line' />}>
           Projetos
         </MenuItem>
       </Menu>

@@ -33,7 +33,7 @@ export type Config = {
 
 const themeConfig: Config = {
   templateName: 'AiYou',
-  homePageUrl: '/home',
+  homePageUrl: '/painel',
   settingsCookieName: 'materio-mui-next-demo',
   mode: 'system', // 'system', 'light', 'dark'
   skin: 'default', // 'default', 'bordered'

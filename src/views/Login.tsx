@@ -52,6 +52,8 @@ const loginSchema = v.object({
 type LoginFormData = v.InferInput<typeof loginSchema>
 
 const LoginV2 = ({ mode }: { mode: Mode }) => {
+  console.log(mode)
+
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
   const [postLogin, { isLoading, error }] = usePostLoginMutation()
@@ -92,7 +94,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
       }
 
       console.log('Login successful:', response)
-      navigation.push('/home')
+      navigation.push('/painel')
 
       // alert('Login successful!') // Show success message
     } catch (err: any) {
