@@ -320,7 +320,7 @@ const colorSchemes = (skin: Skin): Theme['colorSchemes'] => {
           inputBorder: `rgb(var(--mui-mainColorChannels-dark) / 0.22)`,
           tableHeaderBg: '#3D3759',
           tooltipText: '#312D4B',
-          trackBg: '#474360'
+          trackBg: '#2a361d'
         }
       }
     }
