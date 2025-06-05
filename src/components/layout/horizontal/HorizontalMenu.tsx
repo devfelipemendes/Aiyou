@@ -82,8 +82,8 @@ const HorizontalMenu = () => {
           menuSectionStyles: verticalMenuSectionStyles(verticalNavOptions, theme)
         }}
       >
-        <MenuItem href='/home' icon={<i className='ri-home-smile-line' />}>
-          Home
+        <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
+          Painel
         </MenuItem>
         <MenuItem href='/chat' icon={<i className='ri-chat-2-line' />}>
           Chat

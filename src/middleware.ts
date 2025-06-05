@@ -2,31 +2,24 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Configurações das rotas
 const ROUTE_CONFIG = {
-  // Rotas totalmente públicas (sem token)
   PUBLIC_ROUTES: ['/'],
 
-  // Rotas de autenticação (redirecionam se já logado)
   AUTH_ROUTES: ['/login'],
 
-  // Rotas de registro/billing (permitem token, mas não redirecionam)
   REGISTRATION_ROUTES: ['/register'],
 
-  // Rotas protegidas (requerem token + usuário ativo)
-  PROTECTED_ROUTES: ['/home', '/dashboard', '/profile', '/chat', '/settings'],
+  PROTECTED_ROUTES: ['/painel', '/dashboard', '/profile', '/chat', '/settings'],
 
-  // Rotas de API
   API_ROUTES: ['/api'],
 
-  // Rotas de administração (super protegidas)
   ADMIN_ROUTES: ['/admin']
 }
 
 // Constantes
 const AUTH_COOKIE_NAME = 'token'
 const LOGIN_ROUTE = '/login'
-const DASHBOARD_ROUTE = '/home'
+const DASHBOARD_ROUTE = '/painel'
 
 // Função helper para verificar tipo de rota
 const getRouteType = (pathname: string): keyof typeof ROUTE_CONFIG | null => {
@@ -41,14 +34,12 @@ const getRouteType = (pathname: string): keyof typeof ROUTE_CONFIG | null => {
 
 // Função para extrair token
 const extractToken = (request: NextRequest): string | null => {
-  // Primeiro tenta pegar do cookie
   const cookieToken = request.cookies.get(AUTH_COOKIE_NAME)?.value
 
   if (cookieToken) {
     return cookieToken
   }
 
-  // Se não tem cookie, tenta do header Authorization
   const authHeader = request.headers.get('Authorization')
 
   if (authHeader?.startsWith('Bearer ')) {
@@ -58,7 +49,6 @@ const extractToken = (request: NextRequest): string | null => {
   return null
 }
 
-// Função para criar resposta de erro para API
 const createApiErrorResponse = (message: string, status: number = 401) => {
   return new NextResponse(
     JSON.stringify({
@@ -80,9 +70,6 @@ export function middleware(request: NextRequest) {
 
   console.log(`🔍 Middleware - Rota: ${pathname}, Tipo: ${routeType}, Token: ${authToken ? '✅' : '❌'}`)
 
-  // ==========================================
-  // 1. ROTAS DE API
-  // ==========================================
   if (routeType === 'API_ROUTES') {
     // APIs públicas (como login, register)
     const publicApiRoutes = ['/api/login', '/api/register', '/api/health']

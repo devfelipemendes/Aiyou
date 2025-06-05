@@ -315,12 +315,12 @@ const colorSchemes = (skin: Skin): Theme['colorSchemes'] => {
         },
         customColors: {
           bodyBg: '#28243D',
-          chatBg: '#000000',
+          chatBg: '#0a1202',
           greyLightBg: '#373350',
           inputBorder: `rgb(var(--mui-mainColorChannels-dark) / 0.22)`,
-          tableHeaderBg: '#3D3759',
+          tableHeaderBg: '#001f27',
           tooltipText: '#312D4B',
-          trackBg: '#474360'
+          trackBg: '#2a361d'
         }
       }
     }
