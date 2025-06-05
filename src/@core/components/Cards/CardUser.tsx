@@ -7,6 +7,7 @@ import CardContent from '@mui/material/CardContent'
 import Avatar from '@mui/material/Avatar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
+import { useColorScheme } from '@mui/material'
 
 // Tipagem das props do componente
 interface CardUserProps {
@@ -22,10 +23,13 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
   // Gera um número aleatório entre 1 e 10 para a imagem do card
   const randomCardNumber = Math.floor(Math.random() * 10) + 1
 
+  const { mode, systemMode } = useColorScheme()
+  const _mode = (mode === 'system' ? systemMode : mode) || 'light'
+
   return (
     <Card>
       <CardMedia image={`/images/cards/${randomCardNumber}.png`} className='bs-[180px]' />
-      <CardContent className='relative'>
+      <CardContent className='relative' sx={{ backgroundColor: _mode === 'dark' && '#0089ad' }}>
         <Avatar
           src={avatarSrc}
           alt={name}

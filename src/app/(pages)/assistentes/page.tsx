@@ -2,6 +2,8 @@
 
 import React from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import { Button, Card, CardActions, CardContent, CardHeader } from '@mui/material'
 
 import Grid from '@mui/material/Grid2'
@@ -108,8 +110,11 @@ export const usersData: any[] = [
 ]
 
 export default function Assitentes() {
+  const navigate = useRouter()
+
   const handleUserClick = (user: any) => {
     console.log('Usuário clicado:', user.name)
+    navigate.push('/assistentes/detalhes_assistente')
   }
 
   return (
