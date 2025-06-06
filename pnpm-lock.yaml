@@ -29,6 +29,9 @@ importers:
       '@floating-ui/react':
         specifier: 0.27.2
         version: 0.27.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@formkit/drag-and-drop':
+        specifier: ^0.5.3
+        version: 0.5.3
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.0.1(react-hook-form@7.56.4(react@18.3.1))
@@ -547,6 +550,9 @@ packages:
 
   '@floating-ui/utils@0.2.9':
     resolution: {integrity: sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg==}
+
+  '@formkit/drag-and-drop@0.5.3':
+    resolution: {integrity: sha512-VGQsKYc350OOMbz7wYt69YqDbn49x7RJ32eqiJieNke54nGZYmx18XEqTw0lBiJmH3RaiH6V45gB1u+tvI/TNw==}
 
   '@hapi/address@4.1.0':
     resolution: {integrity: sha512-SkszZf13HVgGmChdHo/PxchnSaCJ6cetVqLzyciudzZRT0jcOouIF/Q93mgjw8cce+D+4F4C1Z/WrfFN+O3VHQ==}
@@ -3654,6 +3660,8 @@ snapshots:
   '@floating-ui/utils@0.2.8': {}
 
   '@floating-ui/utils@0.2.9': {}
+
+  '@formkit/drag-and-drop@0.5.3': {}
 
   '@hapi/address@4.1.0':
     dependencies:

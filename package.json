@@ -20,6 +20,7 @@
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.0",
     "@floating-ui/react": "0.27.2",
+    "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^5.0.1",
     "@mui/lab": "6.0.0-beta.19",
     "@mui/material": "6.2.1",
