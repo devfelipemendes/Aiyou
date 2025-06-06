@@ -101,6 +101,7 @@ const Navigation = (props: Props) => {
       // eslint-disable-next-line lines-around-comment
       // The following condition adds the data-dark attribute to the VerticalNav component
       // when semiDark is enabled and the mode or systemMode is light
+
       {...(isSemiDark &&
         !isDark && {
           'data-dark': ''

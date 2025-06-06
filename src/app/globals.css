@@ -20,7 +20,7 @@
   --footer-z-index: 10;
   --customizer-z-index: var(--mui-zIndex-drawer);
   --search-z-index: var(--mui-zIndex-tooltip);
-  --drawer-z-index: var(--mui-zIndex-drawer);
+  --drawer-z-index: 1200;
   --backdrop-color: rgb(var(--mui-mainColorChannels-light) / 0.5);
   --mui-mainColorChannels-shadow: var(--mui-mainColorChannels-lightShadow);
 }

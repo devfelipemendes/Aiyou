@@ -131,7 +131,7 @@ const KanbanDrawer = (props: KanbanDrawerProps) => {
   }, [task, reset])
 
   return (
-    <div className='z-[-1]'>
+    <div>
       <Drawer
         open={drawerOpen}
         anchor='right'
