@@ -63,6 +63,8 @@ const TaskCard = (props: TaskCardProps) => {
 
   // Handle menu click
   const handleClick = (e: any) => {
+    e.stopPropagation()
+    e.preventDefault() // ✅ ADICIONAR preventDefault também
     setMenuOpen(true)
     setAnchorEl(e.currentTarget)
   }
@@ -73,10 +75,15 @@ const TaskCard = (props: TaskCardProps) => {
     setMenuOpen(false)
   }
 
-  // Handle Task Click
-  const handleTaskClick = () => {
-    setDrawerOpen(true)
-    dispatch(getCurrentTask(task.id))
+  // Handle Task Click - VERSÃO SIMPLIFICADA
+  const handleTaskClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    // ✅ SÓ abre se clicou em área específica (não no menu)
+    if (!menuOpen && !e.defaultPrevented) {
+      setDrawerOpen(true)
+      dispatch(getCurrentTask(task.id))
+    }
   }
 
   // Delete Task
@@ -100,11 +107,16 @@ const TaskCard = (props: TaskCardProps) => {
   return (
     <>
       <Card
-        className={classnames(
-          'item-draggable is-[16.5rem] cursor-grab active:cursor-grabbing overflow-visible mbe-4',
-          styles.card
-        )}
-        onClick={() => handleTaskClick()}
+        className={classnames('overflow-visible mbe-4', styles.card)}
+        style={{
+          // ✅ ESTILOS INLINE para garantir funcionamento
+          cursor: 'grab',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          touchAction: 'none'
+        }}
+
+        // ✅ REMOVIDOS todos os event handlers de mouse - deixa o FormKit gerenciar
       >
         <CardContent className='flex flex-col gap-y-2 items-start relative overflow-hidden'>
           {task.badgeText && task.badgeText.length > 0 && (
@@ -117,16 +129,18 @@ const TaskCard = (props: TaskCardProps) => {
               )}
             </div>
           )}
-          <div className='absolute block-start-4 inline-end-3' onClick={e => e.stopPropagation()}>
+
+          {/* ✅ MENU SIMPLIFICADO */}
+          <div className='absolute block-start-4 inline-end-3' style={{ zIndex: 10 }}>
             <IconButton
               aria-label='more'
               size='small'
               className={classnames(styles.menu, {
                 [styles.menuOpen]: menuOpen
               })}
-              aria-controls='long-menu'
-              aria-haspopup='true'
               onClick={handleClick}
+              onMouseDown={e => e.stopPropagation()} // ✅ Previne drag ao clicar no menu
+              onTouchStart={e => e.stopPropagation()} // ✅ Para mobile
             >
               <i className='ri-more-2-line text-xl' />
             </IconButton>
@@ -141,20 +155,19 @@ const TaskCard = (props: TaskCardProps) => {
             >
               <MenuItem onClick={handleClose}>Duplicate Task</MenuItem>
               <MenuItem onClick={handleClose}>Copy Task Link</MenuItem>
-              <MenuItem
-                onClick={() => {
-                  handleDelete()
-                }}
-              >
-                Delete
-              </MenuItem>
+              <MenuItem onClick={handleDelete}>Delete</MenuItem>
             </Menu>
           </div>
 
           {task.image && <img src={task.image} alt='task Image' className='is-full rounded' />}
-          <Typography color='text.primary' className='max-is-[85%] break-words'>
-            {task.title}
-          </Typography>
+
+          {/* ✅ ÁREA CLICÁVEL ESPECÍFICA para editar */}
+          <div className='flex-1 w-full cursor-pointer' onClick={handleTaskClick} style={{ zIndex: 1 }}>
+            <Typography color='text.primary' className='max-is-[85%] break-words'>
+              {task.title}
+            </Typography>
+          </div>
+
           {(task.attachments !== undefined && task.attachments > 0) ||
           (task.comments !== undefined && task.comments > 0) ||
           (task.assigned !== undefined && task.assigned.length > 0) ? (
@@ -186,6 +199,7 @@ const TaskCard = (props: TaskCardProps) => {
                         alt={avatar.name}
                         size={26}
                         className='cursor-pointer'
+                        onClick={(e: any) => e.stopPropagation()} // ✅ Previne propagação
                       />
                     </Tooltip>
                   ))}
