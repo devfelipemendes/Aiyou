@@ -14,6 +14,7 @@ import register from './slices/register'
 // import chatReducer from '@/redux-store/slices/chat'
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 import { externalApi } from '@/api/ApiCreate/cepApi'
+import { socketMiddleware } from './midleware/socketMiddleware'
 
 export const store = configureStore({
   reducer: {
@@ -29,7 +30,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE']
       }
-    }).concat(apiSlice.middleware, externalApi.middleware)
+    }).concat(apiSlice.middleware, externalApi.middleware, socketMiddleware)
 })
 
 // Hooks para padronização do uso do Redux
