@@ -13,6 +13,8 @@ import { animations } from '@formkit/drag-and-drop'
 import classnames from 'classnames'
 
 // Type Imports
+import { alpha, Box, Card, CardContent, styled } from '@mui/material'
+
 import type { TaskType, ColumnType, KanbanType } from '@/types/kanbanTypes'
 import type { AppDispatch } from '@/redux-store'
 
@@ -37,6 +39,75 @@ type KanbanListProps = {
   setColumns: (value: ColumnType[]) => void
   currentTask: TaskType | undefined
 }
+
+const StyledKanbanCard = styled(Card)(({ theme }) => ({
+  minHeight: '200px',
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: 12,
+  border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  position: 'relative',
+  overflow: 'visible',
+
+  // Efeito hover suave
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.15)}`,
+    borderColor: alpha(theme.palette.primary.main, 0.25)
+  },
+
+  // Efeito quando arrastando
+  '&.drag-over': {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: alpha(theme.palette.primary.main, 0.04)
+  }
+}))
+
+const StyledCardHeader = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2, 2, 1, 2),
+  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.02)} 0%, ${alpha(theme.palette.secondary.main, 0.02)} 100%)`,
+  borderRadius: '12px 12px 0 0',
+  position: 'relative',
+
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '3px',
+    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+    borderRadius: '12px 12px 0 0'
+  }
+}))
+
+const StyledTasksContainer = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(1),
+  minHeight: '120px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1),
+
+  // Custom scrollbar
+  maxHeight: '60vh',
+  overflowY: 'auto',
+
+  '&::-webkit-scrollbar': {
+    width: '6px'
+  },
+  '&::-webkit-scrollbar-track': {
+    backgroundColor: alpha(theme.palette.action.hover, 0.1),
+    borderRadius: '3px'
+  },
+  '&::-webkit-scrollbar-thumb': {
+    backgroundColor: alpha(theme.palette.action.disabled, 0.5),
+    borderRadius: '3px',
+    '&:hover': {
+      backgroundColor: alpha(theme.palette.action.disabled, 0.8)
+    }
+  }
+}))
 
 const KanbanList = (props: KanbanListProps) => {
   // Props
@@ -138,77 +209,116 @@ const KanbanList = (props: KanbanListProps) => {
   }, [columns])
 
   return (
-    <div ref={tasksListRef as RefObject<HTMLDivElement>} className='flex flex-col is-[16.5rem]'>
-      {editDisplay ? (
-        <form
-          className='flex items-center mbe-4'
-          onSubmit={handleSubmitEdit}
-          onKeyDown={e => {
-            if (e.key === 'Escape') {
-              cancelEdit()
-            }
-          }}
-        >
-          <InputBase value={title} autoFocus onChange={e => setTitle(e.target.value)} required />
-          <IconButton color='success' size='small' type='submit'>
-            <i className='ri-check-line' />
-          </IconButton>
-          <IconButton color='error' size='small' type='reset' onClick={cancelEdit}>
-            <i className='ri-close-line' />
-          </IconButton>
-        </form>
-      ) : (
-        <div
-          id='no-drag'
-          className={classnames(
-            'flex items-center justify-between is-[16.5rem] bs-[2.125rem] mbe-4',
-            styles.kanbanColumn
-          )}
-        >
-          <Typography variant='h5' noWrap className='max-is-[80%]'>
-            {column.title}
-          </Typography>
-          <div className='flex items-center'>
-            <i className={classnames('ri-drag-move-fill text-textSecondary list-handle', styles.drag)} />
-            <OptionMenu
-              iconClassName='text-xl text-actionActive'
-              options={[
-                {
-                  text: 'Edit',
-                  icon: 'ri-pencil-line',
-                  menuItemProps: {
-                    className: 'flex items-center gap-2',
-                    onClick: () => setEditDisplay(!editDisplay)
+    <StyledKanbanCard ref={tasksListRef as RefObject<HTMLDivElement>} className='is-[16.5rem]'>
+      <StyledCardHeader>
+        {editDisplay ? (
+          <form
+            className='flex items-center'
+            onSubmit={handleSubmitEdit}
+            onKeyDown={e => {
+              if (e.key === 'Escape') {
+                cancelEdit()
+              }
+            }}
+          >
+            <InputBase
+              value={title}
+              autoFocus
+              onChange={e => setTitle(e.target.value)}
+              required
+              sx={{
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                flex: 1
+              }}
+            />
+            <IconButton color='success' size='small' type='submit'>
+              <i className='ri-check-line' />
+            </IconButton>
+            <IconButton color='error' size='small' type='reset' onClick={cancelEdit}>
+              <i className='ri-close-line' />
+            </IconButton>
+          </form>
+        ) : (
+          <div id='no-drag' className={classnames('flex items-center justify-between w-full', styles.kanbanColumn)}>
+            <Typography
+              variant='h6'
+              noWrap
+              className='max-is-[80%]'
+              sx={{
+                color: 'primary.main',
+                fontWeight: 600,
+                fontSize: '1.1rem'
+              }}
+            >
+              {column.title}
+            </Typography>
+            <Box className='flex items-center gap-1'>
+              <Box
+                sx={{
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
+                  borderRadius: '50%',
+                  width: 20,
+                  height: 20,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  mr: 1
+                }}
+              >
+                {tasksList.filter(task => task).length}
+              </Box>
+
+              <i className={classnames('ri-drag-move-fill text-textSecondary list-handle', styles.drag)} />
+              <OptionMenu
+                iconClassName='text-lg text-actionActive'
+                options={[
+                  {
+                    text: 'Edit',
+                    icon: 'ri-pencil-line',
+                    menuItemProps: {
+                      className: 'flex items-center gap-2',
+                      onClick: () => setEditDisplay(!editDisplay)
+                    }
+                  },
+                  {
+                    text: 'Delete',
+                    icon: 'ri-delete-bin-line',
+                    menuItemProps: { className: 'flex items-center gap-2', onClick: handleDeleteColumn }
                   }
-                },
-                {
-                  text: 'Delete',
-                  icon: 'ri-delete-bin-line',
-                  menuItemProps: { className: 'flex items-center gap-2', onClick: handleDeleteColumn }
-                }
-              ]}
-            />
+                ]}
+              />
+            </Box>
           </div>
-        </div>
-      )}
-      {tasksList.map(
-        task =>
-          task && (
-            <TaskCard
-              key={task.id}
-              task={task}
-              dispatch={dispatch}
-              column={column}
-              setColumns={setColumns}
-              columns={columns}
-              setDrawerOpen={setDrawerOpen}
-              tasksList={tasksList}
-              setTasksList={setTasksList}
-            />
-          )
-      )}
-      <NewTask addTask={addNewTask} />
-    </div>
+        )}
+      </StyledCardHeader>
+
+      <StyledTasksContainer>
+        {tasksList.map(
+          task =>
+            task && (
+              <TaskCard
+                key={task.id}
+                task={task}
+                dispatch={dispatch}
+                column={column}
+                setColumns={setColumns}
+                columns={columns}
+                setDrawerOpen={setDrawerOpen}
+                tasksList={tasksList}
+                setTasksList={setTasksList}
+              />
+            )
+        )}
+      </StyledTasksContainer>
+
+      <CardContent sx={{ pt: 0, pb: 2 }}>
+        <NewTask addTask={addNewTask} />
+      </CardContent>
+    </StyledKanbanCard>
   )
 }
 
