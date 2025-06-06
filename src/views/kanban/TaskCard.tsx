@@ -16,7 +16,7 @@ import MenuItem from '@mui/material/MenuItem'
 import classnames from 'classnames'
 
 // Type Imports
-import type { ColumnType, TaskType } from '@/types/apps/kanbanTypes'
+import type { ColumnType, TaskType } from '@/types/kanbanTypes'
 import type { AppDispatch } from '@/redux-store'
 import type { ThemeColor } from '@core/types'
 

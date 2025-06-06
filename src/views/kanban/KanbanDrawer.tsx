@@ -25,7 +25,7 @@ import { minLength, nonEmpty, object, pipe, string } from 'valibot'
 import type { InferInput } from 'valibot'
 
 // Type Imports
-import type { ColumnType, TaskType } from '@/types/apps/kanbanTypes'
+import type { ColumnType, TaskType } from '@/types/kanbanTypes'
 import type { AppDispatch } from '@/redux-store'
 
 // Slice Imports
@@ -50,7 +50,7 @@ type KanbanDrawerProps = {
 type FormData = InferInput<typeof schema>
 
 const schema = object({
-  title: pipe(string(), nonEmpty('Title is required'), minLength(1))
+  title: pipe(string(), nonEmpty('O titulo é obrigatório'), minLength(1))
 })
 
 const KanbanDrawer = (props: KanbanDrawerProps) => {
@@ -131,7 +131,7 @@ const KanbanDrawer = (props: KanbanDrawerProps) => {
   }, [task, reset])
 
   return (
-    <div>
+    <div className='z-[-1]'>
       <Drawer
         open={drawerOpen}
         anchor='right'
@@ -141,7 +141,7 @@ const KanbanDrawer = (props: KanbanDrawerProps) => {
         onClose={handleClose}
       >
         <div className='flex justify-between items-center pli-5 plb-4 border-be'>
-          <Typography variant='h5'>Edit Task</Typography>
+          <Typography variant='h5'>Editar chat</Typography>
           <IconButton size='small' onClick={handleClose}>
             <i className='ri-close-line text-2xl' />
           </IconButton>

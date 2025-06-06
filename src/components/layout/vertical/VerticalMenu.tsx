@@ -5,10 +5,11 @@ import { useTheme } from '@mui/material/styles'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
 // Type Imports
+
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
 // Component Imports
-import { Menu, MenuItem } from '@menu/vertical-menu'
+import { Menu, MenuItem, MenuSection } from '@menu/vertical-menu'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
@@ -66,19 +67,23 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
       >
-        <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
-          Painel
-        </MenuItem>
-
-        <MenuItem href='/historico_interacoes' icon={<i className='ri-file-edit-line' />}>
-          Histórico de interações
-        </MenuItem>
-        <MenuItem href='/assistentes' icon={<i className='ri-robot-3-line' />}>
-          Assistentes
-        </MenuItem>
-        <MenuItem href='/projetos' icon={<i className='ri-folder-6-line' />}>
-          Projetos
-        </MenuItem>
+        <MenuSection label={'Principais'}>
+          <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
+            Painel
+          </MenuItem>
+          <MenuItem href='/historico_interacoes' icon={<i className='ri-file-edit-line' />}>
+            Histórico de interações
+          </MenuItem>
+          <MenuItem href='/assistentes' icon={<i className='ri-robot-3-line' />}>
+            Assistentes
+          </MenuItem>
+          <MenuItem href='/projetos' icon={<i className='ri-folder-6-line' />}>
+            Projetos
+          </MenuItem>
+          <MenuItem href='/operador/monitoramento' icon={<i className='ri-customer-service-2-fill' />}>
+            Operador
+          </MenuItem>
+        </MenuSection>
       </Menu>
     </ScrollWrapper>
   )

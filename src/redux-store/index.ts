@@ -5,6 +5,8 @@ import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux
 
 import chatReducer from '@/redux-store/slices/chat'
 
+import kanbanReducer from '@/redux-store/slices/kanban'
+
 // Slice Imports
 import authReducer from './slices/auth'
 import register from './slices/register'
@@ -17,6 +19,7 @@ export const store = configureStore({
   reducer: {
     authReducer,
     chatReducer,
+    kanbanReducer,
     registration: register,
     [apiSlice.reducerPath]: apiSlice.reducer,
     [externalApi.reducerPath]: externalApi.reducer
