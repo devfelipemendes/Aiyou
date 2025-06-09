@@ -1,3 +1,4 @@
+// app/layout.tsx - VERSÃO COMPLETA CORRIGIDA
 // MUI Imports
 import InitColorSchemeScript from '@mui/material/InitColorSchemeScript'
 import 'react-credit-cards-2/dist/es/styles-compiled.css'
@@ -23,7 +24,7 @@ export const metadata = {
   title: 'Aiyou',
   description: 'Sistema de inteligencia artificial',
   icons: {
-    icon: '/favicon.svg' // ou outro caminho se for .png, .svg etc.
+    icon: '/favicon.svg'
   }
 }
 
@@ -31,7 +32,6 @@ const RootLayout = async (props: ChildrenType) => {
   const { children } = props
 
   // Vars
-
   const systemMode = await getSystemMode()
   const direction = 'ltr'
 
@@ -39,7 +39,9 @@ const RootLayout = async (props: ChildrenType) => {
     <html id='__next' lang='en' dir={direction} suppressHydrationWarning>
       <body className='flex is-full min-bs-full flex-auto flex-col'>
         <InitColorSchemeScript attribute='data' defaultMode={systemMode} />
+
         <ReduxProvider>{children}</ReduxProvider>
+
         <ToastContainer />
       </body>
     </html>

@@ -1,10 +1,11 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+
+// Redux hooks
 
 import Grid from '@mui/material/Grid2'
 import {
   Box as BoxIcon,
-  Filter,
   Settings,
   ChevronDown,
   Tag,
@@ -12,18 +13,12 @@ import {
   MessageCircle,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  Phone
+  AlertCircle
 } from 'lucide-react'
 import {
   Button,
   Chip,
   Typography,
-  Menu,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Checkbox,
   FormControlLabel,
   Divider,
@@ -56,8 +51,13 @@ import {
 
 import { CSS } from '@dnd-kit/utilities'
 
+import { setFilterOrder, selectFilterOrders } from '@/redux-store/slices/monitoring'
+import { useAppDispatch, useAppSelector } from '@/redux-store'
+
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
 import { clientsData } from './fakeJson'
+import CardStatVertical from '@/components/card-statistics/Vertical'
+import ChannelsChart from './(components)/ChannelsChart'
 
 // Tipos para os filtros
 type PriorityLevel = 'baixa' | 'media' | 'alta' | 'urgente'
@@ -74,6 +74,17 @@ interface ChatFilters {
   cardsPerRow: number
 }
 
+// Função para gerar chave única dos filtros
+const generateFilterKey = (filters: ChatFilters): string => {
+  return JSON.stringify({
+    orderBy: filters.orderBy,
+    showClosed: filters.showClosed,
+    statuses: filters.statuses.sort(),
+    channels: filters.channels.sort(),
+    priorities: filters.priorities.sort()
+  })
+}
+
 // Componente wrapper para tornar o card draggável
 interface DraggableCardProps {
   clientId: string
@@ -81,10 +92,9 @@ interface DraggableCardProps {
   messages: any[]
   operatorName?: string
   buttonName: string
-  isDragging?: boolean
 }
 
-const DraggableCard = ({ clientId, channel, messages, operatorName, buttonName, isDragging }: DraggableCardProps) => {
+const DraggableCard = ({ clientId, channel, messages, operatorName, buttonName }: DraggableCardProps) => {
   const {
     attributes,
     listeners,
@@ -115,8 +125,9 @@ const DraggableCard = ({ clientId, channel, messages, operatorName, buttonName, 
 }
 
 const KanbanPage = () => {
-  // Estados principais
-  const [orderedClients, setOrderedClients] = useState(clientsData)
+  // Redux
+  const dispatch = useAppDispatch()
+  const filterOrders = useAppSelector(selectFilterOrders)
 
   const [filters, setFilters] = useState<ChatFilters>({
     orderBy: 'chegada',
@@ -146,7 +157,7 @@ const KanbanPage = () => {
 
   // Mock: adicionar propriedades extras aos dados para demonstração
   const enrichedClientsData = useMemo(() => {
-    return orderedClients.map(client => ({
+    return clientsData.map(client => ({
       ...client,
       priority: ['baixa', 'media', 'alta', 'urgente'][Math.floor(Math.random() * 4)] as PriorityLevel,
       status: ['ativo', 'encerrado', 'resolvido', 'nao_resolvido', 'chamou_operador'][
@@ -155,10 +166,10 @@ const KanbanPage = () => {
       channelType: client.channel.toLowerCase() as ChannelType,
       tags: ['vip', 'urgente', 'suporte'].slice(0, Math.floor(Math.random() * 3))
     }))
-  }, [orderedClients])
+  }, [])
 
-  // Aplicar todos os filtros
-  const filteredClients = useMemo(() => {
+  // Aplicar filtros base (sem ordenação)
+  const filteredClientsBase = useMemo(() => {
     let filtered = [...enrichedClientsData]
 
     // Filtro por status
@@ -181,67 +192,99 @@ const KanbanPage = () => {
       filtered = filtered.filter(client => client.status !== 'encerrado')
     }
 
-    // Ordenação
-    if (filters.orderBy === 'prioridade') {
-      const priorityOrder = { urgente: 4, alta: 3, media: 2, baixa: 1 }
-
-      filtered.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority])
-    } else {
-      // Ordenar por chegada (timestamp da última mensagem)
-      filtered.sort((a, b) => {
-        const timeA = Date.now() - Math.random() * 86400000
-        const timeB = Date.now() - Math.random() * 86400000
-
-        return timeB - timeA
-      })
-    }
-
     return filtered
-  }, [enrichedClientsData, filters])
+  }, [enrichedClientsData, filters.statuses, filters.channels, filters.priorities, filters.showClosed])
 
-  // Função para lidar com o fim do drag
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
+  // Aplicar ordenação específica usando Redux
+  const filteredClients = useMemo(() => {
+    const filterKey = generateFilterKey(filters)
+    const savedOrder = filterOrders[filterKey] || null
 
-    if (over && active.id !== over.id) {
-      setOrderedClients(items => {
-        const oldIndex = items.findIndex(item => item.clientId === active.id)
-        const newIndex = items.findIndex(item => item.clientId === over.id)
+    const orderedClients = [...filteredClientsBase]
 
-        return arrayMove(items, oldIndex, newIndex)
+    // Se existe uma ordem salva para este filtro, aplicá-la
+    if (savedOrder && savedOrder.length > 0) {
+      const positionMap = new Map(savedOrder.map((id, index) => [id, index]))
+
+      orderedClients.sort((a, b) => {
+        const posA = positionMap.get(a.clientId) ?? Number.MAX_SAFE_INTEGER
+        const posB = positionMap.get(b.clientId) ?? Number.MAX_SAFE_INTEGER
+
+        return posA - posB
       })
+    } else {
+      // Aplicar ordenação padrão baseada no filtro
+      if (filters.orderBy === 'prioridade') {
+        const priorityOrder = { urgente: 4, alta: 3, media: 2, baixa: 1 }
+
+        orderedClients.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority])
+      } else {
+        // Ordenar por chegada (timestamp consistente baseado no clientId)
+        orderedClients.sort((a, b) => {
+          const timeA = parseInt(a.clientId.replace(/\D/g, '')) || 0
+          const timeB = parseInt(b.clientId.replace(/\D/g, '')) || 0
+
+          return timeB - timeA
+        })
+      }
     }
-  }
+
+    return orderedClients
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredClientsBase, filters.orderBy, filterOrders])
+
+  // Função para lidar com o fim do drag usando Redux
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
+
+      if (over && active.id !== over.id) {
+        const currentOrder = filteredClients.map(client => client.clientId)
+        const oldIndex = currentOrder.findIndex(id => id === active.id)
+        const newIndex = currentOrder.findIndex(id => id === over.id)
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          const newOrder = arrayMove(currentOrder, oldIndex, newIndex)
+          const filterKey = generateFilterKey(filters)
+
+          // Salvar no Redux!
+          dispatch(setFilterOrder({ key: filterKey, order: newOrder }))
+        }
+      }
+    },
+    [filteredClients, filters, dispatch]
+  )
 
   // Handlers dos filtros
-  const handleFilterChange = (key: keyof ChatFilters, value: any) => {
+  const handleFilterChange = useCallback((key: keyof ChatFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
-  }
+  }, [])
 
-  const handleStatusToggle = (status: ChatStatus) => {
+  const handleStatusToggle = useCallback((status: ChatStatus) => {
     setFilters(prev => ({
       ...prev,
       statuses: prev.statuses.includes(status) ? prev.statuses.filter(s => s !== status) : [...prev.statuses, status]
     }))
-  }
+  }, [])
 
-  const handleChannelToggle = (channel: ChannelType) => {
+  const handleChannelToggle = useCallback((channel: ChannelType) => {
     setFilters(prev => ({
       ...prev,
       channels: prev.channels.includes(channel) ? prev.channels.filter(c => c !== channel) : [...prev.channels, channel]
     }))
-  }
+  }, [])
 
-  const handlePriorityToggle = (priority: PriorityLevel) => {
+  const handlePriorityToggle = useCallback((priority: PriorityLevel) => {
     setFilters(prev => ({
       ...prev,
       priorities: prev.priorities.includes(priority)
         ? prev.priorities.filter(p => p !== priority)
         : [...prev.priorities, priority]
     }))
-  }
+  }, [])
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilters({
       orderBy: 'chegada',
       showClosed: false,
@@ -251,9 +294,9 @@ const KanbanPage = () => {
       messagesLimit: 10,
       cardsPerRow: 4
     })
-  }
+  }, [])
 
-  const getActiveFiltersCount = () => {
+  const getActiveFiltersCount = useCallback(() => {
     return (
       filters.statuses.length +
       filters.channels.length +
@@ -261,10 +304,10 @@ const KanbanPage = () => {
       (filters.showClosed ? 1 : 0) +
       (filters.orderBy !== 'chegada' ? 1 : 0)
     )
-  }
+  }, [filters])
 
   // Calcular tamanho do grid baseado na configuração
-  const getGridSize = () => {
+  const getGridSize = useCallback(() => {
     const sizeMap = {
       6: { md: 2, xl: 2, sm: 4 },
       4: { md: 3, xl: 3, sm: 6 },
@@ -274,11 +317,53 @@ const KanbanPage = () => {
     }
 
     return sizeMap[filters.cardsPerRow as keyof typeof sizeMap] || sizeMap[4]
-  }
+  }, [filters.cardsPerRow])
+
+  const handleChannelClick = useCallback((channelName: string) => {
+    console.log(`Canal clicado: ${channelName}`)
+
+    // Aqui você pode implementar filtros por canal, navegação, etc.
+
+    // Exemplo: Filtrar por canal específico
+    const channelMapping: Record<string, ChannelType> = {
+      WhatsApp: 'whatsapp',
+      Telegram: 'telegram',
+      'Web Chat': 'webchat',
+      'E-mail': 'email',
+      SMS: 'sms'
+    }
+
+    const channelType = channelMapping[channelName]
+
+    if (channelType) {
+      handleChannelToggle(channelType)
+    }
+  }, [])
 
   return (
     <>
-      {/* Header com Filtros Agrupados */}
+      {/* Header com Estatísticas */}
+      <Grid container spacing={3} className='mb-5'>
+        <Grid size={{ md: 6 }}>
+          <CardStatVertical
+            stats='862'
+            trend='negative'
+            trendNumber='18%'
+            title='New Project'
+            subtitle='Yearly Project'
+            avatarColor='primary'
+            avatarIcon='ri-file-word-2-line'
+          />
+        </Grid>
+        <Grid size={{ md: 6 }}>
+          <ChannelsChart
+            onChannelClick={handleChannelClick}
+            refreshInterval={30000} // Atualiza a cada 30 segundos
+          />
+        </Grid>
+      </Grid>
+
+      {/* Header com Filtros */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3}>
           {/* Título */}
@@ -291,6 +376,10 @@ const KanbanPage = () => {
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
                   {filteredClients.length} de {enrichedClientsData.length} conversas
+                  {/* Debug info */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <span> • {Object.keys(filterOrders).length} ordens salvas</span>
+                  )}
                 </Typography>
               </div>
             </Box>
@@ -340,7 +429,6 @@ const KanbanPage = () => {
                 startIcon={<MessageCircle size={16} />}
                 endIcon={<ChevronDown size={16} />}
                 onClick={e => setFilterMenuAnchor(e.currentTarget)}
-                color={filters.channels.length > 0 ? 'secondary' : 'inherit'}
               >
                 Canais {filters.channels.length > 0 && `(${filters.channels.length})`}
               </Button>
@@ -369,7 +457,7 @@ const KanbanPage = () => {
                 Config
               </Button>
 
-              {/* Limpar Filtros */}
+              {/* Limpar Filtros - 🔥 CORRIGIDO: String com aspas */}
               {getActiveFiltersCount() > 0 && (
                 <Button variant='text' size='small' color='error' onClick={clearAllFilters}>
                   Limpar
