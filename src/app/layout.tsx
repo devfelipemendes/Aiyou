@@ -20,9 +20,11 @@ import '@assets/iconify-icons/generated-icons.css'
 import ReduxProvider from '@/redux-store/ReduxProvider'
 
 export const metadata = {
-  title: 'Materio - Material Design Next.js Admin Template',
-  description:
-    'Materio - Material Design Next.js Admin Dashboard Template - is the most developer friendly & highly customizable Admin Dashboard Template based on MUI v5.'
+  title: 'Aiyou',
+  description: 'Sistema de inteligencia artificial',
+  icons: {
+    icon: '/favicon.svg' // ou outro caminho se for .png, .svg etc.
+  }
 }
 
 const RootLayout = async (props: ChildrenType) => {
