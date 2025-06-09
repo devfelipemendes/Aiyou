@@ -342,7 +342,6 @@ const KanbanPage = () => {
 
   return (
     <>
-      {/* Header com Estatísticas */}
       <Grid container spacing={3} className='mb-5'>
         <Grid size={{ md: 6 }}>
           <CardStatVertical
