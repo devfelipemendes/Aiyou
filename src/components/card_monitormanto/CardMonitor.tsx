@@ -1,11 +1,18 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback } from 'react'
 
 import { Avatar, Box, Button, Card, CardContent, CardHeader, Chip, Typography } from '@mui/material'
 
 import { useSettings } from '@core/hooks/useSettings'
 
+// 🔥 NOVOS IMPORTS
+import styles from './CardMonitor.module.css' // CSS que criamos
+
+import type { NotificationType } from '@/types/monitoring'
+import { NOTIFICATION_CONFIG } from '@/types/monitoring'
+
+// 🔥 MANTIDA: Sua interface Message original
 interface Message {
   id: string
   sender: 'operador' | 'client' | 'IA'
@@ -13,23 +20,38 @@ interface Message {
   timestamp: Date
 }
 
+// 🔥 ATUALIZADA: Props expandidas (suas + novas)
 interface CardMonitorProps {
   clientId: string
   buttonName: string
   channel?: 'web' | 'whatsapp' | 'telegram' | 'email' | string
   messages: Message[]
-
   operatorName?: string
+
+  // Props novas (opcionais para não quebrar código existente)
+  notificationType?: NotificationType
+  isSelected?: boolean
+  isHovered?: boolean
+  onClick?: (clientId: string) => void
+  onHover?: (clientId: string, isHovered: boolean) => void
 }
 
 export default function CardMonitor({
   clientId,
   channel,
   messages,
-
   operatorName,
-  buttonName
+  buttonName,
+
+  // Valores padrão para não quebrar código existente
+  notificationType = 'normal',
+  isSelected = false,
+
+  // isHovered = false,
+  onClick,
+  onHover
 }: CardMonitorProps) {
+  // 🔥 MANTIDAS: Suas funções originais
   const getSenderLabel = (sender: Message['sender']) => {
     switch (sender) {
       case 'IA':
@@ -80,8 +102,98 @@ export default function CardMonitor({
 
   const { settings } = useSettings()
 
+  // 🔥 NOVAS: Funções para interatividade
+  const handleCardClick = useCallback(() => {
+    if (onClick) {
+      onClick(clientId)
+    }
+  }, [clientId, onClick])
+
+  const handleMouseEnter = useCallback(() => {
+    if (onHover) {
+      onHover(clientId, true)
+    }
+  }, [clientId, onHover])
+
+  const handleMouseLeave = useCallback(() => {
+    if (onHover) {
+      onHover(clientId, false)
+    }
+  }, [clientId, onHover])
+
+  // 🔥 NOVA: Função para gerar classes CSS baseadas no estado
+  const getCardClasses = useCallback(() => {
+    const classes = [styles.cardMonitor]
+
+    // Adicionar classe de notificação
+    switch (notificationType) {
+      case 'operator_call':
+        classes.push(styles.operatorCall)
+        break
+      case 'unresolved':
+        classes.push(styles.unresolved)
+        break
+      case 'operator_control':
+        classes.push(styles.operatorControl)
+        break
+      case 'no_response':
+        classes.push(styles.noResponse)
+        break
+      default:
+        classes.push(styles.normal)
+    }
+
+    // Adicionar classe de seleção
+    if (isSelected) {
+      classes.push(styles.selected)
+    }
+
+    return classes.join(' ')
+  }, [notificationType, isSelected])
+
+  // 🔥 NOVA: Função para obter configuração da notificação
+  const getNotificationConfig = useCallback(() => {
+    return NOTIFICATION_CONFIG[notificationType] || NOTIFICATION_CONFIG.normal
+  }, [notificationType])
+
+  const config = getNotificationConfig()
+
   return (
-    <Card className='h-80 flex flex-col'>
+    <Card
+      className={getCardClasses()}
+      onClick={handleCardClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      sx={{
+        height: 320, // Aumentei um pouco para acomodar indicadores
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+
+        // Aplicar estilos de notificação via sx também
+        ...(notificationType !== 'normal' && {
+          backgroundColor: config.backgroundColor
+        })
+      }}
+    >
+      {/* 🔥 NOVO: Indicador visual no canto superior direito */}
+      {notificationType !== 'normal' && (
+        <div
+          className={`${styles.notificationIndicator} ${styles[notificationType.replace('_', '')]}`}
+          title={config.label}
+        />
+      )}
+
+      {/* 🔥 NOVO: Badge de status (se necessário) */}
+      {notificationType !== 'normal' && (
+        <Chip
+          label={config.label}
+          size='small'
+          className={`${styles.statusChip} ${styles[notificationType.replace('_', '')]}`}
+        />
+      )}
+
+      {/* 🔥 MANTIDO: Seu CardHeader original com pequenos ajustes */}
       <CardHeader
         title={clientId}
         subheader={
@@ -95,8 +207,33 @@ export default function CardMonitor({
             )}
           </Box>
         }
-        action={<Button>{buttonName}</Button>}
+        action={
+          <Button
+            variant={isSelected ? 'contained' : 'outlined'}
+            size='small'
+            sx={{
+              // Adicionar cor especial se houver notificação crítica
+              ...(notificationType === 'operator_call' && {
+                backgroundColor: '#f44336',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: '#d32f2f'
+                }
+              })
+            }}
+          >
+            {buttonName}
+          </Button>
+        }
+        sx={{
+          // Adicionar padding top se houver badge
+          ...(notificationType !== 'normal' && {
+            paddingTop: '24px'
+          })
+        }}
       />
+
+      {/* 🔥 MANTIDO: Seu CardContent original */}
       <CardContent
         sx={{
           flex: 1,
@@ -164,7 +301,6 @@ export default function CardMonitor({
                             : '#e4e4e4'
                           : getSenderColor(message.sender),
                       borderRadius: 2,
-
                       padding: '8px 12px',
                       wordWrap: 'break-word',
                       fontSize: '0.875rem',
@@ -208,6 +344,31 @@ export default function CardMonitor({
           </Box>
         )}
       </CardContent>
+
+      {/* 🔥 NOVO: Rodapé com informações de notificação (opcional) */}
+      {notificationType !== 'normal' && (
+        <Box
+          sx={{
+            padding: '4px 16px',
+            backgroundColor: config.backgroundColor,
+            borderTop: `1px solid ${config.borderColor}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Typography
+            variant='caption'
+            sx={{
+              color: config.color,
+              fontWeight: 500,
+              fontSize: '0.7rem'
+            }}
+          >
+            {config.label}
+          </Typography>
+        </Box>
+      )}
     </Card>
   )
 }

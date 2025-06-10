@@ -4,7 +4,19 @@ import { useState, useMemo, useCallback } from 'react'
 // Redux hooks
 
 import Grid from '@mui/material/Grid2'
-import { Box as BoxIcon, Settings, ChevronDown, Tag, MessageCircle, CheckCircle } from 'lucide-react'
+import {
+  Box as BoxIcon,
+  Settings,
+  ChevronDown,
+  Tag,
+  Clock,
+  MessageCircle,
+  CheckCircle,
+  XCircle,
+  Bell,
+  UserCheck,
+  AlertTriangle
+} from 'lucide-react'
 import {
   Button,
   Chip,
@@ -18,10 +30,11 @@ import {
   Box,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Alert
 } from '@mui/material'
 
-// Imports do DnD Kit
+// DnD Kit imports
 import {
   DndContext,
   closestCenter,
@@ -38,12 +51,16 @@ import {
   rectSortingStrategy,
   useSortable
 } from '@dnd-kit/sortable'
-
 import { CSS } from '@dnd-kit/utilities'
 
-import { setFilterOrder, selectFilterOrders } from '@/redux-store/slices/monitoring'
 import { useAppDispatch, useAppSelector } from '@/redux-store'
+import { setFilterOrder, selectFilterOrders } from '@/redux-store/slices/monitoring'
 
+// 🔥 IMPORTS: Sistema de notificação
+import { useCardNotifications } from '@/hooks/useCardNotifications'
+import type { NotificationType } from '@/types/monitoring'
+
+// Imports existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
 import { clientsData } from './fakeJson'
 import CardStatVertical from '@/components/card-statistics/Vertical'
@@ -75,16 +92,33 @@ const generateFilterKey = (filters: ChatFilters): string => {
   })
 }
 
-// Componente wrapper para tornar o card draggável
+// 🔥 ATUALIZADO: DraggableCard com sistema de notificação
 interface DraggableCardProps {
   clientId: string
   channel: string
   messages: any[]
   operatorName?: string
   buttonName: string
+
+  // Novas props
+  client: any
+  notificationType: NotificationType
+  isSelected: boolean
+  onCardClick: (clientId: string) => void
+  onCardHover: (clientId: string, isHovered: boolean) => void
 }
 
-const DraggableCard = ({ clientId, channel, messages, operatorName, buttonName }: DraggableCardProps) => {
+const DraggableCard = ({
+  clientId,
+  channel,
+  messages,
+  operatorName,
+  buttonName,
+  notificationType,
+  isSelected,
+  onCardClick,
+  onCardHover
+}: DraggableCardProps) => {
   const {
     attributes,
     listeners,
@@ -109,6 +143,10 @@ const DraggableCard = ({ clientId, channel, messages, operatorName, buttonName }
         messages={messages}
         operatorName={operatorName}
         buttonName={buttonName}
+        notificationType={notificationType}
+        isSelected={isSelected}
+        onClick={onCardClick}
+        onHover={onCardHover}
       />
     </div>
   )
@@ -119,6 +157,7 @@ const KanbanPage = () => {
   const dispatch = useAppDispatch()
   const filterOrders = useAppSelector(selectFilterOrders)
 
+  // Estados dos filtros
   const [filters, setFilters] = useState<ChatFilters>({
     orderBy: 'chegada',
     showClosed: false,
@@ -133,6 +172,17 @@ const KanbanPage = () => {
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null)
   const [settingsMenuAnchor, setSettingsMenuAnchor] = useState<null | HTMLElement>(null)
 
+  // 🔥 Hook para notificações
+  const {
+    selectedCardId,
+    handleCardClick,
+    handleCardHover,
+    isCardSelected,
+    getNotificationType,
+    getNotificationCounts,
+    clearSelection
+  } = useCardNotifications()
+
   // Configuração dos sensores para o drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -145,20 +195,42 @@ const KanbanPage = () => {
     })
   )
 
-  // Mock: adicionar propriedades extras aos dados para demonstração
+  // 🔥 CORRIGIDO: enrichedClientsData com dependências do useMemo
   const enrichedClientsData = useMemo(() => {
-    return clientsData.map(client => ({
-      ...client,
-      priority: ['baixa', 'media', 'alta', 'urgente'][Math.floor(Math.random() * 4)] as PriorityLevel,
-      status: ['ativo', 'encerrado', 'resolvido', 'nao_resolvido', 'chamou_operador'][
-        Math.floor(Math.random() * 5)
-      ] as ChatStatus,
-      channelType: client.channel.toLowerCase() as ChannelType,
-      tags: ['vip', 'urgente', 'suporte'].slice(0, Math.floor(Math.random() * 3))
-    }))
-  }, [])
+    return clientsData.map(client => {
+      // Determinar status baseado no clientId para teste
+      let status: ChatStatus = 'ativo'
 
-  // Aplicar filtros base (sem ordenação)
+      if (['CHAT001', 'CHAT002', 'CHAT013'].includes(client.clientId)) {
+        status = 'chamou_operador' // Vermelho piscando
+      } else if (['CHAT003', 'CHAT014'].includes(client.clientId)) {
+        status = 'nao_resolvido' // Amarelo
+      } else if (['CHAT008', 'CHAT009', 'CHAT010'].includes(client.clientId)) {
+        status = 'resolvido' // Normal
+      }
+
+      return {
+        ...client,
+        priority: ['baixa', 'media', 'alta', 'urgente'][Math.floor(Math.random() * 4)] as PriorityLevel,
+        status,
+        channelType: client.channel.toLowerCase() as ChannelType,
+        tags: ['vip', 'urgente', 'suporte'].slice(0, Math.floor(Math.random() * 3)),
+
+        // 🔥 NOVO: Dados para sistema de notificação
+        lastActivity:
+          client.messages.length > 0
+            ? client.messages[client.messages.length - 1].timestamp
+            : new Date(Date.now() - Math.random() * 2 * 60 * 60 * 1000) // Últimas 2h
+      }
+    })
+  }, []) // 🔥 CORRIGIDO: Array de dependências vazio pois clientsData é estático
+
+  // 🔥 CORRIGIDO: Contadores de notificação com dependências
+  const notificationCounts = useMemo(() => {
+    return getNotificationCounts(enrichedClientsData)
+  }, [enrichedClientsData, getNotificationCounts])
+
+  // 🔥 CORRIGIDO: Aplicar filtros base com dependências corretas
   const filteredClientsBase = useMemo(() => {
     let filtered = [...enrichedClientsData]
 
@@ -179,22 +251,21 @@ const KanbanPage = () => {
 
     // Filtro de chats encerrados
     if (!filters.showClosed) {
-      filtered = filtered.filter(client => client.status !== 'encerrado')
+      filtered = filtered.filter(client => !['encerrado', 'resolvido'].includes(client.status))
     }
 
     return filtered
   }, [enrichedClientsData, filters.statuses, filters.channels, filters.priorities, filters.showClosed])
 
-  // Aplicar ordenação específica usando Redux
+  // 🔥 CORRIGIDO: Aplicar ordenação com dependências corretas
   const filteredClients = useMemo(() => {
     const filterKey = generateFilterKey(filters)
     const savedOrder = filterOrders[filterKey] || null
 
     const orderedClients = [...filteredClientsBase]
 
-    // Se existe uma ordem salva para este filtro, aplicá-la
     if (savedOrder && savedOrder.length > 0) {
-      const positionMap = new Map(savedOrder.map((id, index) => [id, index]))
+      const positionMap = new Map(savedOrder.map((id: string, index: number) => [id, index]))
 
       orderedClients.sort((a, b) => {
         const posA = positionMap.get(a.clientId) ?? Number.MAX_SAFE_INTEGER
@@ -203,13 +274,11 @@ const KanbanPage = () => {
         return posA - posB
       })
     } else {
-      // Aplicar ordenação padrão baseada no filtro
       if (filters.orderBy === 'prioridade') {
         const priorityOrder = { urgente: 4, alta: 3, media: 2, baixa: 1 }
 
         orderedClients.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority])
       } else {
-        // Ordenar por chegada (timestamp consistente baseado no clientId)
         orderedClients.sort((a, b) => {
           const timeA = parseInt(a.clientId.replace(/\D/g, '')) || 0
           const timeB = parseInt(b.clientId.replace(/\D/g, '')) || 0
@@ -220,11 +289,9 @@ const KanbanPage = () => {
     }
 
     return orderedClients
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredClientsBase, filters.orderBy, filterOrders])
 
-  // Função para lidar com o fim do drag usando Redux
+  // 🔥 CORRIGIDO: handleDragEnd com dependências corretas
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
@@ -238,7 +305,6 @@ const KanbanPage = () => {
           const newOrder = arrayMove(currentOrder, oldIndex, newIndex)
           const filterKey = generateFilterKey(filters)
 
-          // Salvar no Redux!
           dispatch(setFilterOrder({ key: filterKey, order: newOrder }))
         }
       }
@@ -246,7 +312,7 @@ const KanbanPage = () => {
     [filteredClients, filters, dispatch]
   )
 
-  // Handlers dos filtros
+  // 🔥 CORRIGIDO: Handlers dos filtros com tipos corretos
   const handleFilterChange = useCallback((key: keyof ChatFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }, [])
@@ -254,14 +320,18 @@ const KanbanPage = () => {
   const handleStatusToggle = useCallback((status: ChatStatus) => {
     setFilters(prev => ({
       ...prev,
-      statuses: prev.statuses.includes(status) ? prev.statuses.filter(s => s !== status) : [...prev.statuses, status]
+      statuses: prev.statuses.includes(status)
+        ? prev.statuses.filter((s: ChatStatus) => s !== status)
+        : [...prev.statuses, status]
     }))
   }, [])
 
   const handleChannelToggle = useCallback((channel: ChannelType) => {
     setFilters(prev => ({
       ...prev,
-      channels: prev.channels.includes(channel) ? prev.channels.filter(c => c !== channel) : [...prev.channels, channel]
+      channels: prev.channels.includes(channel)
+        ? prev.channels.filter((c: ChannelType) => c !== channel)
+        : [...prev.channels, channel]
     }))
   }, [])
 
@@ -269,7 +339,7 @@ const KanbanPage = () => {
     setFilters(prev => ({
       ...prev,
       priorities: prev.priorities.includes(priority)
-        ? prev.priorities.filter(p => p !== priority)
+        ? prev.priorities.filter((p: PriorityLevel) => p !== priority)
         : [...prev.priorities, priority]
     }))
   }, [])
@@ -286,6 +356,7 @@ const KanbanPage = () => {
     })
   }, [])
 
+  // 🔥 CORRIGIDO: getActiveFiltersCount com dependências corretas
   const getActiveFiltersCount = useCallback(() => {
     return (
       filters.statuses.length +
@@ -296,7 +367,7 @@ const KanbanPage = () => {
     )
   }, [filters])
 
-  // Calcular tamanho do grid baseado na configuração
+  // 🔥 CORRIGIDO: getGridSize com dependências corretas
   const getGridSize = useCallback(() => {
     const sizeMap = {
       6: { md: 2, xl: 2, sm: 4 },
@@ -309,30 +380,83 @@ const KanbanPage = () => {
     return sizeMap[filters.cardsPerRow as keyof typeof sizeMap] || sizeMap[4]
   }, [filters.cardsPerRow])
 
-  const handleChannelClick = useCallback((channelName: string) => {
-    console.log(`Canal clicado: ${channelName}`)
+  const handleChannelClick = useCallback(
+    (channelName: string) => {
+      console.log(`Canal clicado: ${channelName}`)
 
-    // Aqui você pode implementar filtros por canal, navegação, etc.
+      const channelMapping: Record<string, ChannelType> = {
+        WhatsApp: 'whatsapp',
+        Telegram: 'telegram',
+        'Web Chat': 'webchat',
+        'E-mail': 'email',
+        SMS: 'sms'
+      }
 
-    // Exemplo: Filtrar por canal específico
-    const channelMapping: Record<string, ChannelType> = {
-      WhatsApp: 'whatsapp',
-      Telegram: 'telegram',
-      'Web Chat': 'webchat',
-      'E-mail': 'email',
-      SMS: 'sms'
-    }
+      const channelType = channelMapping[channelName]
 
-    const channelType = channelMapping[channelName]
-
-    if (channelType) {
-      handleChannelToggle(channelType)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+      if (channelType) {
+        handleChannelToggle(channelType)
+      }
+    },
+    [handleChannelToggle]
+  )
 
   return (
     <>
+      {/* 🔥 Alert com contadores de notificação */}
+      {(notificationCounts.operator_call > 0 ||
+        notificationCounts.unresolved > 0 ||
+        notificationCounts.no_response > 0) && (
+        <Alert severity='warning' sx={{ mb: 2 }} icon={<AlertTriangle size={20} />}>
+          <Box display='flex' gap={1} alignItems='center' flexWrap='wrap'>
+            <Typography variant='body2' fontWeight={500}>
+              Atenção necessária:
+            </Typography>
+
+            {notificationCounts.operator_call > 0 && (
+              <Chip
+                icon={<Bell size={14} />}
+                label={`${notificationCounts.operator_call} Chamadas Urgentes`}
+                color='error'
+                size='small'
+                variant='filled'
+              />
+            )}
+
+            {notificationCounts.unresolved > 0 && (
+              <Chip
+                icon={<XCircle size={14} />}
+                label={`${notificationCounts.unresolved} Não Resolvidos`}
+                color='warning'
+                size='small'
+                variant='filled'
+              />
+            )}
+
+            {notificationCounts.no_response > 0 && (
+              <Chip
+                icon={<Clock size={14} />}
+                label={`${notificationCounts.no_response} Sem Resposta`}
+                color='info'
+                size='small'
+                variant='filled'
+              />
+            )}
+
+            {notificationCounts.operator_control > 0 && (
+              <Chip
+                icon={<UserCheck size={14} />}
+                label={`${notificationCounts.operator_control} Em Controle`}
+                color='primary'
+                size='small'
+                variant='outlined'
+              />
+            )}
+          </Box>
+        </Alert>
+      )}
+
+      {/* Cards de estatísticas existentes */}
       <Grid container spacing={3} className='mb-5'>
         <Grid size={{ md: 6 }}>
           <CardStatVertical
@@ -346,10 +470,7 @@ const KanbanPage = () => {
           />
         </Grid>
         <Grid size={{ md: 6 }}>
-          <ChannelsChart
-            onChannelClick={handleChannelClick}
-            refreshInterval={30000} // Atualiza a cada 30 segundos
-          />
+          <ChannelsChart onChannelClick={handleChannelClick} refreshInterval={30000} />
         </Grid>
       </Grid>
 
@@ -366,7 +487,7 @@ const KanbanPage = () => {
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
                   {filteredClients.length} de {enrichedClientsData.length} conversas
-                  {/* Debug info */}
+                  {selectedCardId && <span> • Selecionado: {selectedCardId}</span>}
                   {process.env.NODE_ENV === 'development' && (
                     <span> • {Object.keys(filterOrders).length} ordens salvas</span>
                   )}
@@ -378,6 +499,19 @@ const KanbanPage = () => {
           {/* Grupo de Filtros e Controles */}
           <Grid size={{ xs: 12, md: 9 }}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
+              {/* Botão para limpar seleção */}
+              {selectedCardId && (
+                <Button
+                  variant='outlined'
+                  size='small'
+                  onClick={clearSelection}
+                  color='secondary'
+                  startIcon={<i className='ri-close-line' />}
+                >
+                  Limpar Seleção
+                </Button>
+              )}
+
               {/* Ordenação */}
               <Button
                 variant={filters.orderBy === 'chegada' ? 'contained' : 'outlined'}
@@ -401,7 +535,7 @@ const KanbanPage = () => {
 
               <Divider orientation='vertical' flexItem sx={{ mx: 1 }} />
 
-              {/* Status */}
+              {/* Status - conectado ao filterMenuAnchor */}
               <Button
                 variant={filters.statuses.length > 0 ? 'contained' : 'outlined'}
                 size='small'
@@ -440,7 +574,7 @@ const KanbanPage = () => {
 
               <Divider orientation='vertical' flexItem sx={{ mx: 1 }} />
 
-              {/* Configurações */}
+              {/* Configurações - conectado ao settingsMenuAnchor */}
               <Button
                 variant='outlined'
                 size='small'
@@ -450,7 +584,7 @@ const KanbanPage = () => {
                 Config
               </Button>
 
-              {/* Limpar Filtros - 🔥 CORRIGIDO: String com aspas */}
+              {/* Limpar Filtros */}
               {getActiveFiltersCount() > 0 && (
                 <Button variant='text' size='small' color='error' onClick={clearAllFilters}>
                   Limpar
@@ -494,12 +628,13 @@ const KanbanPage = () => {
         </Grid>
       </Paper>
 
-      {/* Menu de Filtros Avançados */}
+      {/* Menu de Filtros Avançados - Agora funcional! */}
       <Popover
         open={Boolean(filterMenuAnchor)}
         anchorEl={filterMenuAnchor}
         onClose={() => setFilterMenuAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         <Paper sx={{ p: 2, minWidth: 300, maxWidth: 400 }}>
           <Typography variant='subtitle2' gutterBottom>
@@ -512,19 +647,29 @@ const KanbanPage = () => {
               <Typography variant='body2'>Status dos Chats</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              {(['ativo', 'encerrado', 'resolvido', 'nao_resolvido', 'chamou_operador'] as ChatStatus[]).map(status => (
-                <FormControlLabel
-                  key={status}
-                  control={
-                    <Checkbox
-                      checked={filters.statuses.includes(status)}
-                      onChange={() => handleStatusToggle(status)}
-                      size='small'
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {(['ativo', 'encerrado', 'resolvido', 'nao_resolvido', 'chamou_operador'] as ChatStatus[]).map(
+                  status => (
+                    <FormControlLabel
+                      key={status}
+                      control={
+                        <Checkbox
+                          checked={filters.statuses.includes(status)}
+                          onChange={() => handleStatusToggle(status)}
+                          size='small'
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant='body2'>{status.replace('_', ' ')}</Typography>
+                          {status === 'chamou_operador' && <Bell size={12} color='red' />}
+                          {status === 'nao_resolvido' && <XCircle size={12} color='orange' />}
+                        </Box>
+                      }
                     />
-                  }
-                  label={status.replace('_', ' ')}
-                />
-              ))}
+                  )
+                )}
+              </Box>
             </AccordionDetails>
           </Accordion>
 
@@ -534,19 +679,25 @@ const KanbanPage = () => {
               <Typography variant='body2'>Canais de Atendimento</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              {(['whatsapp', 'telegram', 'webchat', 'email', 'sms'] as ChannelType[]).map(channel => (
-                <FormControlLabel
-                  key={channel}
-                  control={
-                    <Checkbox
-                      checked={filters.channels.includes(channel)}
-                      onChange={() => handleChannelToggle(channel)}
-                      size='small'
-                    />
-                  }
-                  label={channel}
-                />
-              ))}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {(['whatsapp', 'telegram', 'webchat', 'email', 'sms'] as ChannelType[]).map(channel => (
+                  <FormControlLabel
+                    key={channel}
+                    control={
+                      <Checkbox
+                        checked={filters.channels.includes(channel)}
+                        onChange={() => handleChannelToggle(channel)}
+                        size='small'
+                      />
+                    }
+                    label={
+                      <Typography variant='body2' sx={{ textTransform: 'capitalize' }}>
+                        {channel}
+                      </Typography>
+                    }
+                  />
+                ))}
+              </Box>
             </AccordionDetails>
           </Accordion>
 
@@ -556,30 +707,37 @@ const KanbanPage = () => {
               <Typography variant='body2'>Níveis de Prioridade</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              {(['baixa', 'media', 'alta', 'urgente'] as PriorityLevel[]).map(priority => (
-                <FormControlLabel
-                  key={priority}
-                  control={
-                    <Checkbox
-                      checked={filters.priorities.includes(priority)}
-                      onChange={() => handlePriorityToggle(priority)}
-                      size='small'
-                    />
-                  }
-                  label={priority}
-                />
-              ))}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {(['baixa', 'media', 'alta', 'urgente'] as PriorityLevel[]).map(priority => (
+                  <FormControlLabel
+                    key={priority}
+                    control={
+                      <Checkbox
+                        checked={filters.priorities.includes(priority)}
+                        onChange={() => handlePriorityToggle(priority)}
+                        size='small'
+                      />
+                    }
+                    label={
+                      <Typography variant='body2' sx={{ textTransform: 'capitalize' }}>
+                        {priority}
+                      </Typography>
+                    }
+                  />
+                ))}
+              </Box>
             </AccordionDetails>
           </Accordion>
         </Paper>
       </Popover>
 
-      {/* Menu de Configurações */}
+      {/* Menu de Configurações - Agora funcional! */}
       <Popover
         open={Boolean(settingsMenuAnchor)}
         anchorEl={settingsMenuAnchor}
         onClose={() => setSettingsMenuAnchor(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Paper sx={{ p: 3, minWidth: 280 }}>
           <Typography variant='subtitle2' gutterBottom>
@@ -628,7 +786,7 @@ const KanbanPage = () => {
         </Paper>
       </Popover>
 
-      {/* Grid de Cards */}
+      {/* Grid de Cards com sistema de notificação */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={filteredClients.map(client => client.clientId)} strategy={rectSortingStrategy}>
           <Grid container spacing={3}>
@@ -639,7 +797,12 @@ const KanbanPage = () => {
                   channel={client.channel}
                   messages={client.messages.slice(0, filters.messagesLimit)}
                   operatorName={client.operatorName}
-                  buttonName={'IA'}
+                  buttonName='IA'
+                  client={client}
+                  notificationType={getNotificationType(client)}
+                  isSelected={isCardSelected(client.clientId)}
+                  onCardClick={handleCardClick}
+                  onCardHover={handleCardHover}
                 />
               </Grid>
             ))}
