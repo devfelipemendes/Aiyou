@@ -1,145 +1,116 @@
-// Type Imports
-import type { ThemeColor } from '@core/types'
+// types/chat.types.ts
 
-export type StatusType = 'busy' | 'away' | 'online' | 'offline'
+/**
+ * Status possíveis de um chat
+ * Estes status definem as cores visuais dos cards
+ */
+export type ChatStatus =
+  | 'operator_call' // Vermelho piscando - chamada do operador
+  | 'unsolved_closed' // Amarelo - fechado sem resolução
+  | 'operator_control' // Azul claro - operador assumiu controle
+  | 'no_response' // Laranja - sem resposta do cliente
+  | 'active' // Verde - ativo normal
 
-export type StatusObjType = Record<StatusType, ThemeColor>
+/**
+ * Quem enviou a mensagem
+ */
+export type MessageSender = 'customer' | 'operator' | 'bot'
 
-export type ProfileUserType = {
-  id: number
-  role: string
-  about: string
-  avatar: string
-  fullName: string
-  status: StatusType
-  settings: {
-    isNotificationsOn: boolean
-    isTwoStepAuthVerificationEnabled: boolean
-  }
+/**
+ * Estrutura de uma mensagem individual
+ */
+export interface ChatMessage {
+  id: string
+  content: string
+  sender: MessageSender
+  timestamp: Date
+
+  // Campos opcionais para futuras funcionalidades
+  isRead?: boolean
+  attachments?: MessageAttachment[]
+  replyTo?: string // ID da mensagem que está respondendo
 }
 
-export type ContactType = {
-  id: number
-  fullName: string
-  role: string
-  about: string
-  avatar?: string
-  avatarColor?: ThemeColor
-  status: StatusType
+/**
+ * Anexos de mensagem (preparado para futuro)
+ */
+export interface MessageAttachment {
+  id: string
+  type: 'image' | 'file' | 'audio'
+  url: string
+  name: string
+  size?: number
 }
 
-// 🔥 CORRIGIDO: time agora usa apenas timestamp (number)
-export type UserChatType = {
-  message: string
-  time: number // ✅ Mudança: sempre timestamp para serialização
-  senderId: number
-  msgStatus?: Record<'isSent' | 'isDelivered' | 'isSeen', boolean>
+/**
+ * Dados principais de um chat
+ */
+export interface ChatData {
+  id: string
+  customerName: string
+  customerAvatar?: string
+  customerEmail?: string
+  status: ChatStatus
+  lastMessage: string
+  timestamp: Date
+
+  // Informações do operador (quando aplicável)
+  operatorId?: string
+  operatorName?: string
+  operatorAvatar?: string
+
+  // Mensagens completas (carregadas quando modal é aberto)
+  messages?: ChatMessage[]
+
+  // Metadados úteis
+  unreadCount?: number
+  priority?: 'low' | 'medium' | 'high'
+  department?: string
+  tags?: string[]
+
+  // Informações de sessão
+  sessionStarted?: Date
+  lastActivity?: Date
+  isTyping?: boolean
 }
 
-export type ChatType = {
-  id: number
-  userId: number
-  unseenMsgs: number
-  chat: UserChatType[]
+/**
+ * Configurações visuais do card baseadas no status
+ */
+export interface CardVisualConfig {
+  backgroundColor: string
+  borderColor: string
+  animation?: string
+  chipColor: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning'
+  statusText: string
 }
 
-export type ChatDataType = {
-  profileUser: ProfileUserType
-  contacts: ContactType[]
-  chats: ChatType[]
-  activeUser?: ContactType
+/**
+ * Props para componentes que precisam gerenciar estado do modal
+ */
+export interface ModalState {
+  isOpen: boolean
+  selectedChat: ChatData | null
+  isLoading: boolean
 }
 
-// 🔥 NOVO: Utilitários para trabalhar com timestamps
-export class DateUtils {
-  /**
-   * Converte timestamp para string legível
-   * @param timestamp - Timestamp em milissegundos
-   * @returns String formatada (ex: "14:30")
-   */
-  static formatTime(timestamp: number): string {
-    return new Date(timestamp).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+/**
+ * Actions que podem ser executadas em um chat
+ */
+export interface ChatActions {
+  onOpenChat: (chat: ChatData) => void
+  onSendMessage: (chatId: string, message: string) => void
+  onTakeControl: (chatId: string) => void
+  onReleaseControl: (chatId: string) => void
+  onMarkAsRead: (chatId: string) => void
+  onClose: () => void
+}
 
-  /**
-   * Converte timestamp para data completa
-   * @param timestamp - Timestamp em milissegundos
-   * @returns String formatada (ex: "10/06/2025 14:30")
-   */
-  static formatDateTime(timestamp: number): string {
-    return new Date(timestamp).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  /**
-   * Converte timestamp para data relativa
-   * @param timestamp - Timestamp em milissegundos
-   * @returns String como "há 2 minutos", "ontem", etc.
-   */
-  static formatRelativeTime(timestamp: number): string {
-    const now = Date.now()
-    const diff = now - timestamp
-
-    // Menos de 1 minuto
-    if (diff < 60000) {
-      return 'agora mesmo'
-    }
-
-    // Menos de 1 hora
-    if (diff < 3600000) {
-      const minutes = Math.floor(diff / 60000)
-
-      return `há ${minutes} minuto${minutes > 1 ? 's' : ''}`
-    }
-
-    // Menos de 1 dia
-    if (diff < 86400000) {
-      const hours = Math.floor(diff / 3600000)
-
-      return `há ${hours} hora${hours > 1 ? 's' : ''}`
-    }
-
-    // Mais de 1 dia - mostrar data
-    const date = new Date(timestamp)
-    const today = new Date()
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'hoje'
-    }
-
-    const yesterday = new Date(today)
-
-    yesterday.setDate(today.getDate() - 1)
-
-    if (date.toDateString() === yesterday.toDateString()) {
-      return 'ontem'
-    }
-
-    return date.toLocaleDateString('pt-BR')
-  }
-
-  /**
-   * Cria timestamp atual
-   * @returns Timestamp atual em milissegundos
-   */
-  static now(): number {
-    return Date.now()
-  }
-
-  /**
-   * Converte string de data para timestamp
-   * @param dateString - String no formato ISO ou formato brasileiro
-   * @returns Timestamp em milissegundos
-   */
-  static parseToTimestamp(dateString: string): number {
-    return new Date(dateString).getTime()
-  }
+/**
+ * Dados mock para desenvolvimento (remover quando integrar WebSocket)
+ */
+export interface MockDataConfig {
+  enableMockData: boolean
+  updateInterval?: number // ms
+  autoGenerateMessages?: boolean
 }
