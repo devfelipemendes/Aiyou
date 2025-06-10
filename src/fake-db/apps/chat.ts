@@ -1,17 +1,24 @@
 // Type Imports
 import type { ChatDataType } from '@/types/chatTypes'
 
-const previousDay = new Date(new Date().getTime() - 24 * 60 * 60 * 1000)
-const dayBeforePreviousDay = new Date(new Date().getTime() - 24 * 60 * 60 * 1000 * 2)
+// 🔥 CORRIGIDO: Função para criar timestamps consistentes
+const createTimestamp = (dateString: string): number => {
+  return new Date(dateString).getTime()
+}
 
+// Timestamps para datas relativas (ontem, anteontem, etc.)
+const now = Date.now()
+const previousDay = now - 24 * 60 * 60 * 1000 // Ontem
+const dayBeforePreviousDay = now - 2 * 24 * 60 * 60 * 1000 // Anteontem
+
+// 🔥 CORRIGIDO: Dados do chat com timestamps serializáveis
 export const db: ChatDataType = {
   profileUser: {
     id: 1,
     avatar: '/images/avatars/1.png',
-    fullName: 'John Doe',
-    role: 'Admin',
-    about:
-      'Dessert chocolate cake lemon drops jujubes. Biscuit cupcake ice cream bear claw brownie brownie marshmallow.',
+    fullName: 'João Silva',
+    role: 'Administrador',
+    about: 'Administrador do sistema de chat e monitoramento de atendimento.',
     status: 'online',
     settings: {
       isTwoStepAuthVerificationEnabled: true,
@@ -21,141 +28,97 @@ export const db: ChatDataType = {
   contacts: [
     {
       id: 2,
-      fullName: 'Felecia Rower',
-      role: 'Frontend Developer',
-      about: 'Cake pie jelly jelly beans. Marzipan lemon drops halvah cake. Pudding cookie lemon drops icing',
+      fullName: 'Maria Santos',
+      role: 'Desenvolvedora Frontend',
+      about: 'Especialista em React e TypeScript. Apaixonada por criar interfaces elegantes.',
       avatar: '/images/avatars/2.png',
       status: 'offline'
     },
     {
       id: 3,
-      fullName: 'Adalberto Granzin',
-      role: 'UI/UX Designer',
+      fullName: 'Carlos Oliveira',
+      role: 'Designer UI/UX',
       avatarColor: 'primary',
-      about:
-        'Toffee caramels jelly-o tart gummi bears cake I love ice cream lollipop. Sweet liquorice croissant candy danish dessert icing. Cake macaroon gingerbread toffee sweet.',
+      about: 'Designer focado em experiência do usuário e interfaces intuitivas.',
       status: 'busy'
     },
     {
       id: 4,
-      fullName: 'Joaquina Weisenborn',
-      role: 'Town planner',
-      about:
-        'Soufflé soufflé caramels sweet roll. Jelly lollipop sesame snaps bear claw jelly beans sugar plum sugar plum.',
+      fullName: 'Ana Costa',
+      role: 'Planejadora Urbana',
+      about: 'Especialista em planejamento urbano e desenvolvimento sustentável.',
       avatar: '/images/avatars/8.png',
       status: 'busy'
     },
     {
       id: 5,
-      fullName: 'Margot Henschke',
-      role: 'Dietitian',
+      fullName: 'Pedro Almeida',
+      role: 'Nutricionista',
       avatarColor: 'success',
-      about: 'Cake pie jelly jelly beans. Marzipan lemon drops halvah cake. Pudding cookie lemon drops icing',
+      about: 'Nutricionista com foco em alimentação saudável e sustentável.',
       status: 'busy'
     },
     {
       id: 6,
       avatarColor: 'warning',
-      fullName: 'Bridgett Omohundro',
-      role: 'Designer, television/film set',
-      about:
-        'Gummies gummi bears I love candy icing apple pie I love marzipan bear claw. I love tart biscuit I love candy canes pudding chupa chups liquorice croissant.',
+      fullName: 'Lucia Fernandes',
+      role: 'Designer de Produção',
+      about: 'Designer especializada em produção audiovisual e cenografia.',
       status: 'offline'
     },
     {
       id: 7,
-      fullName: 'Sal Piggee',
-      role: 'Marketing executive',
-      about:
-        'Toffee caramels jelly-o tart gummi bears cake I love ice cream lollipop. Sweet liquorice croissant candy danish dessert icing. Cake macaroon gingerbread toffee sweet.',
+      fullName: 'Roberto Silva',
+      role: 'Executivo de Marketing',
+      about: 'Estrategista de marketing digital com foco em crescimento orgânico.',
       avatarColor: 'info',
       status: 'online'
     },
     {
       id: 8,
-      fullName: 'Miguel Guelff',
-      role: 'Special educational needs teacher',
-      about:
-        'Biscuit powder oat cake donut brownie ice cream I love soufflé. I love tootsie roll I love powder tootsie roll.',
+      fullName: 'Fernanda Lima',
+      role: 'Professora de Educação Especial',
+      about: 'Educadora dedicada ao ensino inclusivo e desenvolvimento de metodologias adaptativas.',
       avatar: '/images/avatars/7.png',
       status: 'online'
     },
     {
       id: 9,
-      fullName: 'Mauro Elenbaas',
-      role: 'Advertising copywriter',
-      about:
-        'Bear claw ice cream lollipop gingerbread carrot cake. Brownie gummi bears chocolate muffin croissant jelly I love marzipan wafer.',
-      avatarColor: 'success',
-      status: 'away'
+      fullName: 'Diego Mendes',
+      role: 'Redator Publicitário',
+      about: 'Copywriter criativo especializado em campanhas digitais e storytelling.',
+      avatarColor: 'error',
+      status: 'online'
     },
     {
       id: 10,
-      avatarColor: 'error',
-      fullName: 'Zenia Jacobs',
-      role: 'Building surveyor',
-      about: 'Cake pie jelly jelly beans. Marzipan lemon drops halvah cake. Pudding cookie lemon drops icing',
+      fullName: 'Camila Torres',
+      role: 'Engenheira Civil',
+      about: 'Engenheira especializada em construção sustentável e eficiência energética.',
+      avatar: '/images/avatars/4.png',
       status: 'away'
     },
     {
       id: 11,
-      fullName: 'Ramonita Veras',
-      role: 'CEO',
-      about:
-        'Toffee caramels jelly-o tart gummi bears cake I love ice cream lollipop. Sweet liquorice croissant candy danish dessert icing. Cake macaroon gingerbread toffee sweet.',
-      avatar: '/images/avatars/4.png',
-      status: 'online'
-    },
-    {
-      id: 12,
-      fullName: 'Lashawna Gotschall',
-      role: 'Therapist, sports',
-      about:
-        'Soufflé soufflé caramels sweet roll. Jelly lollipop sesame snaps bear claw jelly beans sugar plum sugar plum.',
-      avatarColor: 'info',
-      status: 'online'
-    },
-    {
-      id: 13,
-      fullName: 'Rosalva Uyetake',
-      role: 'Engineer, civil (consulting)',
-      about:
-        'Chupa chups candy canes chocolate bar marshmallow liquorice muffin. Lemon drops oat cake tart liquorice tart cookie. Jelly-o cookie tootsie roll halvah.',
-      avatar: '/images/avatars/6.png',
-      status: 'offline'
-    },
-    {
-      id: 14,
-      fullName: 'Cecilia Shockey',
-      role: 'Database administrator',
-      about: 'Cake pie jelly jelly beans. Marzipan lemon drops halvah cake. Pudding cookie lemon drops icing',
-      avatarColor: 'secondary',
-      status: 'busy'
-    },
-    {
-      id: 15,
-      fullName: 'Harriett Duropan',
-      role: 'Therapist, sports',
-      about:
-        'Toffee caramels jelly-o tart gummi bears cake I love ice cream lollipop. Sweet liquorice croissant candy danish dessert icing. Cake macaroon gingerbread toffee sweet.',
+      fullName: 'Rafael Souza',
+      role: 'Desenvolvedor Full Stack',
+      about: 'Desenvolvedor experiente em Node.js, React e arquitetura de sistemas.',
       avatar: '/images/avatars/5.png',
       status: 'online'
     },
     {
       id: 16,
-      fullName: 'Lauran Starner',
-      role: 'AI specialist',
-      about:
-        'Soufflé soufflé caramels sweet roll. Jelly lollipop sesame snaps bear claw jelly beans sugar plum sugar plum.',
+      fullName: 'Laura Monteiro',
+      role: 'Especialista em IA',
+      about: 'Pesquisadora em inteligência artificial e machine learning aplicado.',
       avatarColor: 'warning',
       status: 'online'
     },
     {
       id: 17,
-      fullName: 'Verla Morgano',
-      role: 'Data scientist',
-      about:
-        'Chupa chups candy canes chocolate bar marshmallow liquorice muffin. Lemon drops oat cake tart liquorice tart cookie. Jelly-o cookie tootsie roll halvah.',
+      fullName: 'Vitor Cardoso',
+      role: 'Cientista de Dados',
+      about: 'Analista de dados especializado em Big Data e visualização de informações.',
       avatar: '/images/avatars/3.png',
       status: 'online'
     }
@@ -167,8 +130,8 @@ export const db: ChatDataType = {
       unseenMsgs: 1,
       chat: [
         {
-          message: "How can we help? We're here for you!",
-          time: 'Mon Dec 10 2018 07:45:00 GMT+0000 (GMT)',
+          message: 'Como podemos ajudar? Estamos aqui para você!',
+          time: createTimestamp('2024-12-10T07:45:00Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -177,13 +140,13 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'Hey John, I am looking for the best admin template. Could you please help me to find it out?',
-          time: 'Mon Dec 10 2018 07:45:23 GMT+0000 (GMT)',
+          message: 'Olá João! Estou procurando o melhor template de admin. Você pode me ajudar a encontrar?',
+          time: createTimestamp('2024-12-10T07:45:23Z'), // ✅ Timestamp
           senderId: 2
         },
         {
-          message: 'It should be MUI v5 compatible.',
-          time: 'Mon Dec 10 2018 07:45:55 GMT+0000 (GMT)',
+          message: 'Precisa ser compatível com MUI v5.',
+          time: createTimestamp('2024-12-10T07:45:55Z'), // ✅ Timestamp
           senderId: 2,
           msgStatus: {
             isSent: true,
@@ -192,8 +155,8 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'Absolutely!',
-          time: 'Mon Dec 10 2018 07:46:00 GMT+0000 (GMT)',
+          message: 'Claro! Temos exatamente o que você precisa.',
+          time: createTimestamp('2024-12-10T07:46:00Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -202,8 +165,8 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'This admin template is built with MUI!',
-          time: 'Mon Dec 10 2018 07:46:05 GMT+0000 (GMT)',
+          message: 'Nosso template é construído com MUI! 🎉',
+          time: createTimestamp('2024-12-10T07:46:05Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -212,23 +175,23 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'Looks clean and fresh UI. 😍',
-          time: 'Mon Dec 10 2018 07:46:23 GMT+0000 (GMT)',
+          message: 'Parece uma interface limpa e moderna. 😍',
+          time: createTimestamp('2024-12-10T07:46:23Z'), // ✅ Timestamp
           senderId: 2
         },
         {
-          message: "It's perfect for my next project.",
-          time: 'Mon Dec 10 2018 07:46:33 GMT+0000 (GMT)',
+          message: 'É perfeito para meu próximo projeto.',
+          time: createTimestamp('2024-12-10T07:46:33Z'), // ✅ Timestamp
           senderId: 2
         },
         {
-          message: 'How can I purchase it?',
-          time: 'Mon Dec 10 2018 07:46:43 GMT+0000 (GMT)',
+          message: 'Como posso comprá-lo?',
+          time: createTimestamp('2024-12-10T07:46:43Z'), // ✅ Timestamp
           senderId: 2
         },
         {
-          message: 'Thanks, From our official site  😇',
-          time: 'Mon Dec 10 2018 07:46:53 GMT+0000 (GMT)',
+          message: 'Obrigado! Você pode adquirir em nosso site oficial 😇',
+          time: createTimestamp('2024-12-10T07:46:53Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -237,8 +200,8 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'I will purchase it for sure. 👍',
-          time: previousDay,
+          message: 'Vou comprar com certeza! 👍',
+          time: previousDay, // ✅ Timestamp relativo (ontem)
           senderId: 2
         }
       ]
@@ -249,8 +212,8 @@ export const db: ChatDataType = {
       unseenMsgs: 0,
       chat: [
         {
-          message: 'Hi',
-          time: 'Mon Dec 10 2018 07:45:00 GMT+0000 (GMT)',
+          message: 'Oi!',
+          time: createTimestamp('2024-12-10T07:45:00Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -259,13 +222,13 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'Hello. How can I help You?',
-          time: 'Mon Dec 11 2018 07:45:15 GMT+0000 (GMT)',
+          message: 'Olá! Como posso ajudá-lo?',
+          time: createTimestamp('2024-12-11T07:45:15Z'), // ✅ Timestamp
           senderId: 3
         },
         {
-          message: 'Can I get details of my last transaction I made last month? 🤔',
-          time: 'Mon Dec 11 2018 07:46:10 GMT+0000 (GMT)',
+          message: 'Posso obter detalhes da minha última transação do mês passado? 🤔',
+          time: createTimestamp('2024-12-11T07:46:10Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -274,18 +237,18 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'We need to check if we can provide you such information.',
-          time: 'Mon Dec 11 2018 07:45:15 GMT+0000 (GMT)',
+          message: 'Precisamos verificar se podemos fornecer essas informações.',
+          time: createTimestamp('2024-12-11T07:45:15Z'), // ✅ Timestamp
           senderId: 3
         },
         {
-          message: 'I will inform you as I get update on this.',
-          time: 'Mon Dec 11 2018 07:46:15 GMT+0000 (GMT)',
+          message: 'Te informo assim que tiver uma atualização.',
+          time: createTimestamp('2024-12-11T07:46:15Z'), // ✅ Timestamp
           senderId: 3
         },
         {
-          message: 'If it takes long you can mail me at my mail address.',
-          time: dayBeforePreviousDay,
+          message: 'Se demorar, você pode me enviar um email.',
+          time: dayBeforePreviousDay, // ✅ Timestamp relativo (anteontem)
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -301,44 +264,44 @@ export const db: ChatDataType = {
       unseenMsgs: 0,
       chat: [
         {
-          message: 'Hello, I am a building surveyor and I would like to schedule a survey for your building.',
-          time: 'Mon Dec 13 2021 11:00:00 GMT+0000 (GMT)',
+          message: 'Olá, sou engenheira civil e gostaria de agendar uma vistoria no seu edifício.',
+          time: createTimestamp('2024-12-13T11:00:00Z'), // ✅ Timestamp
           senderId: 10
         },
         {
-          message: 'Sure, could you please provide more details about the survey?',
-          time: 'Mon Dec 13 2021 11:01:00 GMT+0000 (GMT)',
+          message: 'Claro! Pode me dar mais detalhes sobre a vistoria?',
+          time: createTimestamp('2024-12-13T11:01:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
           message:
-            'The survey will include a thorough inspection of the building to assess its condition and identify any potential issues.',
-          time: 'Mon Dec 13 2021 11:02:00 GMT+0000 (GMT)',
+            'A vistoria incluirá uma inspeção completa para avaliar as condições e identificar possíveis problemas.',
+          time: createTimestamp('2024-12-13T11:02:00Z'), // ✅ Timestamp
           senderId: 10
         },
         {
-          message: 'Okay, when do you plan to conduct the survey?',
-          time: 'Mon Dec 13 2021 11:03:00 GMT+0000 (GMT)',
+          message: 'Perfeito! Quando planeja realizar a vistoria?',
+          time: createTimestamp('2024-12-13T11:03:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message: 'I am available to conduct the survey next week. Does that work for you?',
-          time: 'Mon Dec 13 2021 11:04:00 GMT+0000 (GMT)',
+          message: 'Estou disponível na próxima semana. Funciona para você?',
+          time: createTimestamp('2024-12-13T11:04:00Z'), // ✅ Timestamp
           senderId: 10
         },
         {
-          message: "Yes, that works for me. Let's schedule it for next Wednesday.",
-          time: 'Mon Dec 13 2021 11:05:00 GMT+0000 (GMT)',
+          message: 'Sim, perfeito! Vamos agendar para quarta-feira.',
+          time: createTimestamp('2024-12-13T11:05:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message: 'Great. I will send you a confirmation email with the details.',
-          time: 'Mon Dec 13 2021 11:06:00 GMT+0000 (GMT)',
+          message: 'Ótimo! Enviarei um email de confirmação com os detalhes.',
+          time: createTimestamp('2024-12-13T11:06:00Z'), // ✅ Timestamp
           senderId: 10
         },
         {
-          message: 'Thank you, looking forward to it.',
-          time: 'Mon Dec 13 2021 11:07:00 GMT+0000 (GMT)',
+          message: 'Obrigado, estou ansioso!',
+          time: createTimestamp('2024-12-13T11:07:00Z'), // ✅ Timestamp
           senderId: 1
         }
       ]
@@ -349,8 +312,8 @@ export const db: ChatDataType = {
       unseenMsgs: 0,
       chat: [
         {
-          message: 'Hello, I would like to arrange a professional meeting.',
-          time: 'Mon Dec 10 2018 07:45:00 GMT+0000 (GMT)',
+          message: 'Olá! Gostaria de agendar uma reunião profissional.',
+          time: createTimestamp('2024-12-10T07:45:00Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -359,13 +322,13 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'Sure, could you please provide more details about the meeting?',
-          time: 'Mon Dec 11 2018 07:45:15 GMT+0000 (GMT)',
+          message: 'Claro! Pode me dar mais detalhes sobre a reunião?',
+          time: createTimestamp('2024-12-11T07:45:15Z'), // ✅ Timestamp
           senderId: 8
         },
         {
-          message: 'The meeting is about our next project plan.',
-          time: 'Mon Dec 11 2018 07:46:10 GMT+0000 (GMT)',
+          message: 'A reunião é sobre nosso próximo plano de projeto.',
+          time: createTimestamp('2024-12-11T07:46:10Z'), // ✅ Timestamp
           senderId: 1,
           msgStatus: {
             isSent: true,
@@ -374,13 +337,13 @@ export const db: ChatDataType = {
           }
         },
         {
-          message: 'Okay, I will prepare the necessary documents for the meeting.',
-          time: 'Mon Dec 11 2018 07:45:15 GMT+0000 (GMT)',
+          message: 'Perfeito! Vou preparar os documentos necessários.',
+          time: createTimestamp('2024-12-11T07:45:15Z'), // ✅ Timestamp
           senderId: 8
         },
         {
-          message: 'Thank you, looking forward to it.',
-          time: 'Mon Dec 11 2018 07:46:15 GMT+0000 (GMT)',
+          message: 'Obrigado, estou ansioso pela reunião!',
+          time: createTimestamp('2024-12-11T07:46:15Z'), // ✅ Timestamp
           senderId: 1
         }
       ]
@@ -391,24 +354,23 @@ export const db: ChatDataType = {
       unseenMsgs: 0,
       chat: [
         {
-          message: 'Hey, have you heard about the new AI model GPT-4?',
-          time: 'Mon Dec 13 2021 09:00:00 GMT+0000 (GMT)',
+          message: 'Ei, você ouviu falar sobre o novo modelo de IA GPT-4?',
+          time: createTimestamp('2024-12-13T09:00:00Z'), // ✅ Timestamp
           senderId: 16
         },
         {
-          message: "No, I haven't. What's new about it?",
-          time: 'Mon Dec 13 2021 09:01:00 GMT+0000 (GMT)',
+          message: 'Não, ainda não. O que há de novo sobre ele?',
+          time: createTimestamp('2024-12-13T09:01:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message:
-            "It's supposed to be even more powerful and accurate than GPT-3. It can generate even more realistic text.",
-          time: 'Mon Dec 13 2021 09:02:00 GMT+0000 (GMT)',
+          message: 'Supostamente é ainda mais poderoso e preciso que o GPT-3. Pode gerar textos ainda mais realistas.',
+          time: createTimestamp('2024-12-13T09:02:00Z'), // ✅ Timestamp
           senderId: 16
         },
         {
-          message: "That sounds interesting. I'll have to check it out.",
-          time: 'Mon Dec 13 2021 09:03:00 GMT+0000 (GMT)',
+          message: 'Isso parece interessante. Vou dar uma olhada.',
+          time: createTimestamp('2024-12-13T09:03:00Z'), // ✅ Timestamp
           senderId: 1
         }
       ]
@@ -419,127 +381,44 @@ export const db: ChatDataType = {
       unseenMsgs: 1,
       chat: [
         {
-          message: "Hey, have you thought about our company's future plans?",
-          time: 'Mon Dec 13 2021 10:00:00 GMT+0000 (GMT)',
+          message: 'Ei, você pensou sobre os planos futuros da nossa empresa?',
+          time: createTimestamp('2024-12-13T10:00:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message: 'Yes, I have been thinking about it. We need to focus on AI and machine learning.',
-          time: 'Mon Dec 13 2021 10:01:00 GMT+0000 (GMT)',
+          message: 'Sim, tenho pensado. Precisamos focar em IA e machine learning.',
+          time: createTimestamp('2024-12-13T10:01:00Z'), // ✅ Timestamp
           senderId: 11
         },
         {
-          message: 'I agree. These technologies are the future. We should also consider investing in cloud computing.',
-          time: 'Mon Dec 13 2021 10:02:00 GMT+0000 (GMT)',
+          message: 'Concordo. Essas tecnologias são o futuro. Também devemos considerar investir em cloud computing.',
+          time: createTimestamp('2024-12-13T10:02:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message: 'Absolutely. Cloud computing will give us the flexibility and scalability we need.',
-          time: 'Mon Dec 13 2021 10:03:00 GMT+0000 (GMT)',
+          message: 'Absolutamente! Cloud computing nos dará a flexibilidade e escalabilidade que precisamos.',
+          time: createTimestamp('2024-12-13T10:03:00Z'), // ✅ Timestamp
           senderId: 11
         },
         {
-          message: 'We should also think about expanding our team. We will need more talent to achieve our goals.',
-          time: 'Mon Dec 13 2021 10:04:00 GMT+0000 (GMT)',
+          message: 'Também devemos pensar em expandir nossa equipe. Precisaremos de mais talentos.',
+          time: createTimestamp('2024-12-13T10:04:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message:
-            'Yes, hiring the right people is crucial. We should start looking for candidates as soon as possible.',
-          time: 'Mon Dec 13 2021 10:05:00 GMT+0000 (GMT)',
+          message: 'Sim, contratar as pessoas certas é crucial. Devemos começar a buscar candidatos o quanto antes.',
+          time: createTimestamp('2024-12-13T10:05:00Z'), // ✅ Timestamp
           senderId: 11
         },
         {
-          message: "Great. Let's start working on a plan then.",
-          time: 'Mon Dec 13 2021 10:06:00 GMT+0000 (GMT)',
+          message: 'Ótimo! Vamos começar a trabalhar em um plano então.',
+          time: createTimestamp('2024-12-13T10:06:00Z'), // ✅ Timestamp
           senderId: 1
         },
         {
-          message: "Sounds good. Let's do it.",
-          time: 'Mon Dec 13 2021 10:07:00 GMT+0000 (GMT)',
+          message: 'Perfeito! Vamos fazer isso! 🚀',
+          time: createTimestamp('2024-12-13T10:07:00Z'), // ✅ Timestamp
           senderId: 11
-        }
-      ]
-    },
-    {
-      id: 7,
-      userId: 17,
-      unseenMsgs: 0,
-      chat: [
-        {
-          message:
-            'Hello, as a data scientist, I have been analyzing our user data and found some interesting patterns.',
-          time: 'Mon Dec 13 2021 12:00:00 GMT+0000 (GMT)',
-          senderId: 17
-        },
-        {
-          message: 'That sounds interesting. Could you please share more details?',
-          time: 'Mon Dec 13 2021 12:01:00 GMT+0000 (GMT)',
-          senderId: 1
-        },
-        {
-          message: 'Sure, our users are most active during the evening hours and they mostly use our app on weekends.',
-          time: 'Mon Dec 13 2021 12:02:00 GMT+0000 (GMT)',
-          senderId: 17
-        },
-        {
-          message: "That's valuable information. We can use this to schedule our app updates and maintenance work.",
-          time: 'Mon Dec 13 2021 12:03:00 GMT+0000 (GMT)',
-          senderId: 1
-        },
-        {
-          message: 'Exactly. We can also use this information to target our marketing campaigns.',
-          time: 'Mon Dec 13 2021 12:04:00 GMT+0000 (GMT)',
-          senderId: 17
-        },
-        {
-          message: 'Great work. Keep it up.',
-          time: 'Mon Dec 13 2021 12:05:00 GMT+0000 (GMT)',
-          senderId: 1
-        }
-      ]
-    },
-    {
-      id: 8,
-      userId: 14,
-      unseenMsgs: 1,
-      chat: [
-        {
-          message:
-            'Hello, as a database administrator, I have been monitoring our databases and I noticed a significant increase in the load.',
-          time: 'Mon Dec 13 2021 13:00:00 GMT+0000 (GMT)',
-          senderId: 14
-        },
-        {
-          message: "That's concerning. Do you have any idea what might be causing this?",
-          time: 'Mon Dec 13 2021 13:01:00 GMT+0000 (GMT)',
-          senderId: 1
-        },
-        {
-          message:
-            'I suspect it might be due to the recent increase in user registrations. I will investigate further and optimize our databases accordingly.',
-          time: 'Mon Dec 13 2021 13:02:00 GMT+0000 (GMT)',
-          senderId: 14
-        },
-        {
-          message: 'That sounds like a good plan. Let me know if you need any help.',
-          time: 'Mon Dec 13 2021 13:03:00 GMT+0000 (GMT)',
-          senderId: 1
-        },
-        {
-          message: 'Will do. I will keep you updated on the progress.',
-          time: 'Mon Dec 13 2021 13:04:00 GMT+0000 (GMT)',
-          senderId: 14
-        },
-        {
-          message: 'Thank you, I appreciate your efforts.',
-          time: 'Mon Dec 13 2021 13:05:00 GMT+0000 (GMT)',
-          senderId: 1
-        },
-        {
-          message: 'Your Welcome!😊',
-          time: 'Mon Dec 13 2021 13:06:00 GMT+0000 (GMT)',
-          senderId: 14
         }
       ]
     }

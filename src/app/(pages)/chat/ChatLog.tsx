@@ -19,6 +19,7 @@ import CustomAvatar from '@core/components/mui/Avatar'
 
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
+import { DateUtils } from './utils' // 🔥 ADICIONADO: Import dos utilitários corrigidos
 
 type MsgGroupType = {
   senderId: number
@@ -187,6 +188,7 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
                       index === msgGroup.messages.length - 1 &&
                       (isSender ? (
                         <div key={index} className='flex items-center gap-2'>
+                          {/* 🔥 Status Icons - Mantidos iguais */}
                           {msg.msgStatus?.isSeen ? (
                             <i className='ri-check-double-line text-success text-base' />
                           ) : msg.msgStatus?.isDelivered ? (
@@ -194,31 +196,25 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
                           ) : (
                             msg.msgStatus?.isSent && <i className='ri-check-line text-base' />
                           )}
+
+                          {/* 🔥 CORRIGIDO: Formatação de tempo usando DateUtils */}
                           {index === activeUserChat.chat.length - 1 ? (
                             <Typography variant='caption'>
-                              {new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}
+                              {DateUtils.formatForChat(DateUtils.now())} {/* Última mensagem: tempo atual */}
                             </Typography>
                           ) : msg.time ? (
                             <Typography variant='caption'>
-                              {new Date(msg.time).toLocaleString('en-US', {
-                                hour: 'numeric',
-                                minute: 'numeric',
-                                hour12: true
-                              })}
+                              {DateUtils.formatForChat(msg.time)} {/* ✅ Usando timestamp diretamente */}
                             </Typography>
                           ) : null}
                         </div>
                       ) : index === activeUserChat.chat.length - 1 ? (
                         <Typography key={index} variant='caption'>
-                          {new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}
+                          {DateUtils.formatForChat(DateUtils.now())} {/* Última mensagem: tempo atual */}
                         </Typography>
                       ) : msg.time ? (
                         <Typography key={index} variant='caption'>
-                          {new Date(msg.time).toLocaleString('en-US', {
-                            hour: 'numeric',
-                            minute: 'numeric',
-                            hour12: true
-                          })}
+                          {DateUtils.formatForChat(msg.time)} {/* ✅ Usando timestamp diretamente */}
                         </Typography>
                       ) : null)
                   )}
@@ -232,3 +228,27 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
 }
 
 export default ChatLog
+
+/*
+🔥 PRINCIPAIS MUDANÇAS:
+
+1. ✅ Import do DateUtils corrigido
+2. ✅ Substituição de new Date(msg.time).toLocaleString() por DateUtils.formatForChat(msg.time)
+3. ✅ msg.time agora é tratado como number (timestamp)
+4. ✅ Compatibilidade mantida com a estrutura existente
+5. ✅ Performance melhorada (não cria objetos Date desnecessários)
+
+📝 COMO FUNCIONA AGORA:
+
+- msg.time é um timestamp (number)
+- DateUtils.formatForChat() converte para string legível
+- Sem mais erros de serialização
+- Formatação consistente em todo o app
+
+🎯 RESULTADO ESPERADO:
+
+- Horários aparecem como "2:30 PM", "14:30", etc.
+- Sem erros no console
+- Performance melhorada
+- Código mais limpo e mantível
+*/

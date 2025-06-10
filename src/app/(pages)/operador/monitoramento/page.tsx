@@ -363,7 +363,7 @@ const KanbanPage = () => {
       </Grid>
 
       {/* Header com Filtros */}
-      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3}>
           {/* Título */}
           <Grid size={{ xs: 12, md: 3 }}>
@@ -391,18 +391,19 @@ const KanbanPage = () => {
               <Button
                 variant={filters.orderBy === 'chegada' ? 'contained' : 'outlined'}
                 size='small'
-                startIcon={<Clock size={16} />}
+                startIcon={<i className='ri-filter-2-line' />}
                 onClick={() => handleFilterChange('orderBy', filters.orderBy === 'chegada' ? 'prioridade' : 'chegada')}
+                className='rounded-full'
               >
                 {filters.orderBy === 'chegada' ? 'Por Chegada' : 'Por Prioridade'}
               </Button>
 
-              {/* Chats Encerrados */}
               <Button
                 variant={filters.showClosed ? 'contained' : 'outlined'}
                 size='small'
-                startIcon={filters.showClosed ? <CheckCircle size={16} /> : <XCircle size={16} />}
+                startIcon={filters.showClosed ? <CheckCircle size={16} /> : <i className='ri-filter-2-line' />}
                 onClick={() => handleFilterChange('showClosed', !filters.showClosed)}
+                className='rounded-full'
               >
                 {filters.showClosed ? 'Com Encerrados' : 'Apenas Ativos'}
               </Button>
@@ -413,10 +414,11 @@ const KanbanPage = () => {
               <Button
                 variant={filters.statuses.length > 0 ? 'contained' : 'outlined'}
                 size='small'
-                startIcon={<AlertCircle size={16} />}
+                startIcon={<i className='ri-filter-2-line' />}
                 endIcon={<ChevronDown size={16} />}
                 onClick={e => setFilterMenuAnchor(e.currentTarget)}
                 color={filters.statuses.length > 0 ? 'primary' : 'inherit'}
+                className='rounded-full'
               >
                 Status {filters.statuses.length > 0 && `(${filters.statuses.length})`}
               </Button>
@@ -428,11 +430,11 @@ const KanbanPage = () => {
                 startIcon={<MessageCircle size={16} />}
                 endIcon={<ChevronDown size={16} />}
                 onClick={e => setFilterMenuAnchor(e.currentTarget)}
+                className='rounded-full'
               >
                 Canais {filters.channels.length > 0 && `(${filters.channels.length})`}
               </Button>
 
-              {/* Prioridades */}
               <Button
                 variant={filters.priorities.length > 0 ? 'contained' : 'outlined'}
                 size='small'
@@ -440,6 +442,7 @@ const KanbanPage = () => {
                 endIcon={<ChevronDown size={16} />}
                 onClick={e => setFilterMenuAnchor(e.currentTarget)}
                 color={filters.priorities.length > 0 ? 'warning' : 'inherit'}
+                className='rounded-full'
               >
                 Prioridade {filters.priorities.length > 0 && `(${filters.priorities.length})`}
               </Button>
