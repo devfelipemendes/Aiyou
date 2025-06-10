@@ -4,17 +4,7 @@ import { useState, useMemo, useCallback } from 'react'
 // Redux hooks
 
 import Grid from '@mui/material/Grid2'
-import {
-  Box as BoxIcon,
-  Settings,
-  ChevronDown,
-  Tag,
-  Clock,
-  MessageCircle,
-  CheckCircle,
-  XCircle,
-  AlertCircle
-} from 'lucide-react'
+import { Box as BoxIcon, Settings, ChevronDown, Tag, MessageCircle, CheckCircle } from 'lucide-react'
 import {
   Button,
   Chip,
@@ -338,6 +328,7 @@ const KanbanPage = () => {
     if (channelType) {
       handleChannelToggle(channelType)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

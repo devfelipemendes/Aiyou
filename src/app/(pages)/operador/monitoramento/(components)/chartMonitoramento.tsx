@@ -95,7 +95,7 @@ const DonutChart = ({
       },
       events: onSliceClick
         ? {
-            dataPointSelection: (event, chartContext, config) => {
+            dataPointSelection: config => {
               const dataIndex = config.dataPointIndex
 
               if (dataIndex >= 0 && data[dataIndex]) {
