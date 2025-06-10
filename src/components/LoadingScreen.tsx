@@ -46,7 +46,7 @@ export default function LoadingScreen() {
           cursorStyle='|'
           typeSpeed={50}
           deleteSpeed={40}
-          delaySpeed={2000}
+          delaySpeed={0}
         />
       </div>
     </div>

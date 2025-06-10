@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 import { useState, useMemo, useCallback } from 'react'
 
@@ -10,7 +11,6 @@ import {
   ChevronDown,
   Tag,
   Clock,
-  MessageCircle,
   CheckCircle,
   XCircle,
   Bell,
@@ -403,59 +403,6 @@ const KanbanPage = () => {
 
   return (
     <>
-      {/* 🔥 Alert com contadores de notificação */}
-      {(notificationCounts.operator_call > 0 ||
-        notificationCounts.unresolved > 0 ||
-        notificationCounts.no_response > 0) && (
-        <Alert severity='warning' sx={{ mb: 2 }} icon={<AlertTriangle size={20} />}>
-          <Box display='flex' gap={1} alignItems='center' flexWrap='wrap'>
-            <Typography variant='body2' fontWeight={500}>
-              Atenção necessária:
-            </Typography>
-
-            {notificationCounts.operator_call > 0 && (
-              <Chip
-                icon={<Bell size={14} />}
-                label={`${notificationCounts.operator_call} Chamadas Urgentes`}
-                color='error'
-                size='small'
-                variant='filled'
-              />
-            )}
-
-            {notificationCounts.unresolved > 0 && (
-              <Chip
-                icon={<XCircle size={14} />}
-                label={`${notificationCounts.unresolved} Não Resolvidos`}
-                color='warning'
-                size='small'
-                variant='filled'
-              />
-            )}
-
-            {notificationCounts.no_response > 0 && (
-              <Chip
-                icon={<Clock size={14} />}
-                label={`${notificationCounts.no_response} Sem Resposta`}
-                color='info'
-                size='small'
-                variant='filled'
-              />
-            )}
-
-            {notificationCounts.operator_control > 0 && (
-              <Chip
-                icon={<UserCheck size={14} />}
-                label={`${notificationCounts.operator_control} Em Controle`}
-                color='primary'
-                size='small'
-                variant='outlined'
-              />
-            )}
-          </Box>
-        </Alert>
-      )}
-
       {/* Cards de estatísticas existentes */}
       <Grid container spacing={3} className='mb-5'>
         <Grid size={{ md: 6 }}>
@@ -535,31 +482,6 @@ const KanbanPage = () => {
 
               <Divider orientation='vertical' flexItem sx={{ mx: 1 }} />
 
-              {/* Status - conectado ao filterMenuAnchor */}
-              <Button
-                variant={filters.statuses.length > 0 ? 'contained' : 'outlined'}
-                size='small'
-                startIcon={<i className='ri-filter-2-line' />}
-                endIcon={<ChevronDown size={16} />}
-                onClick={e => setFilterMenuAnchor(e.currentTarget)}
-                color={filters.statuses.length > 0 ? 'primary' : 'inherit'}
-                className='rounded-full'
-              >
-                Status {filters.statuses.length > 0 && `(${filters.statuses.length})`}
-              </Button>
-
-              {/* Canais */}
-              <Button
-                variant={filters.channels.length > 0 ? 'contained' : 'outlined'}
-                size='small'
-                startIcon={<MessageCircle size={16} />}
-                endIcon={<ChevronDown size={16} />}
-                onClick={e => setFilterMenuAnchor(e.currentTarget)}
-                className='rounded-full'
-              >
-                Canais {filters.channels.length > 0 && `(${filters.channels.length})`}
-              </Button>
-
               <Button
                 variant={filters.priorities.length > 0 ? 'contained' : 'outlined'}
                 size='small'
@@ -569,7 +491,7 @@ const KanbanPage = () => {
                 color={filters.priorities.length > 0 ? 'warning' : 'inherit'}
                 className='rounded-full'
               >
-                Prioridade {filters.priorities.length > 0 && `(${filters.priorities.length})`}
+                Filtros Avançados {filters.priorities.length > 0 && `(${filters.priorities.length})`}
               </Button>
 
               <Divider orientation='vertical' flexItem sx={{ mx: 1 }} />
@@ -627,7 +549,58 @@ const KanbanPage = () => {
           </Grid>
         </Grid>
       </Paper>
+      {/* 🔥 Alert com contadores de notificação */}
+      {(notificationCounts.operator_call > 0 ||
+        notificationCounts.unresolved > 0 ||
+        notificationCounts.no_response > 0) && (
+        <Alert severity='warning' sx={{ mb: 2 }} icon={<AlertTriangle size={20} />}>
+          <Box display='flex' gap={1} alignItems='center' flexWrap='wrap'>
+            <Typography variant='body2' fontWeight={500}>
+              Atenção necessária:
+            </Typography>
 
+            {notificationCounts.operator_call > 0 && (
+              <Chip
+                icon={<Bell size={14} />}
+                label={`${notificationCounts.operator_call} Chamadas Urgentes`}
+                color='error'
+                size='small'
+                variant='filled'
+              />
+            )}
+
+            {notificationCounts.unresolved > 0 && (
+              <Chip
+                icon={<XCircle size={14} />}
+                label={`${notificationCounts.unresolved} Não Resolvidos`}
+                color='warning'
+                size='small'
+                variant='filled'
+              />
+            )}
+
+            {notificationCounts.no_response > 0 && (
+              <Chip
+                icon={<Clock size={14} />}
+                label={`${notificationCounts.no_response} Sem Resposta`}
+                color='info'
+                size='small'
+                variant='filled'
+              />
+            )}
+
+            {notificationCounts.operator_control > 0 && (
+              <Chip
+                icon={<UserCheck size={14} />}
+                label={`${notificationCounts.operator_control} Em Controle`}
+                color='primary'
+                size='small'
+                variant='outlined'
+              />
+            )}
+          </Box>
+        </Alert>
+      )}
       {/* Menu de Filtros Avançados - Agora funcional! */}
       <Popover
         open={Boolean(filterMenuAnchor)}
@@ -640,7 +613,6 @@ const KanbanPage = () => {
           <Typography variant='subtitle2' gutterBottom>
             Filtros Avançados
           </Typography>
-
           {/* Status dos Chats */}
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ChevronDown size={16} />}>
@@ -672,7 +644,6 @@ const KanbanPage = () => {
               </Box>
             </AccordionDetails>
           </Accordion>
-
           {/* Canais */}
           <Accordion>
             <AccordionSummary expandIcon={<ChevronDown size={16} />}>
@@ -700,7 +671,6 @@ const KanbanPage = () => {
               </Box>
             </AccordionDetails>
           </Accordion>
-
           {/* Prioridades */}
           <Accordion>
             <AccordionSummary expandIcon={<ChevronDown size={16} />}>
