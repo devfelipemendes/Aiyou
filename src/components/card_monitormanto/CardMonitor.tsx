@@ -33,6 +33,7 @@ interface CardMonitorProps {
   isSelected?: boolean
   isHovered?: boolean
   onClick?: (clientId: string) => void
+  onOpenModal?: (clientId: string) => void
   onHover?: (clientId: string, isHovered: boolean) => void
 }
 
@@ -42,8 +43,7 @@ export default function CardMonitor({
   messages,
   operatorName,
   buttonName,
-
-  // Valores padrão para não quebrar código existente
+  onOpenModal,
   notificationType = 'normal',
   isSelected = false,
 
@@ -107,7 +107,11 @@ export default function CardMonitor({
     if (onClick) {
       onClick(clientId)
     }
-  }, [clientId, onClick])
+
+    if (onOpenModal) {
+      onOpenModal(clientId)
+    }
+  }, [clientId, onClick, onOpenModal])
 
   const handleMouseEnter = useCallback(() => {
     if (onHover) {

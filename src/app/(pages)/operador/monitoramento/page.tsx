@@ -31,7 +31,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Alert
+  Alert,
+  Card,
+  CardContent,
+  Switch,
+  Tooltip
 } from '@mui/material'
 
 // DnD Kit imports
@@ -63,8 +67,7 @@ import type { NotificationType } from '@/types/monitoring'
 // Imports existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
 import { clientsData } from './fakeJson'
-import CardStatVertical from '@/components/card-statistics/Vertical'
-import ChannelsChart from './(components)/ChannelsChart'
+import ChatViewDialog from '@/components/dialogs/chat-view'
 
 // Tipos para os filtros
 type PriorityLevel = 'baixa' | 'media' | 'alta' | 'urgente'
@@ -105,6 +108,7 @@ interface DraggableCardProps {
   notificationType: NotificationType
   isSelected: boolean
   onCardClick: (clientId: string) => void
+  onOpenModalCard: (clientId: string) => void
   onCardHover: (clientId: string, isHovered: boolean) => void
 }
 
@@ -117,6 +121,7 @@ const DraggableCard = ({
   notificationType,
   isSelected,
   onCardClick,
+  onOpenModalCard,
   onCardHover
 }: DraggableCardProps) => {
   const {
@@ -146,6 +151,7 @@ const DraggableCard = ({
         notificationType={notificationType}
         isSelected={isSelected}
         onClick={onCardClick}
+        onOpenModal={onOpenModalCard}
         onHover={onCardHover}
       />
     </div>
@@ -171,19 +177,22 @@ const KanbanPage = () => {
   // Estados dos menus
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<null | HTMLElement>(null)
   const [settingsMenuAnchor, setSettingsMenuAnchor] = useState<null | HTMLElement>(null)
+  const [showComponentWaring, setShowComponentWarning] = useState(true)
 
-  // 🔥 Hook para notificações
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedClientData, setSelectedClientData] = useState<(typeof enrichedClientsData)[number] | null>(null)
+
+  //? Hook para notificações
   const {
     selectedCardId,
     handleCardClick,
     handleCardHover,
     isCardSelected,
     getNotificationType,
-    getNotificationCounts,
-    clearSelection
+    getNotificationCounts
   } = useCardNotifications()
 
-  // Configuração dos sensores para o drag
+  //? Configuração dos sensores para o drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -195,17 +204,17 @@ const KanbanPage = () => {
     })
   )
 
-  // 🔥 CORRIGIDO: enrichedClientsData com dependências do useMemo
   const enrichedClientsData = useMemo(() => {
     return clientsData.map(client => {
       // Determinar status baseado no clientId para teste
       let status: ChatStatus = 'ativo'
 
-      if (['CHAT001', 'CHAT002', 'CHAT013'].includes(client.clientId)) {
+      // Aqui está o codigo de teste para notificação
+      if (['CHAT001'].includes(client.clientId)) {
         status = 'chamou_operador' // Vermelho piscando
-      } else if (['CHAT003', 'CHAT014'].includes(client.clientId)) {
+      } else if (['CHAT003'].includes(client.clientId)) {
         status = 'nao_resolvido' // Amarelo
-      } else if (['CHAT008', 'CHAT009', 'CHAT010'].includes(client.clientId)) {
+      } else if (['CHAT008'].includes(client.clientId)) {
         status = 'resolvido' // Normal
       }
 
@@ -223,33 +232,51 @@ const KanbanPage = () => {
             : new Date(Date.now() - Math.random() * 2 * 60 * 60 * 1000) // Últimas 2h
       }
     })
-  }, []) // 🔥 CORRIGIDO: Array de dependências vazio pois clientsData é estático
+  }, [])
 
-  // 🔥 CORRIGIDO: Contadores de notificação com dependências
+  //* Funções
+  //? Dialog
+  const handleOpenModalCard = useCallback(
+    (clientId: string) => {
+      const clientData = enrichedClientsData.find(client => client.clientId === clientId)
+
+      if (clientData) {
+        setSelectedClientData(clientData)
+        setIsDialogOpen(true)
+      }
+    },
+    [enrichedClientsData]
+  )
+
+  // const handleCloseDialog = useCallback(() => {
+  //   setIsDialogOpen(false)
+  //   setSelectedClientData(null)
+  // }, [])
+
+  //? Filtro para notificaçoes
   const notificationCounts = useMemo(() => {
     return getNotificationCounts(enrichedClientsData)
   }, [enrichedClientsData, getNotificationCounts])
 
-  // 🔥 CORRIGIDO: Aplicar filtros base com dependências corretas
   const filteredClientsBase = useMemo(() => {
     let filtered = [...enrichedClientsData]
 
-    // Filtro por status
+    //? Filtro por status
     if (filters.statuses.length > 0) {
       filtered = filtered.filter(client => filters.statuses.includes(client.status))
     }
 
-    // Filtro por canal
+    //? Filtro por canal
     if (filters.channels.length > 0) {
       filtered = filtered.filter(client => filters.channels.includes(client.channelType))
     }
 
-    // Filtro por prioridade
+    //? Filtro por prioridade
     if (filters.priorities.length > 0) {
       filtered = filtered.filter(client => filters.priorities.includes(client.priority))
     }
 
-    // Filtro de chats encerrados
+    //? Filtro de chats encerrados
     if (!filters.showClosed) {
       filtered = filtered.filter(client => !['encerrado', 'resolvido'].includes(client.status))
     }
@@ -257,7 +284,6 @@ const KanbanPage = () => {
     return filtered
   }, [enrichedClientsData, filters.statuses, filters.channels, filters.priorities, filters.showClosed])
 
-  // 🔥 CORRIGIDO: Aplicar ordenação com dependências corretas
   const filteredClients = useMemo(() => {
     const filterKey = generateFilterKey(filters)
     const savedOrder = filterOrders[filterKey] || null
@@ -291,7 +317,8 @@ const KanbanPage = () => {
     return orderedClients
   }, [filteredClientsBase, filters.orderBy, filterOrders])
 
-  // 🔥 CORRIGIDO: handleDragEnd com dependências corretas
+  //? Função para Final
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
@@ -312,7 +339,6 @@ const KanbanPage = () => {
     [filteredClients, filters, dispatch]
   )
 
-  // 🔥 CORRIGIDO: Handlers dos filtros com tipos corretos
   const handleFilterChange = useCallback((key: keyof ChatFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }, [])
@@ -356,7 +382,6 @@ const KanbanPage = () => {
     })
   }, [])
 
-  // 🔥 CORRIGIDO: getActiveFiltersCount com dependências corretas
   const getActiveFiltersCount = useCallback(() => {
     return (
       filters.statuses.length +
@@ -367,7 +392,8 @@ const KanbanPage = () => {
     )
   }, [filters])
 
-  // 🔥 CORRIGIDO: getGridSize com dependências corretas
+  //? Mudança da organização dos grids
+
   const getGridSize = useCallback(() => {
     const sizeMap = {
       6: { md: 2, xl: 2, sm: 4 },
@@ -380,47 +406,64 @@ const KanbanPage = () => {
     return sizeMap[filters.cardsPerRow as keyof typeof sizeMap] || sizeMap[4]
   }, [filters.cardsPerRow])
 
-  const handleChannelClick = useCallback(
-    (channelName: string) => {
-      console.log(`Canal clicado: ${channelName}`)
-
-      const channelMapping: Record<string, ChannelType> = {
-        WhatsApp: 'whatsapp',
-        Telegram: 'telegram',
-        'Web Chat': 'webchat',
-        'E-mail': 'email',
-        SMS: 'sms'
-      }
-
-      const channelType = channelMapping[channelName]
-
-      if (channelType) {
-        handleChannelToggle(channelType)
-      }
-    },
-    [handleChannelToggle]
-  )
+  //? Dialog
 
   return (
     <>
-      {/* Cards de estatísticas existentes */}
-      <Grid container spacing={3} className='mb-5'>
-        <Grid size={{ md: 6 }}>
-          <CardStatVertical
-            stats='862'
-            trend='negative'
-            trendNumber='18%'
-            title='New Project'
-            subtitle='Yearly Project'
-            avatarColor='primary'
-            avatarIcon='ri-file-word-2-line'
-          />
+      {/* Aqui vai os Cards de estatísticas */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant='h4' color='primary'>
+                800
+              </Typography>
+              <Typography variant='body2' color='text.secondary'>
+                Total de Chats
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
-        <Grid size={{ md: 6 }}>
-          <ChannelsChart onChannelClick={handleChannelClick} refreshInterval={30000} />
+
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant='h4' color='error'>
+                900
+              </Typography>
+              <Typography variant='body2' color='text.secondary'>
+                Urgentes
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant='h4' color='warning'>
+                10000
+              </Typography>
+              <Typography variant='body2' color='text.secondary'>
+                Não Lidas
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Typography variant='h4' color='info'>
+                2010
+              </Typography>
+              <Typography variant='body2' color='text.secondary'>
+                Sob Controle
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
-
       {/* Header com Filtros */}
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3}>
@@ -442,22 +485,18 @@ const KanbanPage = () => {
               </div>
             </Box>
           </Grid>
-
-          {/* Grupo de Filtros e Controles */}
+          {/*Aqui vai o componente de filtros */}
           <Grid size={{ xs: 12, md: 9 }}>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
-              {/* Botão para limpar seleção */}
-              {selectedCardId && (
-                <Button
-                  variant='outlined'
-                  size='small'
-                  onClick={clearSelection}
-                  color='secondary'
-                  startIcon={<i className='ri-close-line' />}
-                >
-                  Limpar Seleção
-                </Button>
-              )}
+              <Tooltip title='Visualizar alerta de chamados' className='mr-3'>
+                <FormControlLabel
+                  control={<Switch />}
+                  label=''
+                  checked={showComponentWaring}
+                  onChange={(_, checkedWarnings) => setShowComponentWarning(checkedWarnings)}
+                  labelPlacement='start'
+                />
+              </Tooltip>
 
               {/* Ordenação */}
               <Button
@@ -509,7 +548,7 @@ const KanbanPage = () => {
               {/* Limpar Filtros */}
               {getActiveFiltersCount() > 0 && (
                 <Button variant='text' size='small' color='error' onClick={clearAllFilters}>
-                  Limpar
+                  Limpar Filtros
                 </Button>
               )}
             </Box>
@@ -550,57 +589,58 @@ const KanbanPage = () => {
         </Grid>
       </Paper>
       {/* 🔥 Alert com contadores de notificação */}
-      {(notificationCounts.operator_call > 0 ||
-        notificationCounts.unresolved > 0 ||
-        notificationCounts.no_response > 0) && (
-        <Alert severity='warning' sx={{ mb: 2 }} icon={<AlertTriangle size={20} />}>
-          <Box display='flex' gap={1} alignItems='center' flexWrap='wrap'>
-            <Typography variant='body2' fontWeight={500}>
-              Atenção necessária:
-            </Typography>
+      {showComponentWaring &&
+        (notificationCounts.operator_call > 0 ||
+          notificationCounts.unresolved > 0 ||
+          notificationCounts.no_response > 0) && (
+          <Alert severity='warning' sx={{ mb: 2 }} icon={<AlertTriangle size={20} />}>
+            <Box display='flex' gap={1} alignItems='center' flexWrap='wrap'>
+              <Typography variant='body2' fontWeight={500}>
+                Atenção necessária:
+              </Typography>
 
-            {notificationCounts.operator_call > 0 && (
-              <Chip
-                icon={<Bell size={14} />}
-                label={`${notificationCounts.operator_call} Chamadas Urgentes`}
-                color='error'
-                size='small'
-                variant='filled'
-              />
-            )}
+              {notificationCounts.operator_call > 0 && (
+                <Chip
+                  icon={<Bell size={14} />}
+                  label={`${notificationCounts.operator_call} Chamadas Urgentes`}
+                  color='error'
+                  size='small'
+                  variant='filled'
+                />
+              )}
 
-            {notificationCounts.unresolved > 0 && (
-              <Chip
-                icon={<XCircle size={14} />}
-                label={`${notificationCounts.unresolved} Não Resolvidos`}
-                color='warning'
-                size='small'
-                variant='filled'
-              />
-            )}
+              {notificationCounts.unresolved > 0 && (
+                <Chip
+                  icon={<XCircle size={14} />}
+                  label={`${notificationCounts.unresolved} Não Resolvidos`}
+                  color='warning'
+                  size='small'
+                  variant='filled'
+                />
+              )}
 
-            {notificationCounts.no_response > 0 && (
-              <Chip
-                icon={<Clock size={14} />}
-                label={`${notificationCounts.no_response} Sem Resposta`}
-                color='info'
-                size='small'
-                variant='filled'
-              />
-            )}
+              {notificationCounts.no_response > 0 && (
+                <Chip
+                  icon={<Clock size={14} />}
+                  label={`${notificationCounts.no_response} Sem Resposta`}
+                  color='info'
+                  size='small'
+                  variant='filled'
+                />
+              )}
 
-            {notificationCounts.operator_control > 0 && (
-              <Chip
-                icon={<UserCheck size={14} />}
-                label={`${notificationCounts.operator_control} Em Controle`}
-                color='primary'
-                size='small'
-                variant='outlined'
-              />
-            )}
-          </Box>
-        </Alert>
-      )}
+              {notificationCounts.operator_control > 0 && (
+                <Chip
+                  icon={<UserCheck size={14} />}
+                  label={`${notificationCounts.operator_control} Em Controle`}
+                  color='primary'
+                  size='small'
+                  variant='outlined'
+                />
+              )}
+            </Box>
+          </Alert>
+        )}
       {/* Menu de Filtros Avançados - Agora funcional! */}
       <Popover
         open={Boolean(filterMenuAnchor)}
@@ -773,12 +813,24 @@ const KanbanPage = () => {
                   isSelected={isCardSelected(client.clientId)}
                   onCardClick={handleCardClick}
                   onCardHover={handleCardHover}
+                  onOpenModalCard={handleOpenModalCard}
                 />
               </Grid>
             ))}
           </Grid>
         </SortableContext>
       </DndContext>
+      {selectedClientData && (
+        <ChatViewDialog
+          open={isDialogOpen}
+          setOpen={setIsDialogOpen}
+          clientData={selectedClientData}
+          clientId={selectedClientData.clientId}
+          messages={selectedClientData.messages}
+          channel={selectedClientData.channel}
+          operatorName={selectedClientData.operatorName}
+        />
+      )}
 
       {/* Estado Vazio */}
       {filteredClients.length === 0 && (
