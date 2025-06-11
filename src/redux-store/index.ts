@@ -15,7 +15,7 @@ import register from './slices/register'
 
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 import { externalApi } from '@/api/ApiCreate/cepApi'
-import { websocketMiddleware } from './midleware/socketMiddleware'
+import websocketMiddleware from './midleware/socketMiddleware'
 import websocketReducer from './slices/webSocket'
 
 // 🔥 CORRIGIDO: Persist config com nome correto do reducer
