@@ -15,13 +15,15 @@ import register from './slices/register'
 
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 import { externalApi } from '@/api/ApiCreate/cepApi'
-import { socketMiddleware } from './midleware/socketMiddleware'
+import { websocketMiddleware } from './midleware/socketMiddleware'
+import websocketReducer from './slices/webSocket'
 
 // 🔥 CORRIGIDO: Persist config com nome correto do reducer
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['monitoringReducer'] // 🔥 Nome correto do reducer
+  whitelist: ['authReducer', 'monitoringReducer'],
+  blacklist: ['websocketReducer', 'chatReducer'] // WebSocket e chat sempre frescos
 }
 
 const rootReducer = combineReducers({
@@ -29,7 +31,7 @@ const rootReducer = combineReducers({
   chatReducer,
   monitoringReducer, // 🔥 Nome consistente
   registration: register,
-
+  websocketReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })
@@ -47,10 +49,15 @@ export const store = configureStore({
           'persist/PAUSE',
           'persist/PURGE',
           'persist/REGISTER',
-          'persist/FLUSH'
-        ]
+          'persist/FLUSH',
+          'websocket/connect',
+          'websocket/disconnect',
+          'websocket/joinProtocolChannel',
+          'websocket/joinProjectChannel'
+        ],
+        ignoredPaths: ['register', 'websocket.connection', 'websocket.channels']
       }
-    }).concat(apiSlice.middleware, externalApi.middleware, socketMiddleware)
+    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware)
 })
 
 // Hooks para padronização do uso do Redux

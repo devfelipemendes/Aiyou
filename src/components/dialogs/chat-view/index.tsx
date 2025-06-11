@@ -1,5 +1,7 @@
 'use client'
-import { Typography } from '@mui/material'
+import { useEffect, useState } from 'react'
+
+import { Box, Chip, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -7,6 +9,7 @@ import IconButton from '@mui/material/IconButton'
 import { styled } from '@mui/material/styles'
 
 import ChatWrapper from './chat/page'
+import { useWebSocket } from '@/hooks/useWebSoccket'
 
 // 🔥 COMPONENTE PERSONALIZADO: Dialog com tamanho customizado
 const LargeChatDialog = styled(Dialog)(({ theme }) => ({
@@ -71,12 +74,67 @@ type ChatViewProps = {
   messages: any
   channel: any
   operatorName: any
+  protocolId?: string | null
+  projectId?: string | null
 }
 
-const ChatViewDialog = ({ open, setOpen, clientId, clientData, messages, channel, operatorName }: ChatViewProps) => {
+const ChatViewDialog = ({
+  open,
+  setOpen,
+  clientId,
+  clientData,
+  messages,
+  channel,
+  operatorName,
+  protocolId = null,
+  projectId = null
+}: ChatViewProps) => {
+  const { isConnected, connectionStatus } = useWebSocket()
+  const [showConnectionInfo, setShowConnectionInfo] = useState(true)
+
+  useEffect(() => {
+    if (isConnected && showConnectionInfo) {
+      const timer = setTimeout(() => {
+        setShowConnectionInfo(false)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [isConnected, showConnectionInfo])
+
+  // 🔧 FUNÇÃO: Fechar dialog
   const handleClose = () => {
     setOpen(false)
   }
+
+  // 🔧 FUNÇÃO: Gerar IDs para WebSocket baseado nos dados
+  const getWebSocketIds = () => {
+    // 🎯 LÓGICA: Extrair/gerar IDs baseado na estrutura do seu backend
+    const derivedProtocolId = protocolId || clientData?.protocolId || `PROT_${clientId}`
+    const derivedProjectId = projectId || clientData?.projectId || clientId
+
+    return {
+      protocolId: derivedProtocolId,
+      clientId: derivedProjectId
+    }
+  }
+
+  const webSocketIds = getWebSocketIds()
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'connected':
+        return 'success'
+      case 'connecting':
+        return 'warning'
+      case 'error':
+        return 'error'
+      default:
+        return 'default'
+    }
+  }
+
+  console.log(clientData, messages)
 
   return (
     <LargeChatDialog
@@ -93,12 +151,27 @@ const ChatViewDialog = ({ open, setOpen, clientId, clientData, messages, channel
       {/* 🔥 HEADER: Informações do chat e botão fechar */}
       <ChatDialogHeader>
         <div>
-          <Typography variant='h6' component='div'>
-            Chat - {clientId}
-          </Typography>
-          <Typography variant='body2' color='text.secondary'>
-            {channel} • {operatorName}
-          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+            <Typography variant='body2' color='text.secondary'>
+              {channel} • {operatorName}
+            </Typography>
+
+            {/* 🔥 NOVO: Status de Conexão WebSocket */}
+            {showConnectionInfo && (
+              <Chip
+                label={`🔌 ${connectionStatus}`}
+                color={getStatusColor(connectionStatus)}
+                size='small'
+                variant={isConnected ? 'filled' : 'outlined'}
+              />
+            )}
+          </Box>
+          {process.env.NODE_ENV === 'development' && (
+            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+              <Chip label={`Protocol: ${webSocketIds.protocolId}`} size='small' variant='outlined' color='primary' />
+              <Chip label={`Client: ${webSocketIds.clientId}`} size='small' variant='outlined' color='secondary' />
+            </Box>
+          )}
         </div>
 
         {/* ✅ BOTÃO FECHAR: Sempre visível */}
@@ -126,7 +199,12 @@ const ChatViewDialog = ({ open, setOpen, clientId, clientData, messages, channel
             flexDirection: 'column'
           }}
         >
-          <ChatWrapper />
+          <ChatWrapper
+            protocolId={webSocketIds.protocolId}
+            clientId={webSocketIds.clientId}
+            autoConnct={true}
+            showDebugInfo={process.env.NODE_ENV === 'development'}
+          />
         </div>
       </LargeChatDialogContent>
     </LargeChatDialog>
@@ -134,45 +212,3 @@ const ChatViewDialog = ({ open, setOpen, clientId, clientData, messages, channel
 }
 
 export default ChatViewDialog
-
-/*
-🎓 EXPLICAÇÃO DIDÁTICA:
-
-1. 🎯 PROBLEMA RESOLVIDO:
-   - Material-UI Dialog tem maxWidth="sm" (600px) por padrão
-   - Não tinha altura definida
-   - Padding excessivo reduzia espaço útil
-
-2. ✅ SOLUÇÕES IMPLEMENTADAS:
-   
-   A) TAMANHO CUSTOMIZADO:
-      - width: '90vw' = 90% da largura da tela
-      - height: '90vh' = 90% da altura da tela
-      - maxWidth: 'none' = Remove limitação do MUI
-   
-   B) RESPONSIVIDADE:
-      - Desktop: 90% da tela
-      - Tablet: 95% da tela
-      - Mobile: Tela cheia (100%)
-   
-   C) OTIMIZAÇÃO DE ESPAÇO:
-      - Header compacto com informações essenciais
-      - Conteúdo sem padding desnecessário
-      - ChatWrapper ocupa 100% do espaço disponível
-
-3. 🔧 COMO USAR:
-   - Substitua o arquivo index.tsx pelo código acima
-   - O dialog agora será bem maior
-   - Mantém funcionalidade de fechar (ESC, X, backdrop)
-
-4. 🎨 CUSTOMIZAÇÕES FUTURAS:
-   - Ajuste as porcentagens (90vw/90vh) conforme necessário
-   - Modifique breakpoints para outros tamanhos
-   - Adicione animações personalizadas
-
-5. 📱 BENEFÍCIOS:
-   - Máximo aproveitamento da tela
-   - Experiência mobile otimizada
-   - Interface limpa e profissional
-   - Performance mantida
-*/

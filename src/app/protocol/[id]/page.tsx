@@ -33,7 +33,7 @@ const ProtocolPage = ({ params }: PageProps) => {
         setId(protocolId)
 
         // Get token from localStorage
-        const storedToken = localStorage.getItem('auth_token')
+        const storedToken = localStorage.getItem('token')
 
         if (storedToken) {
           setAuthToken(storedToken)
