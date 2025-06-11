@@ -820,17 +820,6 @@ const KanbanPage = () => {
           </Grid>
         </SortableContext>
       </DndContext>
-      {selectedClientData && (
-        <ChatViewDialog
-          open={isDialogOpen}
-          setOpen={setIsDialogOpen}
-          clientData={selectedClientData}
-          clientId={selectedClientData.clientId}
-          messages={selectedClientData.messages}
-          channel={selectedClientData.channel}
-          operatorName={selectedClientData.operatorName}
-        />
-      )}
 
       {/* Estado Vazio */}
       {filteredClients.length === 0 && (
@@ -845,6 +834,17 @@ const KanbanPage = () => {
             Limpar Filtros
           </Button>
         </Paper>
+      )}
+      {selectedClientData && (
+        <ChatViewDialog
+          open={isDialogOpen}
+          setOpen={setIsDialogOpen}
+          clientData={selectedClientData}
+          clientId={selectedClientData.clientId}
+          messages={selectedClientData.messages}
+          channel={selectedClientData.channel}
+          operatorName={selectedClientData.operatorName}
+        />
       )}
     </>
   )

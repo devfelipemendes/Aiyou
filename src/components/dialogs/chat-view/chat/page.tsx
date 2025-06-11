@@ -82,10 +82,14 @@ const ChatWrapper = () => {
 
   return (
     <div
-      className={classNames(commonLayoutClasses.contentHeightFixed, 'flex is-full overflow-hidden rounded relative', {
-        border: settings.skin === 'bordered',
-        'shadow-md': settings.skin !== 'bordered'
-      })}
+      className={classNames(
+        commonLayoutClasses.contentHeightFixed,
+        'flex is-full overflow-hidden rounded relative h-full',
+        {
+          border: settings.skin === 'bordered',
+          'shadow-md': settings.skin !== 'bordered'
+        }
+      )}
     >
       <SidebarLeft
         chatStore={chatStore}
@@ -111,6 +115,7 @@ const ChatWrapper = () => {
         isBelowLgScreen={isBelowLgScreen}
         isBelowSmScreen={isBelowSmScreen}
         messageInputRef={messageInputRef}
+        mode={'system'}
       />
 
       <Backdrop open={backdropOpen} onClick={() => setBackdropOpen(false)} className='absolute z-10' />
