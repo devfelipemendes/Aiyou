@@ -68,6 +68,7 @@
     "@iconify/utils": "2.2.1",
     "@tanstack/eslint-plugin-query": "^5.78.0",
     "@types/node": "^22.10.2",
+    "@types/pusher-js": "^5.1.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@typescript-eslint/eslint-plugin": "7.18.0",
