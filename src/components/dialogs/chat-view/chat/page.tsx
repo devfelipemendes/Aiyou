@@ -126,7 +126,7 @@ const ChatWrapper = ({ autoConnct, clientId, protocolId, showDebugInfo }: ChatWr
     if (!showDebugInfo) return null
 
     return (
-      <Box sx={{ position: 'fixed', top: 10, right: 10, zIndex: 9999 }}>
+      <Box sx={{ position: 'fixed', top: 10, right: 10, zIndex: 9999, height: '100%' }}>
         <Alert severity='info' sx={{ mb: 1, maxWidth: 300 }}>
           <Typography variant='caption' component='div'>
             <strong>🔌 WebSocket Status</strong>
