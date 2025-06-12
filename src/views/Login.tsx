@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // MUI Imports
 import Image from 'next/image'
@@ -25,6 +25,8 @@ import classnames from 'classnames'
 // Type Imports
 import * as v from 'valibot'
 import { valibotResolver } from '@hookform/resolvers/valibot'
+
+import { useWebSocket } from '@/hooks/useWebSocket'
 
 import type { Mode } from '@core/types'
 
@@ -60,8 +62,10 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
   const navigation = useRouter()
 
   // Hooks
-
+  // const dispatch = useAppDispatch()
   const { settings } = useSettings()
+
+  const { connect: connectWebSocket, status: webSocketStatus } = useWebSocket({ autoConnect: false })
 
   const {
     control,
@@ -90,13 +94,25 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
       }).unwrap()
 
       if (response.data?.token) {
+        const token = response.data.token
+        const userId = response.data.user.id.toString()
+
         localStorage.setItem('token', response.data.token) // Store token in localStorage
+        localStorage.setItem('userId', response.data.user?.id) // Store token in localStorage
+
+        console.log('Iniciando conexão websocket após o login')
+
+        connectWebSocket(token, userId)
+        console.log('Login successful:', response)
+        setTimeout(() => {
+          if (webSocketStatus === 'connected') {
+            navigation.push('/painel')
+          } else {
+            // Navegar mesmo se WebSocket não conectou
+            navigation.push('/painel')
+          }
+        }, 2000)
       }
-
-      console.log('Login successful:', response)
-      navigation.push('/painel')
-
-      // alert('Login successful!') // Show success message
     } catch (err: any) {
       toast.error(`Erro ao logar error ${error}`) // Show success message
       console.log('Detalhes do erro:', {
@@ -104,10 +120,12 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
         data: err.data,
         message: err.data?.message || 'Erro desconhecido'
       })
-
-      // alert('Login failed. Please check your credentials and try again.' + error) // Show error message
     }
   }
+
+  useEffect(() => {
+    console.log('📡 Status WebSocket:', webSocketStatus)
+  }, [webSocketStatus])
 
   return (
     <div className='flex bs-full justify-center'>

@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useState } from 'react'
 
 import { Box, Chip, Typography } from '@mui/material'
 import Dialog from '@mui/material/Dialog'
@@ -9,7 +8,6 @@ import IconButton from '@mui/material/IconButton'
 import { styled } from '@mui/material/styles'
 
 import ChatWrapper from './chat/page'
-import { useWebSocket } from '@/hooks/useWebSoccket'
 
 // 🔥 COMPONENTE PERSONALIZADO: Dialog com tamanho customizado
 const LargeChatDialog = styled(Dialog)(({ theme }) => ({
@@ -89,19 +87,6 @@ const ChatViewDialog = ({
   protocolId = null,
   projectId = null
 }: ChatViewProps) => {
-  const { isConnected, connectionStatus } = useWebSocket()
-  const [showConnectionInfo, setShowConnectionInfo] = useState(true)
-
-  useEffect(() => {
-    if (isConnected && showConnectionInfo) {
-      const timer = setTimeout(() => {
-        setShowConnectionInfo(false)
-      }, 3000)
-
-      return () => clearTimeout(timer)
-    }
-  }, [isConnected, showConnectionInfo])
-
   // 🔧 FUNÇÃO: Fechar dialog
   const handleClose = () => {
     setOpen(false)
@@ -120,19 +105,6 @@ const ChatViewDialog = ({
   }
 
   const webSocketIds = getWebSocketIds()
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'connected':
-        return 'success'
-      case 'connecting':
-        return 'warning'
-      case 'error':
-        return 'error'
-      default:
-        return 'default'
-    }
-  }
 
   console.log(clientData, messages)
 
@@ -155,16 +127,6 @@ const ChatViewDialog = ({
             <Typography variant='body2' color='text.secondary'>
               {channel} • {operatorName}
             </Typography>
-
-            {/* 🔥 NOVO: Status de Conexão WebSocket */}
-            {showConnectionInfo && (
-              <Chip
-                label={`🔌 ${connectionStatus}`}
-                color={getStatusColor(connectionStatus)}
-                size='small'
-                variant={isConnected ? 'filled' : 'outlined'}
-              />
-            )}
           </Box>
           {process.env.NODE_ENV === 'development' && (
             <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
