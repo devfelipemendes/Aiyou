@@ -97,7 +97,7 @@ const websocketMiddleware: Middleware<{}, RootState> = store => next => (action:
       })
 
       echo.connector.pusher.connection.bind('error', (err: any) => {
-        console.error('💥 Erro no WebSocket:', err)
+        console.error('💥 Erro no WebSocket Middleware:', err)
         store.dispatch(setWebsocketError(err?.message || 'Erro na conexão WebSocket'))
       })
 

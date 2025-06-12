@@ -31,17 +31,21 @@ const extractHostname = (url: string): string => {
   }
 }
 
-const rawHost = process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || ''
+const rawHost = process.env.NEXT_PUBLIC_LARAVEL_API_URL || ''
 
 // ✅ Configurações do .env para Reverb
 const getReverbConfig = () => {
+  // const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https'
+
+  // const isSecure = scheme === 'https'
+
   const config = {
     appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'jjpnmycugrpdugowbnhd',
     host: extractHostname(rawHost) || 'localhost',
-    port: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '80'),
+    port: null,
     scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https',
-    apiUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br',
-    baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'dev.aiyou.com.br'
+    apiUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br/v1',
+    baseUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br/v1 '
   }
 
   console.log('🔧 Configuração Reverb:', {

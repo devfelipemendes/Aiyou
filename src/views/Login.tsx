@@ -103,6 +103,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
         console.log('Iniciando conexão websocket após o login')
 
         connectWebSocket(token, userId)
+        console.log(token)
         console.log('Login successful:', response)
         setTimeout(() => {
           if (webSocketStatus === 'connected') {
