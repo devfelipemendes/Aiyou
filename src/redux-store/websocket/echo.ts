@@ -9,15 +9,39 @@ let isReconnected = false
 type ListenerCallback = () => void
 const listeners: ListenerCallback[] = []
 
+const extractHostname = (url: string): string => {
+  if (!url) return 'localhost'
+
+  try {
+    // Se já é apenas hostname, retorna direto
+    if (!url.includes('://')) {
+      return url.split(':')[0].split('/')[0]
+    }
+
+    // Extrair hostname de URL completa
+    const urlObj = new URL(url)
+
+    return urlObj.hostname
+  } catch (error) {
+    // Fallback: remover protocolo manualmente
+    return url
+      .replace(/^https?:\/\//, '')
+      .split(':')[0]
+      .split('/')[0]
+  }
+}
+
+const rawHost = process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || ''
+
 // ✅ Configurações do .env para Reverb
 const getReverbConfig = () => {
   const config = {
     appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'jjpnmycugrpdugowbnhd',
-    host: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'localhost',
-    port: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '8080'),
+    host: extractHostname(rawHost) || 'localhost',
+    port: parseInt(process.env.NEXT_PUBLIC_REVERB_PORT || '80'),
     scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https',
-    apiUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'https://dev.reverb.aiyou.com.br',
-    baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'https://dev.aiyou.com.br'
+    apiUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br',
+    baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'dev.aiyou.com.br'
   }
 
   console.log('🔧 Configuração Reverb:', {
