@@ -58,7 +58,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
 
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
-  const [postLogin, { isLoading, error }] = usePostLoginMutation()
+  const [postLogin, { isLoading }] = usePostLoginMutation()
   const navigation = useRouter()
 
   // Hooks
@@ -83,7 +83,6 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
 
   const onSubmit = async (data: { email: string; password: string }) => {
-    // Prevent default form submission behavior
     console.log('Dados do formulário:', data)
 
     try {
@@ -94,33 +93,29 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
       }).unwrap()
 
       if (response.data?.token) {
-        const token = response.data.token
-        const userId = response.data.user.id.toString()
+        const { token, user, clients } = response.data
+        const userId = user.id.toString()
 
-        localStorage.setItem('token', response.data.token) // Store token in localStorage
-        localStorage.setItem('userId', response.data.user?.id) // Store token in localStorage
+        // 💾 Salvar dados no localStorage
+        localStorage.setItem('token', token)
+        localStorage.setItem('userId', userId)
+        localStorage.setItem('userData', JSON.stringify(user)) // 🔧 Salvar dados completos do usuário
 
-        console.log('Iniciando conexão websocket após o login')
+        console.log('🔌 Iniciando conexão WebSocket após login...')
 
-        connectWebSocket(token, userId)
-        console.log(token)
-        console.log('Login successful:', response)
+        // 🔧 Conectar WebSocket com dados dos clients
+        connectWebSocket(token, userId, clients || [])
+
+        console.log('✅ Login realizado com sucesso')
+
+        // Aguardar um pouco para WebSocket conectar
         setTimeout(() => {
-          if (webSocketStatus === 'connected') {
-            navigation.push('/painel')
-          } else {
-            // Navegar mesmo se WebSocket não conectou
-            navigation.push('/painel')
-          }
-        }, 2000)
+          navigation.push('/painel')
+        }, 1500)
       }
     } catch (err: any) {
-      toast.error(`Erro ao logar error ${error}`) // Show success message
-      console.log('Detalhes do erro:', {
-        status: err.status,
-        data: err.data,
-        message: err.data?.message || 'Erro desconhecido'
-      })
+      toast.error(`Erro ao fazer login: ${err.data?.message || 'Erro desconhecido'}`)
+      console.error('💥 Erro no login:', err)
     }
   }
 

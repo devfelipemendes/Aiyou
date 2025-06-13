@@ -35,13 +35,22 @@ const rawHost = process.env.NEXT_PUBLIC_LARAVEL_API_URL || ''
 
 // ✅ Configurações do .env para Reverb
 const getReverbConfig = () => {
-  // const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https'
+  const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https'
 
-  // const isSecure = scheme === 'https'
+  const isSecure = scheme === 'https'
+
+  let port = process.env.NEXT_PUBLIC_REVERB_PORT
+
+  if (!port || port === 'null' || port === '') {
+    // Usar portas padrão se não especificada
+    port = isSecure ? '443' : '80'
+  }
+
+  const host = extractHostname(rawHost) || 'dev.reverb.aiyou.com.br'
 
   const config = {
     appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'jjpnmycugrpdugowbnhd',
-    host: extractHostname(rawHost) || 'localhost',
+    host: host,
     port: null,
     scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https',
     apiUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br/v1',

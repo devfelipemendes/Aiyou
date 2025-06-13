@@ -19,6 +19,7 @@ import websocketMiddleware from './midleware/socketMiddleware'
 import websocketReducer from './slices/webSocket'
 import protocolsReducer from './slices/protocols'
 import questionsReducer from './slices/questions'
+import messagesReducer from './slices/messages'
 
 // 🔥 CORRIGIDO: Persist config com nome correto do reducer
 const persistConfig = {
@@ -36,6 +37,7 @@ const rootReducer = combineReducers({
   websocketReducer,
   protocolsReducer,
   questionsReducer,
+  messagesReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })
