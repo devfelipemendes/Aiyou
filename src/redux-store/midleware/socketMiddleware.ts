@@ -1,4 +1,4 @@
-// redux-store/websocket/socketMiddleware.ts (VERSÃO CORRIGIDA)
+// redux-store/websocket/socketMiddleware.ts (CORREÇÃO ESPECÍFICA PARA CANAIS)
 import type { Middleware, PayloadAction, Action } from '@reduxjs/toolkit'
 
 import { disconnectEcho, getEcho, registerReconnectListener } from '../websocket/echo'
@@ -15,6 +15,7 @@ interface WebSocketInitPayload {
 }
 
 type WebSocketInitAction = PayloadAction<WebSocketInitPayload, 'WEBSOCKET/INIT'>
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 type WebSocketDisconnectAction = PayloadAction<undefined, 'WEBSOCKET/DISCONNECT'>
 
 interface RootState {
@@ -32,107 +33,224 @@ interface RootState {
 // 🔧 Armazenar clients para reconexão
 let connectedClients: any[] = []
 
-// 🔧 Função auxiliar para verificar se um canal é válido
+// 🔧 Função melhorada para verificar se um canal é válido
 const isValidChannel = (channel: any): boolean => {
-  return (
-    channel &&
-    typeof channel.listen === 'function' &&
-    (typeof channel.bind_global === 'function' || typeof channel.bind === 'function')
-  )
-}
-
-// 🔧 Função auxiliar para bind seguro de eventos globais
-const safeBindGlobal = (channel: any, channelName: string, callback: (eventName: string, data: any) => void) => {
   try {
-    if (!isValidChannel(channel)) {
-      console.error('💥 Canal inválido para bind global:', channelName)
+    if (!channel) {
+      console.warn('⚠️ Canal é null ou undefined')
 
       return false
     }
 
-    if (typeof channel.bind_global === 'function') {
-      // Método padrão do Pusher
-      channel.bind_global(callback)
-      console.log(`✅ Bind global configurado para: ${channelName}`)
+    // Verificar propriedades essenciais do canal
+    const checks = {
+      hasListen: typeof channel.listen === 'function',
+      hasBindGlobal: typeof channel.bind_global === 'function',
+      hasBind: typeof channel.bind === 'function',
+      hasSubscription: !!channel.subscription,
+      channelName: channel.name || 'N/A',
+      isEchoChannel: typeof channel.listen === 'function',
+      isPusherChannel: typeof channel.bind_global === 'function' || typeof channel.bind === 'function'
+    }
 
-      return true
-    } else if (typeof channel.bind === 'function') {
-      // Fallback: usar bind com eventos específicos
-      console.warn(`⚠️ bind_global não disponível para ${channelName}, usando método alternativo`)
+    console.log('🔍 Validação detalhada do canal:', checks)
 
-      // Lista de eventos comuns para escutar
-      const commonEvents = [
-        'protocol.created',
-        'protocol.updated',
-        'protocol.deleted',
-        'question.created',
-        'question.updated',
-        'reply.created',
-        'reply.updated',
-        'operator.reply.created',
-        'operator.reply.updated'
-      ]
+    // 🔧 CORREÇÃO: Canal é válido se é um canal do Echo OU um canal do Pusher
+    const isEchoChannelValid = checks.hasListen // Echo wrapper tem listen
+    const isPusherChannelValid = checks.hasBindGlobal || checks.hasBind // Pusher raw tem bind methods
 
-      // Bind individual para cada evento comum
-      commonEvents.forEach(eventName => {
-        try {
-          channel.bind(eventName, (data: any) => {
-            callback(eventName, data)
-          })
-        } catch (bindError) {
-          console.warn(`⚠️ Erro ao fazer bind do evento ${eventName}:`, bindError)
-        }
-      })
+    const isValid = isEchoChannelValid || isPusherChannelValid
 
-      return true
-    } else {
-      console.error(`💥 Nenhum método de bind disponível para: ${channelName}`)
+    if (!isValid) {
+      console.error('💥 Canal inválido - nenhum tipo de canal reconhecido')
 
       return false
     }
+
+    console.log(`✅ Canal válido detectado: ${checks.isEchoChannel ? 'Echo' : 'Pusher'}`)
+
+    return true
   } catch (error) {
-    console.error(`💥 Erro ao configurar bind global para ${channelName}:`, error)
+    console.error('💥 Erro ao validar canal:', error)
 
     return false
   }
 }
 
-// 🔧 Função para conectar a um client com verificações de segurança
-const connectToClient = (echo: any, client: any, store: any) => {
+// 🔧 Função para conectar a um client com melhor handling de canais
+const connectToClient = async (echo: any, client: any, store: any): Promise<boolean> => {
   try {
     const channelName = `project.${client.id}`
 
-    console.log('🔌 Conectando ao canal:', channelName)
+    console.log('🔌 Iniciando conexão ao canal:', {
+      channelName,
+      clientId: client.id,
+      clientName: client.name
+    })
 
-    const channel = echo.private(channelName)
+    // 🔧 Verificar se WebSocket está realmente conectado
+    const connection = echo?.connector?.pusher?.connection
 
-    // Verificar se o canal foi criado corretamente
-    if (!isValidChannel(channel)) {
-      console.error('💥 Canal inválido criado para:', channelName)
+    if (!connection || connection.state !== 'connected') {
+      console.warn('⚠️ WebSocket não está conectado, aguardando...')
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      if (!connection || connection.state !== 'connected') {
+        console.error('💥 WebSocket ainda não conectado após aguardar')
+
+        return false
+      }
+    }
+
+    const socketId = connection.socket_id
+
+    console.log('🔑 Socket ID confirmado:', socketId)
+
+    // 🔧 Tentar criar o canal com retry
+    let channel = null
+    let attempts = 0
+    const maxAttempts = 3
+
+    while (!channel && attempts < maxAttempts) {
+      attempts++
+
+      try {
+        console.log(`🔄 Tentativa ${attempts}/${maxAttempts} de criar canal: ${channelName}`)
+
+        channel = echo.private(channelName)
+
+        if (channel) {
+          console.log(`📡 Canal criado na tentativa ${attempts}:`, {
+            name: channelName,
+            channel: channel,
+            type: typeof channel,
+            constructor: channel.constructor?.name
+          })
+        }
+      } catch (channelError) {
+        console.error(`💥 Erro na tentativa ${attempts} de criar canal:`, channelError)
+
+        if (attempts < maxAttempts) {
+          console.log(`⏳ Aguardando ${attempts * 1000}ms antes da próxima tentativa...`)
+          await new Promise(resolve => setTimeout(resolve, attempts * 1000))
+        }
+      }
+    }
+
+    if (!channel) {
+      console.error('💥 Falha ao criar canal após todas as tentativas')
 
       return false
     }
 
-    // 📋 Configurar listeners básicos com tratamento de erro
+    // 🔧 Aguardar inicialização do canal
+    console.log('⏳ Aguardando inicialização do canal...')
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // 🔧 Validar canal criado
+    if (!isValidChannel(channel)) {
+      console.error('💥 Canal criado mas inválido:', channelName)
+
+      // Tentar acessar o canal através do pusher channels
+      try {
+        const pusherChannels = echo.connector.pusher.channels.channels
+        const pusherChannel = pusherChannels[`private-${channelName}`]
+
+        if (pusherChannel) {
+          console.log('🔍 Encontrado canal no pusher.channels:', pusherChannel)
+          channel = pusherChannel
+        }
+      } catch (pusherError) {
+        console.error('💥 Erro ao acessar canal via pusher.channels:', pusherError)
+      }
+
+      if (!isValidChannel(channel)) {
+        console.error('💥 Canal permanece inválido após verificações')
+
+        return false
+      }
+    }
+
+    // 🔧 Verificar subscription
+    if (channel.subscription) {
+      console.log('📡 Status da subscription:', {
+        subscribed: channel.subscription.subscribed,
+        state: channel.subscription.state,
+        channel: channelName
+      })
+
+      // Se não estiver subscrito, aguardar um pouco mais
+      if (!channel.subscription.subscribed) {
+        console.log('⏳ Aguardando subscription...')
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        console.log('📡 Status da subscription após aguardar:', {
+          subscribed: channel.subscription.subscribed,
+          state: channel.subscription.state
+        })
+      }
+    }
+
+    // 📋 Configurar listeners de eventos básicos
     try {
-      channel
-        .listen('.protocol.created', (e: any) => {
-          console.log('📋 Novo protocolo criado:', e.data || e)
+      console.log('🎧 Configurando listeners para:', channelName)
+
+      // 🔧 CORREÇÃO: Detectar tipo de canal e usar métodos apropriados
+      const isEchoChannel = typeof channel.listen === 'function'
+      const isPusherChannel = typeof channel.bind_global === 'function' || typeof channel.bind === 'function'
+
+      if (isEchoChannel) {
+        console.log('🔧 Configurando listeners para canal do Echo')
+
+        channel
+          .listen('.protocol.created', (e: any) => {
+            console.log('📋 Novo protocolo criado:', e.data || e)
+            store.dispatch({
+              type: 'protocols/addProtocol',
+              payload: { ...(e.data || e), client_id: client.id }
+            })
+          })
+          .listen('.protocol.updated', (e: any) => {
+            console.log('📋 Protocolo atualizado:', e.data || e)
+            store.dispatch({
+              type: 'protocols/updateProtocol',
+              payload: e.data || e
+            })
+          })
+          .listen('.protocol.deleted', (e: any) => {
+            console.log('🗑️ Protocolo removido:', e.data || e)
+            const protocolId = (e.data || e).id
+
+            if (protocolId) {
+              store.dispatch({
+                type: 'protocols/removeProtocol',
+                payload: protocolId
+              })
+            }
+          })
+      } else if (isPusherChannel) {
+        console.log('🔧 Configurando listeners para canal do Pusher')
+
+        // Para canal do Pusher, usar bind ao invés de listen
+        channel.bind('protocol.created', (e: any) => {
+          console.log('📋 Novo protocolo criado (Pusher):', e)
           store.dispatch({
             type: 'protocols/addProtocol',
-            payload: { ...(e.data || e), client_id: client.id }
+            payload: { ...e, client_id: client.id }
           })
         })
-        .listen('.protocol.updated', (e: any) => {
-          console.log('📋 Protocolo atualizado:', e.data || e)
+
+        channel.bind('protocol.updated', (e: any) => {
+          console.log('📋 Protocolo atualizado (Pusher):', e)
           store.dispatch({
             type: 'protocols/updateProtocol',
-            payload: e.data || e
+            payload: e
           })
         })
-        .listen('.protocol.deleted', (e: any) => {
-          console.log('🗑️ Protocolo removido:', e.data || e)
-          const protocolId = (e.data || e).id
+
+        channel.bind('protocol.deleted', (e: any) => {
+          console.log('🗑️ Protocolo removido (Pusher):', e)
+          const protocolId = e.id
 
           if (protocolId) {
             store.dispatch({
@@ -141,48 +259,80 @@ const connectToClient = (echo: any, client: any, store: any) => {
             })
           }
         })
+      } else {
+        console.warn('⚠️ Tipo de canal não reconhecido para configurar listeners')
+      }
 
       console.log(`✅ Listeners básicos configurados para: ${channelName}`)
     } catch (listenError) {
       console.error(`💥 Erro ao configurar listeners para ${channelName}:`, listenError)
+
+      // Não retornar false aqui, pois o canal pode estar funcionando
     }
 
-    // 🔧 Debug de todos os eventos (com verificação de segurança)
-    const debugSuccess = safeBindGlobal(channel, channelName, (eventName: string, data: any) => {
-      if (!eventName.startsWith('pusher:') && !eventName.startsWith('pusher_internal:')) {
-        console.log(`📡 [${channelName}] ${eventName}:`, data)
+    // 🔧 Configurar listeners de subscription para debug
+    if (channel.subscription) {
+      try {
+        channel.subscription.bind('pusher:subscription_succeeded', () => {
+          console.log(`✅ Subscription bem-sucedida: ${channelName}`)
+        })
+
+        channel.subscription.bind('pusher:subscription_error', (error: any) => {
+          console.error(`💥 Erro na subscription: ${channelName}`, error)
+        })
+      } catch (subscriptionError) {
+        console.warn('⚠️ Erro ao configurar listeners de subscription:', subscriptionError)
       }
-    })
-
-    if (!debugSuccess) {
-      console.warn(`⚠️ Debug global não pôde ser configurado para: ${channelName}`)
     }
 
-    console.log(`✅ Conectado ao canal: ${channelName}`)
+    // 🔧 Configurar debug global se disponível
+    try {
+      const isEchoChannel = typeof channel.listen === 'function'
+      const isPusherChannel = typeof channel.bind_global === 'function' || typeof channel.bind === 'function'
+
+      if (isPusherChannel && typeof channel.bind_global === 'function') {
+        channel.bind_global((eventName: string, data: any) => {
+          if (!eventName.startsWith('pusher:') && !eventName.startsWith('pusher_internal:')) {
+            console.log(`📡 [${channelName}] ${eventName}:`, data)
+          }
+        })
+        console.log(`✅ Debug global configurado para canal Pusher: ${channelName}`)
+      } else if (isEchoChannel) {
+        // Para canais Echo, o debug global pode não estar disponível
+        console.log(`ℹ️ Debug global não disponível para canal Echo: ${channelName}`)
+      }
+    } catch (debugError) {
+      console.warn('⚠️ Erro ao configurar debug global:', debugError)
+    }
+
+    console.log(`🎉 Cliente conectado com sucesso: ${channelName}`)
 
     return true
   } catch (error) {
-    console.error(`💥 Erro ao conectar client ${client.id}:`, error)
+    console.error(`💥 Erro geral ao conectar client ${client.id}:`, error)
 
     return false
   }
 }
 
 // 🔧 Função para reconectar todos os clients
-const reconnectAllClients = (echo: any, store: any) => {
+const reconnectAllClients = async (echo: any, store: any) => {
   console.log('🔄 Reconectando aos clients após reconexão...')
 
   let successCount = 0
 
-  connectedClients.forEach(client => {
+  for (const client of connectedClients) {
     try {
-      const success = connectToClient(echo, client, store)
+      const success = await connectToClient(echo, client, store)
 
       if (success) successCount++
     } catch (error) {
       console.error(`💥 Erro ao reconectar client ${client.id}:`, error)
     }
-  })
+
+    // Pequeno delay entre reconexões
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
 
   console.log(`🔄 Reconexão concluída: ${successCount}/${connectedClients.length} clients`)
 }
@@ -197,7 +347,7 @@ const websocketMiddleware: Middleware<{}, RootState> = store => next => (action:
   // 🔧 Inicializar WebSocket com clients
   if (actionType === 'WEBSOCKET/INIT') {
     const initAction = action as WebSocketInitAction
-    const { token, userId, clients } = initAction.payload
+    const { userId, clients } = initAction.payload
 
     console.log('🔌 Inicializando WebSocket...', {
       userId,
@@ -219,22 +369,42 @@ const websocketMiddleware: Middleware<{}, RootState> = store => next => (action:
       }
 
       // 🎧 Event handlers principais
-      echo.connector.pusher.connection.bind('connected', () => {
-        console.log('✅ WebSocket conectado - conectando aos clients...')
+      echo.connector.pusher.connection.bind('connected', async () => {
+        console.log('✅ WebSocket conectado - iniciando conexão aos clients...')
         store.dispatch(setWebsocketStatus('connected'))
 
-        // 🔧 Conectar aos canais dos clients com verificações de segurança
+        // 🔧 Aguardar para garantir estabilidade da conexão
+        console.log('⏳ Aguardando estabilização da conexão...')
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        console.log('🔌 Iniciando conexão sequencial aos clients...')
+
         let successCount = 0
 
-        clients.forEach(client => {
-          try {
-            const success = connectToClient(echo, client, store)
+        // Conectar clients sequencialmente (não em paralelo)
+        for (let i = 0; i < clients.length; i++) {
+          const client = clients[i]
 
-            if (success) successCount++
+          try {
+            console.log(`🔌 Conectando client ${i + 1}/${clients.length}: ${client.name}`)
+
+            const success = await connectToClient(echo, client, store)
+
+            if (success) {
+              successCount++
+              console.log(`✅ Client ${i + 1}/${clients.length} conectado com sucesso`)
+            } else {
+              console.error(`❌ Client ${i + 1}/${clients.length} falhou na conexão`)
+            }
           } catch (error) {
             console.error(`💥 Erro crítico ao conectar client ${client.id}:`, error)
           }
-        })
+
+          // Pequeno delay entre conexões para evitar sobrecarga
+          if (i < clients.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
 
         console.log(`🎉 Conexão concluída: ${successCount}/${clients.length} clients conectados`)
       })
@@ -255,9 +425,9 @@ const websocketMiddleware: Middleware<{}, RootState> = store => next => (action:
       })
 
       // 🔧 Registrar callback de reconexão
-      registerReconnectListener(() => {
+      registerReconnectListener(async () => {
         try {
-          reconnectAllClients(echo, store)
+          await reconnectAllClients(echo, store)
         } catch (error) {
           console.error('💥 Erro durante reconexão:', error)
         }
@@ -304,7 +474,6 @@ export const reconnectWebSocket = () => (dispatch: any, getState: any) => {
   if (websocketReducer.status !== 'disconnected') {
     dispatch(disconnectWebSocket())
 
-    // Aguardar um pouco antes de reconectar
     setTimeout(() => {
       const token = localStorage.getItem('token')
       const userId = localStorage.getItem('userId')
@@ -362,11 +531,39 @@ export const debugWebSocketConnections = () => {
       Object.entries(channels).map(([name, channel]: [string, any]) => ({
         name,
         subscribed: channel.subscribed,
-        state: channel.subscription_state
+        subscription_state: channel.subscription_state,
+        subscription: !!channel.subscription
       }))
     )
     console.groupEnd()
   } catch (error) {
     console.error('💥 Erro ao fazer debug das conexões:', error)
+  }
+}
+
+// 🔧 Função para testar conexão manualmente
+export const testWebSocketConnection = () => {
+  try {
+    const echo = getEcho()
+
+    if (!echo?.connector?.pusher?.connection) {
+      console.error('💥 Conexão WebSocket não disponível')
+
+      return false
+    }
+
+    const connection = echo.connector.pusher.connection
+
+    console.log('🧪 Teste de conexão WebSocket:', {
+      state: connection.state,
+      socketId: connection.socket_id,
+      readyState: connection.readyState
+    })
+
+    return connection.state === 'connected'
+  } catch (error) {
+    console.error('💥 Erro no teste de conexão:', error)
+
+    return false
   }
 }

@@ -34,7 +34,6 @@ const extractHostname = (url: string): string => {
 // ✅ Configurações do .env para Reverb
 const getReverbConfig = () => {
   const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https'
-
   const isSecure = scheme === 'https'
 
   let port = process.env.NEXT_PUBLIC_REVERB_PORT
@@ -65,11 +64,11 @@ const getReverbConfig = () => {
 
   console.log('🔧 Configuração Reverb FINAL:', {
     appKey: config.appKey,
-    wsHost: config.wsHost, // ← WebSocket hostname (sem /v1)
+    wsHost: config.wsHost,
     port: config.port,
     scheme: config.scheme,
     wsUrl: config.wsUrl,
-    authEndpoint: config.authEndpoint, // ← Auth para API principal
+    authEndpoint: config.authEndpoint,
     note: '✅ WebSocket → Reverb hostname, Auth → API completa'
   })
 
@@ -105,11 +104,68 @@ export const getEcho = () => {
         disableStats: true,
         cluster: 'local',
         authEndpoint: config.authEndpoint,
+
+        // 🔧 CORREÇÃO: Melhorar configuração de autenticação
         auth: {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest' // 🔧 Importante para Laravel
+          }
+        },
+
+        // 🔧 CORREÇÃO: Configurar authorizer customizado para incluir socket_id
+        authorizer: (channel: any) => {
+          return {
+            authorize: (socketId: string, callback: any) => {
+              console.log('🔐 Autorizando canal:', {
+                channel: channel.name,
+                socketId,
+                token: token ? 'Presente' : 'Ausente'
+              })
+
+              // Fazer request manual para o endpoint de autenticação
+              const xhr = new XMLHttpRequest()
+
+              xhr.open('POST', config.authEndpoint, true)
+              xhr.setRequestHeader('Content-Type', 'application/json')
+              xhr.setRequestHeader('Accept', 'application/json')
+              xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+              xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest')
+
+              xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                  if (xhr.status === 200) {
+                    try {
+                      const response = JSON.parse(xhr.responseText)
+
+                      console.log('✅ Autorização bem-sucedida:', response)
+                      callback(null, response)
+                    } catch (e) {
+                      console.error('💥 Erro ao parse da resposta de autorização:', e)
+                      callback(new Error('Erro ao processar resposta'))
+                    }
+                  } else {
+                    console.error('💥 Erro de autorização:', {
+                      status: xhr.status,
+                      statusText: xhr.statusText,
+                      response: xhr.responseText
+                    })
+                    callback(new Error(`Erro de autorização: ${xhr.status}`))
+                  }
+                }
+              }
+
+              // Enviar dados necessários para autorização
+              const authData = {
+                socket_id: socketId,
+                channel_name: channel.name
+              }
+
+              console.log('📤 Enviando dados de autorização:', authData)
+              xhr.send(JSON.stringify(authData))
+            }
           }
         }
       })

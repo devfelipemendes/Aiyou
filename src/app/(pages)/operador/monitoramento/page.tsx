@@ -348,8 +348,8 @@ const MonitoringPage = () => {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={filteredProtocols.map(p => p.id)} strategy={rectSortingStrategy}>
           <Grid container spacing={3}>
-            {filteredProtocols.map(protocol => (
-              <Grid key={protocol.id} size={getGridSize()}>
+            {filteredProtocols.map((protocol, index) => (
+              <Grid key={index} size={getGridSize()}>
                 <DraggableCard
                   clientId={protocol.id}
                   channel={protocol.channel}
