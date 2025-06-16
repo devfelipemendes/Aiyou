@@ -4,8 +4,6 @@ import { createSlice } from '@reduxjs/toolkit'
 export interface Question {
   id: string | number
   content: string
-
-  // ... outros campos relevantes
 }
 
 export interface Reply {
@@ -13,8 +11,6 @@ export interface Reply {
   question_id: string | number
   content: string
   isOperator?: boolean
-
-  // ... outros campos relevantes
 }
 
 interface QuestionsState {

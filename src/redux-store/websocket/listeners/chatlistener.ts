@@ -2,7 +2,6 @@
 import type { Dispatch } from 'redux'
 import type Echo from 'laravel-echo'
 
-// ✅ CORRIGIDO: Importar dos slices corretos
 import {
   addQuestion,
   updateQuestion,
@@ -18,7 +17,6 @@ interface DebuggerCallback {
   (message: { channel: string; event: string; data: any; type: 'sent' | 'received' }): void
 }
 
-// 🔧 Callback global do debugger
 let debuggerCallback: DebuggerCallback | null = null
 
 export const setDebuggerCallback = (callback: DebuggerCallback | null) => {
@@ -26,7 +24,6 @@ export const setDebuggerCallback = (callback: DebuggerCallback | null) => {
   console.log('🔧 Debugger callback definido:', !!callback)
 }
 
-// 🔧 Função auxiliar para debug
 const logEventToDebugger = (channel: string, event: string, data: any) => {
   console.log(`📡 [${channel}] ${event}:`, data)
 
@@ -138,6 +135,8 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
     // 📨 Configurar listeners com tratamento de erro
     try {
       protocolChannel
+
+        // Pergunta do usuário
         .listen('.question.created', (e: any) => {
           logEventToDebugger(protocolChannelName, 'question.created', e.data || e)
 
@@ -147,6 +146,8 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
             console.error('💥 Erro ao dispatch question.created:', dispatchError)
           }
         })
+
+        // Caso algum estado daquele registro na banco de uma pergunta já criada tenha mudado.
         .listen('.question.updated', (e: any) => {
           logEventToDebugger(protocolChannelName, 'question.updated', e.data || e)
 
@@ -156,6 +157,8 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
             console.error('💥 Erro ao dispatch question.updated:', dispatchError)
           }
         })
+
+        // Resposta da AI
         .listen('.reply.created', (e: any) => {
           logEventToDebugger(protocolChannelName, 'reply.created', e.data || e)
 
@@ -165,6 +168,8 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
             console.error('💥 Erro ao dispatch reply.created:', dispatchError)
           }
         })
+
+        // Resposta da AI
         .listen('.reply.updated', (e: any) => {
           logEventToDebugger(protocolChannelName, 'reply.updated', e.data || e)
 
@@ -174,6 +179,8 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
             console.error('💥 Erro ao dispatch reply.updated:', dispatchError)
           }
         })
+
+        //! Mensagem do operador para o usuário Caso o operador tenha assumido o chat (MODO OPERADOR)
         .listen('.operator.reply.created', (e: any) => {
           logEventToDebugger(protocolChannelName, 'operator.reply.created', e.data || e)
 
@@ -183,6 +190,8 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
             console.error('💥 Erro ao dispatch operator.reply.created:', dispatchError)
           }
         })
+
+        //! Mensagem do operador para o usuário Caso o operador tenha assumido o chat (MODO OPERADOR)
         .listen('.operator.reply.updated', (e: any) => {
           logEventToDebugger(protocolChannelName, 'operator.reply.updated', e.data || e)
 
@@ -444,7 +453,6 @@ export function debugChannelEvents(echo: Echo<any>, protocolId: string, clientId
   console.groupEnd()
 }
 
-// 🔧 Função para testar envio de mensagem de teste (VERSÃO CORRIGIDA)
 export function sendTestMessage(echo: Echo<any>, protocolId: string) {
   if (process.env.NODE_ENV !== 'development') return
 
@@ -473,7 +481,6 @@ export function sendTestMessage(echo: Echo<any>, protocolId: string) {
   }
 }
 
-// 🔧 Função para verificar saúde dos canais
 export function checkChannelsHealth(echo: Echo<any>) {
   try {
     if (!echo?.connector?.pusher) {

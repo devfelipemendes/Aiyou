@@ -1,8 +1,11 @@
-// redux-store/websocket/socketMiddleware.ts (CORREÇÃO ESPECÍFICA PARA CANAIS)
 import type { Middleware, PayloadAction, Action } from '@reduxjs/toolkit'
+
+// redux-store/websocket/socketMiddleware.ts (CORREÇÃO ESPECÍFICA PARA CANAIS)
 
 import { disconnectEcho, getEcho, registerReconnectListener } from '../websocket/echo'
 import { setWebsocketError, setWebsocketStatus } from '../slices/webSocket'
+
+import { addMessageToDebugger } from '@/utils/websocketDebuggerIntegration'
 
 interface WebSocketInitPayload {
   token: string
@@ -77,7 +80,7 @@ const isValidChannel = (channel: any): boolean => {
   }
 }
 
-// 🔧 Função para conectar a um client com melhor handling de canais
+//  Função para conectar a um client com melhor handling de canais
 const connectToClient = async (echo: any, client: any, store: any): Promise<boolean> => {
   try {
     const channelName = `project.${client.id}`
@@ -88,7 +91,7 @@ const connectToClient = async (echo: any, client: any, store: any): Promise<bool
       clientName: client.name
     })
 
-    // 🔧 Verificar se WebSocket está realmente conectado
+    //  Verificar se WebSocket está realmente conectado
     const connection = echo?.connector?.pusher?.connection
 
     if (!connection || connection.state !== 'connected') {
@@ -204,22 +207,33 @@ const connectToClient = async (echo: any, client: any, store: any): Promise<bool
 
         channel
           .listen('.protocol.created', (e: any) => {
-            console.log('📋 Novo protocolo criado:', e.data || e)
+            const eventData = e.data || e
+
+            console.log('📋 Novo protocolo criado:', eventData)
+
             store.dispatch({
               type: 'protocols/addProtocol',
-              payload: { ...(e.data || e), client_id: client.id }
+              payload: { ...eventData, client_id: client.id }
             })
           })
           .listen('.protocol.updated', (e: any) => {
-            console.log('📋 Protocolo atualizado:', e.data || e)
+            const eventData = e.data || e
+
+            console.log('📋 Protocolo atualizado:', eventData)
+
+            addMessageToDebugger(channel, 'protocol.updated', eventData)
             store.dispatch({
               type: 'protocols/updateProtocol',
-              payload: e.data || e
+              payload: eventData
             })
           })
           .listen('.protocol.deleted', (e: any) => {
-            console.log('🗑️ Protocolo removido:', e.data || e)
-            const protocolId = (e.data || e).id
+            const eventData = e.data || e
+
+            console.log('🗑️ Protocolo removido:', eventData)
+
+            addMessageToDebugger(channelName, 'protocol.deleted', eventData)
+            const protocolId = eventData.id
 
             if (protocolId) {
               store.dispatch({
@@ -227,6 +241,85 @@ const connectToClient = async (echo: any, client: any, store: any): Promise<bool
                 payload: protocolId
               })
             }
+          })
+          .listen('.question.created', (e: any) => {
+            const eventData = e.data || e
+
+            console.log('❓ Nova questão criada:', eventData)
+
+            // 🎯 ENVIAR PARA SEU DEBUGGER
+            addMessageToDebugger(channelName, 'question.created', eventData)
+
+            // Dispatch para Redux se necessário
+            store.dispatch({
+              type: 'questions/addQuestion',
+              payload: eventData
+            })
+          })
+          .listen('.question.updated', (e: any) => {
+            const eventData = e.data || e
+
+            console.log('❓ Questão atualizada:', eventData)
+
+            // 🎯 ENVIAR PARA SEU DEBUGGER
+            addMessageToDebugger(channelName, 'question.updated', eventData)
+
+            store.dispatch({
+              type: 'questions/updateQuestion',
+              payload: eventData
+            })
+          })
+          .listen('.reply.created', (e: any) => {
+            const eventData = e.data || e
+
+            console.log('💬 Nova resposta criada:', eventData)
+
+            // 🎯 ENVIAR PARA SEU DEBUGGER
+            addMessageToDebugger(channelName, 'reply.created', eventData)
+
+            store.dispatch({
+              type: 'messages/addReply',
+              payload: eventData
+            })
+          })
+          .listen('.reply.updated', (e: any) => {
+            const eventData = e.data || e
+
+            console.log('💬 Resposta atualizada:', eventData)
+
+            // 🎯 ENVIAR PARA SEU DEBUGGER
+            addMessageToDebugger(channelName, 'reply.updated', eventData)
+
+            store.dispatch({
+              type: 'messages/updateReply',
+              payload: eventData
+            })
+          })
+          .listen('.operator.reply.created', (e: any) => {
+            const eventData = e.data || e
+
+            console.log('👨‍💼 Nova resposta do operador:', eventData)
+
+            // 🎯 ENVIAR PARA SEU DEBUGGER
+            addMessageToDebugger(channelName, 'operator.reply.created', eventData)
+
+            store.dispatch({
+              type: 'messages/addOperatorReply',
+              payload: eventData
+            })
+          })
+          .listen('.operator.reply.updated', (e: any) => {
+            const eventData = e.data || e
+
+            console.log('👨‍💼 Resposta do operador atualizada:', eventData)
+
+            // 🎯 ENVIAR PARA SEU DEBUGGER
+            addMessageToDebugger(channelName, 'operator.reply.updated', eventData)
+
+            store.dispatch({
+              type: 'messages/updateOperatorReply',
+              payload: eventData
+            })
           })
       } else if (isPusherChannel) {
         console.log('🔧 Configurando listeners para canal do Pusher')
@@ -259,6 +352,59 @@ const connectToClient = async (echo: any, client: any, store: any): Promise<bool
             })
           }
         })
+        channel.bind('question.created', (eventData: any) => {
+          console.log('❓ Nova questão criada (Pusher):', eventData)
+          addMessageToDebugger(channelName, 'question.created', eventData)
+          store.dispatch({
+            type: 'questions/addQuestion',
+            payload: eventData
+          })
+        })
+
+        channel.bind('question.updated', (eventData: any) => {
+          console.log('❓ Questão atualizada (Pusher):', eventData)
+          addMessageToDebugger(channelName, 'question.updated', eventData)
+          store.dispatch({
+            type: 'questions/updateQuestion',
+            payload: eventData
+          })
+        })
+
+        channel.bind('reply.created', (eventData: any) => {
+          console.log('💬 Nova resposta criada (Pusher):', eventData)
+          addMessageToDebugger(channelName, 'reply.created', eventData)
+          store.dispatch({
+            type: 'messages/addReply',
+            payload: eventData
+          })
+        })
+
+        channel.bind('reply.updated', (eventData: any) => {
+          console.log('💬 Resposta atualizada (Pusher):', eventData)
+          addMessageToDebugger(channelName, 'reply.updated', eventData)
+          store.dispatch({
+            type: 'messages/updateReply',
+            payload: eventData
+          })
+        })
+
+        channel.bind('operator.reply.created', (eventData: any) => {
+          console.log('👨‍💼 Nova resposta do operador (Pusher):', eventData)
+          addMessageToDebugger(channelName, 'operator.reply.created', eventData)
+          store.dispatch({
+            type: 'messages/addOperatorReply',
+            payload: eventData
+          })
+        })
+
+        channel.bind('operator.reply.updated', (eventData: any) => {
+          console.log('👨‍💼 Resposta do operador atualizada (Pusher):', eventData)
+          addMessageToDebugger(channelName, 'operator.reply.updated', eventData)
+          store.dispatch({
+            type: 'messages/updateOperatorReply',
+            payload: eventData
+          })
+        })
       } else {
         console.warn('⚠️ Tipo de canal não reconhecido para configurar listeners')
       }
@@ -266,8 +412,6 @@ const connectToClient = async (echo: any, client: any, store: any): Promise<bool
       console.log(`✅ Listeners básicos configurados para: ${channelName}`)
     } catch (listenError) {
       console.error(`💥 Erro ao configurar listeners para ${channelName}:`, listenError)
-
-      // Não retornar false aqui, pois o canal pode estar funcionando
     }
 
     // 🔧 Configurar listeners de subscription para debug
@@ -493,6 +637,7 @@ export const reconnectWebSocket = () => (dispatch: any, getState: any) => {
         }
 
         dispatch(initWebSocket(token, userId, clients))
+        console.info('conectou com o token')
       }
     }, 1000)
   }
@@ -566,4 +711,33 @@ export const testWebSocketConnection = () => {
 
     return false
   }
+}
+
+//* Detecta se a conexão caiu por inatividade
+
+export const startPingMonitor = (echo: any, store: any) => {
+  setInterval(() => {
+    const connection = echo?.connector?.pusher?.connection
+
+    if (connection?.state !== 'connected') {
+      console.warn('⚠️ Ping falhou, tentando reconectar...')
+      store.dispatch(setWebsocketStatus('reconnecting'))
+    }
+  }, 10000) // a cada 10 segundos
+}
+
+export const reSubscribeAllClients = async (echo: any, clients: any[], store: any) => {
+  console.log('🔄 Reiniciando inscrição nos canais...')
+
+  for (const client of clients) {
+    await connectToClient(echo, client, store)
+  }
+}
+
+// desconecta um cliente especifico
+export const disconnectClient = (echo: any, clientId: string) => {
+  const channelName = `project.${clientId}`
+  const channel = echo?.leave(channelName)
+
+  console.log(`🔌 Desconectado do canal ${channelName}`, channel)
 }

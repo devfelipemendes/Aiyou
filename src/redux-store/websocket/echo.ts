@@ -90,11 +90,9 @@ export const getEcho = () => {
       console.warn('⚠️ Token não encontrado. WebSocket pode falhar na autenticação.')
     }
 
-    // ✅ Garantir que Pusher está disponível globalmente
     window.Pusher = Pusher
 
     try {
-      // ✅ CORREÇÃO PRINCIPAL: Configurar Echo para usar Reverb diretamente
       echoInstance = new Echo({
         broadcaster: 'pusher',
         key: config.appKey,
@@ -105,17 +103,15 @@ export const getEcho = () => {
         cluster: 'local',
         authEndpoint: config.authEndpoint,
 
-        // 🔧 CORREÇÃO: Melhorar configuração de autenticação
         auth: {
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest' // 🔧 Importante para Laravel
+            'X-Requested-With': 'XMLHttpRequest'
           }
         },
 
-        // 🔧 CORREÇÃO: Configurar authorizer customizado para incluir socket_id
         authorizer: (channel: any) => {
           return {
             authorize: (socketId: string, callback: any) => {
@@ -170,10 +166,8 @@ export const getEcho = () => {
         }
       })
 
-      // ✅ Acessar a conexão do Pusher através do Echo
       const pusherConnection = echoInstance.connector.pusher.connection
 
-      // ✅ Event listeners para conexão
       pusherConnection.bind('connected', () => {
         console.log('✅ Reverb WebSocket conectado!')
         console.log('📡 Socket ID:', echoInstance?.connector?.pusher?.connection?.socket_id)
@@ -212,7 +206,6 @@ export const getEcho = () => {
         console.error('💥 Erro no Reverb WebSocket:', err)
       })
 
-      // ✅ Debug de estado da conexão
       pusherConnection.bind('state_change', (states: any) => {
         console.log('🔄 Estado da conexão mudou:', {
           previous: states.previous,
