@@ -31,8 +31,6 @@ const extractHostname = (url: string): string => {
   }
 }
 
-const rawHost = process.env.NEXT_PUBLIC_LARAVEL_API_URL || ''
-
 // ✅ Configurações do .env para Reverb
 const getReverbConfig = () => {
   const scheme = process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https'
@@ -46,24 +44,33 @@ const getReverbConfig = () => {
     port = isSecure ? '443' : '80'
   }
 
-  const host = extractHostname(rawHost) || 'dev.reverb.aiyou.com.br'
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'https://dev.aiyou.com.br/v1'
+  const reverbUrl = process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'https://dev.reverb.aiyou.com.br/v1'
+
+  const reverbHostname = extractHostname(reverbUrl) || 'dev.aiyou.com.br'
 
   const config = {
     appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'jjpnmycugrpdugowbnhd',
-    host: host,
-    port: null,
+    wsHost: reverbHostname,
+    port: parseInt(port),
     scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https',
-    apiUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br/v1',
-    baseUrl: process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'dev.reverb.aiyou.com.br/v1 '
+    apiUrl: apiBaseUrl,
+    baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'https://dev.reverb.aiyou.com.br/v1',
+    authEndpoint: `${apiBaseUrl}/broadcasting/auth`,
+
+    // 🔧 URLs para debug
+    wsUrl: `${scheme}://${reverbHostname}${parseInt(port) !== 443 && parseInt(port) !== 80 ? `:${port}` : ''}`,
+    reverbFullUrl: reverbUrl
   }
 
-  console.log('🔧 Configuração Reverb:', {
+  console.log('🔧 Configuração Reverb FINAL:', {
     appKey: config.appKey,
-    host: config.host,
+    wsHost: config.wsHost, // ← WebSocket hostname (sem /v1)
     port: config.port,
     scheme: config.scheme,
-    wsUrl: `${config.scheme}://${config.host}:${config.port}`,
-    authEndpoint: `${config.apiUrl}/broadcasting/auth`
+    wsUrl: config.wsUrl,
+    authEndpoint: config.authEndpoint, // ← Auth para API principal
+    note: '✅ WebSocket → Reverb hostname, Auth → API completa'
   })
 
   return config
@@ -75,6 +82,9 @@ export const getEcho = () => {
     const token = getAuthToken()
 
     console.log('🔌 Iniciando Laravel Echo com Reverb...')
+    console.log('🔌 Iniciando Laravel Echo FINAL...')
+    console.log('🔗 WebSocket irá conectar em:', config.wsUrl)
+    console.log('📡 Auth será feita em:', config.authEndpoint)
     console.log('🔑 Token de autenticação:', token ? 'Presente' : 'Ausente')
 
     if (!token) {
@@ -89,14 +99,12 @@ export const getEcho = () => {
       echoInstance = new Echo({
         broadcaster: 'pusher',
         key: config.appKey,
-        wsHost: config.host,
-        wsPort: config.port,
-        wssPort: config.port,
+        wsHost: config.wsHost,
         forceTLS: config.scheme === 'https',
         enabledTransports: ['ws', 'wss'],
         disableStats: true,
-        authEndpoint: `${config.apiUrl}/broadcasting/auth`,
         cluster: 'local',
+        authEndpoint: config.authEndpoint,
         auth: {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -157,7 +165,7 @@ export const getEcho = () => {
       })
 
       console.log('🎉 Laravel Echo configurado com sucesso para Reverb!')
-      console.log('🌐 URL de conexão:', `${config.scheme}://${config.host}:${config.port}`)
+      console.log('🌐 URL de conexão:', `${config.scheme}://${config.wsHost}:${config.port}`)
     } catch (error: any) {
       console.error('💥 Erro ao configurar Laravel Echo:', error)
       throw new Error(`Falha ao inicializar WebSocket: ${error.message}`)
@@ -221,7 +229,7 @@ export const getConnectionInfo = () => {
     socketId: echoInstance?.connector?.pusher?.connection?.socket_id || null,
     state: echoInstance?.connector?.pusher?.connection?.state || 'disconnected',
     config: {
-      wsUrl: `${config.scheme}://${config.host}:${config.port}`,
+      wsUrl: `${config.scheme}://${config.wsHost}:${config.port}`,
       authEndpoint: `${config.apiUrl}/broadcasting/auth`,
       appKey: config.appKey,
       broadcaster: 'reverb'

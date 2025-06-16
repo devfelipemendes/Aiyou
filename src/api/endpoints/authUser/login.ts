@@ -74,7 +74,7 @@ export const SignIn = apiSlice.injectEndpoints({
   endpoints: builder => ({
     postLogin: builder.mutation<LoginResponse, LoginCredentials>({
       query: ({ email, password, device_name }) => ({
-        url: '/v1/login',
+        url: '/login',
         method: 'POST',
         body: {
           email,
