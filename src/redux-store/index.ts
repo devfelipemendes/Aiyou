@@ -1,5 +1,6 @@
 // store/index.ts - CORRIGIDO
 // Third-party Imports
+
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux'
 import storage from 'redux-persist/lib/storage' // localStorage
@@ -8,6 +9,8 @@ import { persistStore, persistReducer } from 'redux-persist'
 // 🔥 CORRIGIDO: Import path correto
 import monitoringReducer from './slices/monitoring'
 import chatReducer from '@/redux-store/slices/chat'
+
+import activeChatsReducer from './slices/activeChats'
 
 // Slice Imports
 import authReducer from './slices/auth'
@@ -21,23 +24,23 @@ import protocolsReducer from './slices/protocols'
 import questionsReducer from './slices/questions'
 import messagesReducer from './slices/messages'
 
-// 🔥 CORRIGIDO: Persist config com nome correto do reducer
 const persistConfig = {
   key: 'root',
   storage,
   whitelist: ['authReducer', 'monitoringReducer'],
-  blacklist: ['websocketReducer', 'chatReducer'] // WebSocket e chat sempre frescos
+  blacklist: ['websocketReducer', 'chatReducer', 'activeChats', 'protocolsReducer', 'messagesReducer'] // WebSocket e chat sempre frescos
 }
 
 const rootReducer = combineReducers({
   authReducer,
   chatReducer,
-  monitoringReducer, // 🔥 Nome consistente
+  monitoringReducer,
   registration: register,
   websocketReducer,
   protocolsReducer,
   questionsReducer,
   messagesReducer,
+  activeChatsReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })
@@ -59,9 +62,12 @@ export const store = configureStore({
           'websocket/connect',
           'websocket/disconnect',
           'websocket/joinProtocolChannel',
-          'websocket/joinProjectChannel'
+          'websocket/joinProjectChannel',
+
+          'activeChats/markChannelConnected', // 🔥 NOVO: Ignorar Set objects
+          'activeChats/markChannelDisconnected'
         ],
-        ignoredPaths: ['register', 'websocket.connection', 'websocket.channels']
+        ignoredPaths: ['register', 'websocket.connection', 'websocket.channels', 'activeChatsReducer.connectedChannels']
       }
     }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware)
 })

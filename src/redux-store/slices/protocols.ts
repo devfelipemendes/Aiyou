@@ -2,20 +2,16 @@
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 
-interface Protocol {
-  id: string
+type Protocol = {
+  protocol: string
+  assistant_id: string
   client_id: string
-  status: 'active' | 'resolved' | 'closed' | 'pending'
-  priority: 'low' | 'normal' | 'high' | 'urgent'
-  created_at: string
+  source: string
+  identifier: string
+  operator: number
+  active: string
   updated_at: string
-  last_activity?: string
-  messages_count: number
-  unread_count: number
-  operator_name?: string
-  client_name?: string
-  channel: 'whatsapp' | 'telegram' | 'webchat' | 'email' | 'sms'
-  metadata?: any
+  created_at: string
 }
 
 interface ProtocolsState {

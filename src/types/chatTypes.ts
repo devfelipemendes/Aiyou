@@ -43,11 +43,20 @@ export type ChatType = {
   chat: UserChatType[]
 }
 
-export type ChatDataType = {
-  profileUser: ProfileUserType
-  contacts: ContactType[]
-  chats: ChatType[]
-  activeUser?: ContactType
+export type ProtocolActive = {
+  protocol: string
+  assistant_id: string
+  client_id: string
+  source: string
+  identifier: string
+  operator: number
+  active: number
+  updated_at: string
+  created_at: string
+}
+
+export type ProtocolActiveResponse = {
+  data: ProtocolActive[]
 }
 
 // 🔥 NOVO: Utilitários para trabalhar com timestamps

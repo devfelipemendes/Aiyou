@@ -37,5 +37,5 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: axiosBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || '' }),
   endpoints: () => ({}),
-  tagTypes: ['/v1/login']
+  tagTypes: ['/v1/login', 'ActiveChats']
 })

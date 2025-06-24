@@ -1,64 +1,34 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { apiSlice } from '@/api/ApiCreate/apiSlice'
+import type { ProtocolActiveResponse } from '@/types/chatTypes'
 
-// src/api/chat/queries.ts
+export const chatApi = apiSlice.injectEndpoints({
+  endpoints: builder => ({
+    getActiveChats: builder.query<ProtocolActiveResponse, void>({
+      query: () => ({
+        url: '/v1/chat',
+        method: 'GET'
+      }),
 
-import type { ChatDataType, ContactType, StatusType } from '@/types/chatTypes'
-import { apiClient } from '@/api/AxiosCreate/apiClient'
+      transformResponse: (response: ProtocolActiveResponse) => {
+        console.log('Chats ativos recebidos:', response.data.length)
 
-// Buscar todos os chats
-export const useChats = () => {
-  return useQuery<ChatDataType>({
-    queryKey: ['chats'],
-    queryFn: async () => {
-      const response = await apiClient.get('/chats')
+        const activeChats = response.data.filter(chat => chat.active === 1)
 
-      return response.data
-    }
+        return {
+          data: activeChats
+        }
+      },
+      transformErrorResponse: response => {
+        console.error('Erro ao buscar chats ativos:', response)
+
+        return {
+          status: response.status,
+          message: 'Erro ao buscar chats ativos'
+        }
+      },
+      providesTags: ['ActiveChats']
+    })
   })
-}
+})
 
-// Buscar um contato específico
-export const useContact = (id: number) => {
-  return useQuery<ContactType>({
-    queryKey: ['contact', id],
-    queryFn: async () => {
-      const response = await apiClient.get(`/contacts/${id}`)
-
-      return response.data
-    }
-  })
-}
-
-// Enviar mensagem
-export const useSendMessage = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async ({ userId, message }: { userId: number; message: string }) => {
-      const response = await apiClient.post('/messages', { userId, message })
-
-      return response.data
-    },
-    onSuccess: () => {
-      // Invalidar a query de chats para forçar atualização
-      queryClient.invalidateQueries({ queryKey: ['chats'] })
-    }
-  })
-}
-
-// Atualizar status do usuário
-export const useUpdateStatus = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (status: StatusType) => {
-      const response = await apiClient.patch('/profile/status', { status })
-
-      return response.data
-    },
-    onSuccess: () => {
-      // Invalidar a query de perfil para forçar atualização
-      queryClient.invalidateQueries({ queryKey: ['profile'] })
-    }
-  })
-}
+export const { useGetActiveChatsQuery } = chatApi
