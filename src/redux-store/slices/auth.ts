@@ -1,5 +1,6 @@
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
+import { useSelector } from 'react-redux'
 
 export interface User {
   name: string
@@ -63,5 +64,15 @@ const authReducer = createSlice({
 })
 
 export default authReducer.reducer
+
+export const useAuthUser = () => useSelector((state: any) => state.auth.user)
+
+export const useIsAuthenticated = () => useSelector((state: any) => state.auth.isAuthenticated)
+
+export const useAuthLoading = () => useSelector((state: any) => state.auth.loading)
+
+export const useAuthError = () => useSelector((state: any) => state.auth.error)
+
+export const useAuthToken = () => useSelector((state: any) => state.auth.token)
 
 export const { setCredentials, logout, loginSuccess, loginFailure, loginStart } = authReducer.actions

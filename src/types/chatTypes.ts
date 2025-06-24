@@ -43,20 +43,21 @@ export type ChatType = {
   chat: UserChatType[]
 }
 
-export type ProtocolActive = {
-  protocol: string
+export interface ActiveChat {
+  protocol: string // ID do protocolo (usado como canal WebSocket)
   assistant_id: string
   client_id: string
-  source: string
-  identifier: string
-  operator: number
-  active: number
+  source: 'whatsapp' | 'telegram' | 'webchat' | 'email' | 'sms'
+  identifier: string // Número de telefone ou identificador
+  operator: number // 0 = IA, 1 = Operador
+  active: number // 0 = inativo, 1 = ativo
   updated_at: string
   created_at: string
 }
 
-export type ProtocolActiveResponse = {
-  data: ProtocolActive[]
+// 🎯 RESPONSE: Estrutura da resposta da API
+export interface ActiveChatsResponse {
+  data: ActiveChat[]
 }
 
 // 🔥 NOVO: Utilitários para trabalhar com timestamps

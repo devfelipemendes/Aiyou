@@ -1,10 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
 
-import type { ProtocolActiveResponse, ProtocolActive } from '@/types/chatTypes'
+import type { ActiveChat } from '@/types/chatTypes'
 
 interface ActiveChatsState {
-  chats: ProtocolActiveResponse[]
-  chatsByProtocol: Record<string, ProtocolActiveResponse>
+  chats: ActiveChat[]
+  chatsByProtocol: Record<string, ActiveChat>
   connectedChannels: Set<string>
   loading: boolean
   error: string | null
@@ -36,49 +36,54 @@ const activeChatsSlice = createSlice({
   name: 'activeChats',
   initialState,
   reducers: {
-    initializeActiveChats: (state, action: PayloadAction<ProtocolActiveResponse[]>) => {
+    initializeChats: (state, action: PayloadAction<ActiveChat[]>) => {
       const chats = action.payload
 
-      console.log('Inicializando chats ativos:', chats.length)
+      console.log('🔥 Inicializando chats:', chats.length)
+
       state.chats = chats
       state.lastFetched = Date.now()
       state.loading = false
       state.error = null
 
+      // 🎯 DIDÁTICA: Por que criar um index?
+      // Para acesso O(1) ao buscar chat por protocol ID
       state.chatsByProtocol = {}
-
-      chats.forEach((chat: any) => {
+      chats.forEach(chat => {
         state.chatsByProtocol[chat.protocol] = chat
       })
 
+      // 🔧 CALCULAR: Estatísticas
       state.stats.total = chats.length
       state.stats.bySource = {}
       state.stats.operatorMode = 0
       state.stats.aiMode = 0
 
-      chats.forEach((chat: any) => {
-        //Consigo contar quantos chats ativos por source (Canal de atendimento )
+      chats.forEach(chat => {
+        // Contar por fonte (whatsapp, telegram, etc)
         state.stats.bySource[chat.source] = (state.stats.bySource[chat.source] || 0) + 1
 
-        //Consigo contar quantos chats ativos por operador (1 = operador humano, 2 = IA)
+        // Contar por modo
         if (chat.operator === 1) {
           state.stats.operatorMode++
-        } else if (chat.operator === 2) {
+        } else {
           state.stats.aiMode++
         }
       })
 
-      console.log('Estatísticas de chats ativos:', state.stats)
+      console.log('📊 Estatísticas calculadas:', state.stats)
     },
-    addNewChat: (state, action: PayloadAction<ProtocolActive>) => {
+    addNewChat: (state, action: PayloadAction<ActiveChat>) => {
       const newChat = action.payload
 
+      // Verificar se já existe
       if (!state.chatsByProtocol[newChat.protocol]) {
-        console.log('Novo Chat adicionado:', newChat.protocol)
+        console.log('➕ Novo chat adicionado:', newChat.protocol)
 
-        state.chats.unshift({ data: [newChat] })
-        state.chatsByProtocol[newChat.protocol] = { data: [newChat] }
+        state.chats.unshift(newChat) // Adicionar no início (mais recente)
+        state.chatsByProtocol[newChat.protocol] = newChat
 
+        // Atualizar estatísticas
         state.stats.total++
         state.stats.bySource[newChat.source] = (state.stats.bySource[newChat.source] || 0) + 1
 
@@ -89,14 +94,14 @@ const activeChatsSlice = createSlice({
         }
       }
     },
-    updateChat: (state, action: PayloadAction<ProtocolActive>) => {
+    updateChat: (state, action: PayloadAction<ActiveChat>) => {
       const { protocol, ...updatedChat } = action.payload
       const existingChat = state.chatsByProtocol[protocol]
 
       if (existingChat) {
         Object.assign(existingChat, updatedChat)
 
-        const index = state.chats.findIndex(chat => chat.data[0].protocol === protocol)
+        const index = state.chats.findIndex(chat => chat.protocol === protocol)
 
         if (index !== -1) {
           Object.assign(state.chats[index], updatedChat)
@@ -111,14 +116,14 @@ const activeChatsSlice = createSlice({
       const chat = state.chatsByProtocol[protocol]
 
       if (chat) {
-        state.chats = state.chats.filter(c => c.data[0].protocol !== protocol)
+        state.chats = state.chats.filter(c => c.protocol !== protocol)
         delete state.chatsByProtocol[protocol]
 
         state.stats.total--
-        state.stats.bySource[chat.data[0].source] = (state.stats.bySource[chat.data[0].source] || 0) - 1
+        state.stats.bySource[chat.source] = (state.stats.bySource[chat.source] || 0) - 1
       }
 
-      if (chat.data[0].operator === 1) {
+      if (chat.operator === 1) {
         state.stats.operatorMode--
       } else {
         state.stats.aiMode--
@@ -154,7 +159,7 @@ const activeChatsSlice = createSlice({
 })
 
 export const {
-  initializeActiveChats,
+  initializeChats,
   addNewChat,
   updateChat,
   removeChat,
