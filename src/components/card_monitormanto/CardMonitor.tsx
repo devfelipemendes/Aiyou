@@ -8,15 +8,32 @@ import CustomIconButton from '@core/components/mui/IconButton'
 
 import type { ChatMonitorProps } from '@/types/newChatypes'
 
+const getStatusColor = (status: ChatMonitorProps['statusChat'], callOperator: boolean): string => {
+  if (callOperator) return 'error.main'
+
+  switch (status) {
+    case 'active':
+      return 'primary.main'
+    case 'inactive':
+      return '#797979'
+    case 'resolved':
+      return 'success.main'
+    case 'unresolved':
+      return 'warning.main'
+    default:
+      return 'text.primary'
+  }
+}
+
 const getStatusProtocol = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
   if (callOperator) {
     return <Chip label='Chamada do Operador' color='error' variant='tonal' className='mr-2' />
   }
 
   const config = {
-    active: { label: 'Ativo', color: 'success' },
-    inactive: { label: 'Inativo', color: 'warning', sx: { bgcolor: '#353535' } },
-    resolved: { label: 'Resolvido', color: 'info' },
+    active: { label: 'Ativo', color: 'primary' },
+    inactive: { label: 'Inativo', color: 'warning', sx: { bgcolor: '#797979' } },
+    resolved: { label: 'Resolvido', color: 'success' },
     unresolved: { label: 'Não resolvido', color: 'warning' }
   }[status] ?? { label: 'Ativo', color: 'success' }
 
@@ -60,21 +77,35 @@ export default function CardMonitor({
     console.log(modeTheme)
   }, [])
 
-  const cardBoxShadow = callOperator
-    ? '0px 0px 15px var(--mui-palette-error-main)'
-    : getCardShadowByStatus(statusChat, isDragging).boxShadow
-
   return (
     <Card
       sx={{
         cursor: isDragging ? 'grabbing' : 'default',
         transform: isDragging ? 'rotate(5deg)' : 'none',
         transition: 'all 0.2s ease',
-        boxShadow: cardBoxShadow
+        boxShadow: callOperator
+          ? '0 0 12px var(--mui-palette-error-main)'
+          : getCardShadowByStatus(statusChat, isDragging).boxShadow,
+        animation: callOperator ? 'pulseShadow 2s cubic-bezier(0.66, 0, 0, 1) infinite' : 'none',
+        '@keyframes pulseShadow': {
+          '0%': {
+            boxShadow: '0 0 6px var(--mui-palette-error-main)'
+          },
+          '50%': {
+            boxShadow: '0 0 20px var(--mui-palette-error-main)'
+          },
+          '100%': {
+            boxShadow: '0 0 6px var(--mui-palette-error-main)'
+          }
+        }
       }}
     >
       <CardHeader
-        title={clientProtocolName}
+        title={
+          <Typography variant='h5' sx={{ color: getStatusColor(statusChat, callOperator) }}>
+            {clientProtocolName}
+          </Typography>
+        }
         action={
           <Box>
             {getStatusProtocol(statusChat, callOperator)}
