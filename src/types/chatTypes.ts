@@ -153,3 +153,10 @@ export class DateUtils {
     return new Date(dateString).getTime()
   }
 }
+
+export type ChatDataType = {
+  profileUser: ProfileUserType
+  contacts: ContactType[]
+  chats: ChatType[]
+  activeUser?: ContactType
+}

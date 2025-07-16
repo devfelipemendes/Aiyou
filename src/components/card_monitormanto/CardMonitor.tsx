@@ -1,378 +1,405 @@
-'use client'
+import React, { useEffect, useRef } from 'react'
 
-import React, { useCallback } from 'react'
+import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
 
-import { Avatar, Box, Button, Card, CardContent, CardHeader, Chip, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 
-import { useSettings } from '@core/hooks/useSettings'
+import ChatLog from '../chatLog/chatLog'
 
-// 🔥 NOVOS IMPORTS
-import styles from './CardMonitor.module.css' // CSS que criamos
+import CustomIconButton from '@core/components/mui/IconButton'
 
-import type { NotificationType } from '@/types/monitoring'
-import { NOTIFICATION_CONFIG } from '@/types/monitoring'
+const chatFakeData = {
+  profileUser: {
+    id: 1,
+    fullName: 'João Silva',
+    avatar: '/images/avatars/joao.jpg',
+    status: 'online'
+  },
 
-// 🔥 MANTIDA: Sua interface Message original
-interface Message {
-  id: string
-  sender: 'operador' | 'client' | 'IA'
-  content: string
-  timestamp: Date
+  contacts: [
+    {
+      id: 2,
+      fullName: 'Maria Santos',
+      avatar: '/images/avatars/maria.jpg',
+      avatarColor: 'primary',
+      status: 'online'
+    },
+    {
+      id: 3,
+      fullName: 'Pedro Oliveira',
+      avatar: '', // Sem avatar - vai mostrar iniciais
+      avatarColor: 'secondary',
+      status: 'away'
+    },
+    {
+      id: 4,
+      fullName: 'Ana Costa',
+      avatar: '/images/avatars/ana.jpg',
+      avatarColor: 'success',
+      status: 'offline'
+    }
+  ],
+
+  activeUser: {
+    id: 2,
+    fullName: 'Maria Santos',
+    avatar: '/images/avatars/maria.jpg',
+    status: 'online'
+  },
+
+  chats: [
+    {
+      userId: 2,
+      chat: [
+        {
+          senderId: 2,
+          time: '2025-01-14T09:00:00Z',
+          message: 'Oi João! Como você está?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:02:00Z',
+          message: 'Oi Maria! Estou bem, obrigado! E você?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:02:30Z',
+          message: 'Como foi o fim de semana?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:05:00Z',
+          message: 'Também estou bem! 😊',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:05:15Z',
+          message: 'O fim de semana foi ótimo! Fui à praia com a família.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:05:30Z',
+          message: 'E o seu? Conseguiu descansar?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:08:00Z',
+          message: 'Que legal! A praia deve ter estado maravilhosa com esse sol.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:08:30Z',
+          message: 'Sim, consegui descansar bastante. Assisti alguns filmes e li um livro.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:12:00Z',
+          message: 'Que livro você leu?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:15:00Z',
+          message: "Li 'O Alquimista' do Paulo Coelho. Já tinha lido antes, mas resolvi reler.",
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:15:30Z',
+          message: 'É um daqueles livros que sempre trazem algo novo a cada leitura.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:18:00Z',
+          message: 'Concordo! É um livro incrível. Já li várias vezes também.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:18:30Z',
+          message: 'Você tem alguma recomendação de outros livros?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:22:00Z',
+          message: "Tenho sim! Recomendo 'Sapiens' do Yuval Noah Harari.",
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:22:30Z',
+          message: 'É sobre a história da humanidade. Muito interessante!',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:25:00Z',
+          message: 'Ótima recomendação! Vou procurar esse livro.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 2,
+          time: '2025-01-14T09:25:30Z',
+          message: 'Obrigada pela dica! 📚',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: false
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T09:28:00Z',
+          message: 'Por nada! Tenho certeza de que você vai gostar.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: false,
+            isSeen: false
+          }
+        }
+      ]
+    },
+    {
+      userId: 3,
+      chat: [
+        {
+          senderId: 3,
+          time: '2025-01-14T08:30:00Z',
+          message: 'Bom dia, João!',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T08:35:00Z',
+          message: 'Bom dia, Pedro! Como vai?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 3,
+          time: '2025-01-14T08:40:00Z',
+          message: 'Tudo bem! Você viu o jogo ontem?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T08:45:00Z',
+          message: 'Vi sim! Que jogo incrível! ⚽',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        }
+      ]
+    },
+    {
+      userId: 4,
+      chat: [
+        {
+          senderId: 4,
+          time: '2025-01-14T07:00:00Z',
+          message: 'João, você tem o relatório de ontem?',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T07:05:00Z',
+          message: 'Oi Ana! Sim, tenho. Vou enviar agora.',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 1,
+          time: '2025-01-14T07:06:00Z',
+          message: 'Relatório enviado por email! 📧',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        },
+        {
+          senderId: 4,
+          time: '2025-01-14T07:10:00Z',
+          message: 'Perfeito! Muito obrigada! 🙏',
+          msgStatus: {
+            isSent: true,
+            isDelivered: true,
+            isSeen: true
+          }
+        }
+      ]
+    }
+  ]
 }
 
-// 🔥 ATUALIZADA: Props expandidas (suas + novas)
-interface CardMonitorProps {
-  clientId: string
-  buttonName: string
-  channel?: 'web' | 'whatsapp' | 'telegram' | 'email' | string
-  messages: Message[]
-  operatorName?: string
-
-  // Props novas (opcionais para não quebrar código existente)
-  notificationType?: NotificationType
-  isSelected?: boolean
-  isHovered?: boolean
-  onClick?: (clientId: string) => void
-  onOpenModal?: (clientId: string) => void
-  onHover?: (clientId: string, isHovered: boolean) => void
+type CardMonitorProps = {
+  onClickMove: () => void
 }
 
-export default function CardMonitor({
-  clientId,
-  channel,
-  messages,
-  operatorName,
-  buttonName,
-  onOpenModal,
-  notificationType = 'normal',
-  isSelected = false,
+export default function CardMonitor({ onClickMove }: CardMonitorProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // isHovered = false,
-  onClick,
-  onHover
-}: CardMonitorProps) {
-  // 🔥 MANTIDAS: Suas funções originais
-  const getSenderLabel = (sender: Message['sender']) => {
-    switch (sender) {
-      case 'IA':
-        return 'IA'
-      case 'operador':
-        return 'Operador'
-      case 'client':
-        return 'Cliente'
-      default:
-        return sender
-    }
-  }
+  const theme = useTheme()
 
-  const lastFourMessages = messages.slice(-4)
+  const modeTheme = theme.palette.mode
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getChannelIcon = (channel: string) => {
-    switch (channel) {
-      case 'whatsapp':
-        return '📱'
-      case 'telegram':
-        return '✈️'
-      case 'email':
-        return '📧'
-      default:
-        return '🌐'
-    }
-  }
-
-  const getSenderColor = (sender: Message['sender']) => {
-    switch (sender) {
-      case 'IA':
-        return 'var(--mui-palette-primary-main)' // azul
-      case 'operador':
-        return 'var(--mui-palette-warning-main)' // verde
-      case 'client':
-        return '#ed6c02' // laranja
-      default:
-        return 'var(--mui-palette-secondary-main)'
-    }
-  }
-
-  const { settings } = useSettings()
-
-  // 🔥 NOVAS: Funções para interatividade
-  const handleCardClick = useCallback(() => {
-    if (onClick) {
-      onClick(clientId)
+  // Faz scroll para o fim sempre que o chatStore mudar
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
     }
 
-    if (onOpenModal) {
-      onOpenModal(clientId)
-    }
-  }, [clientId, onClick, onOpenModal])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatFakeData])
 
-  const handleMouseEnter = useCallback(() => {
-    if (onHover) {
-      onHover(clientId, true)
-    }
-  }, [clientId, onHover])
-
-  const handleMouseLeave = useCallback(() => {
-    if (onHover) {
-      onHover(clientId, false)
-    }
-  }, [clientId, onHover])
-
-  // 🔥 NOVA: Função para gerar classes CSS baseadas no estado
-  const getCardClasses = useCallback(() => {
-    const classes = [styles.cardMonitor]
-
-    // Adicionar classe de notificação
-    switch (notificationType) {
-      case 'operator_call':
-        classes.push(styles.operatorCall)
-        break
-      case 'unresolved':
-        classes.push(styles.unresolved)
-        break
-      case 'operator_control':
-        classes.push(styles.operatorControl)
-        break
-      case 'no_response':
-        classes.push(styles.noResponse)
-        break
-      default:
-        classes.push(styles.normal)
-    }
-
-    // Adicionar classe de seleção
-    if (isSelected) {
-      classes.push(styles.selected)
-    }
-
-    return classes.join(' ')
-  }, [notificationType, isSelected])
-
-  // 🔥 NOVA: Função para obter configuração da notificação
-  const getNotificationConfig = useCallback(() => {
-    return NOTIFICATION_CONFIG[notificationType] || NOTIFICATION_CONFIG.normal
-  }, [notificationType])
-
-  const config = getNotificationConfig()
+  useEffect(() => {
+    console.log(modeTheme)
+  }, [])
 
   return (
-    <Card
-      className={getCardClasses()}
-      onClick={handleCardClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      sx={{
-        height: 320, // Aumentei um pouco para acomodar indicadores
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-
-        // Aplicar estilos de notificação via sx também
-        ...(notificationType !== 'normal' && {
-          backgroundColor: config.backgroundColor
-        })
-      }}
-    >
-      {/* 🔥 NOVO: Indicador visual no canto superior direito */}
-      {notificationType !== 'normal' && (
-        <div
-          className={`${styles.notificationIndicator} ${styles[notificationType.replace('_', '')]}`}
-          title={config.label}
-        />
-      )}
-
-      {/* 🔥 NOVO: Badge de status (se necessário) */}
-      {notificationType !== 'normal' && (
-        <Chip
-          label={config.label}
-          size='small'
-          className={`${styles.statusChip} ${styles[notificationType.replace('_', '')]}`}
-        />
-      )}
-
-      {/* 🔥 MANTIDO: Seu CardHeader original com pequenos ajustes */}
+    <Card>
       <CardHeader
-        title={clientId}
-        subheader={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <span>{getChannelIcon(channel ?? '')}</span>
-            <Typography variant='body2' color='text.secondary'>
-              {channel}
-            </Typography>
-            {operatorName && (
-              <Chip label={operatorName} size='small' variant='outlined' sx={{ fontSize: '0.7rem', height: '20px' }} />
-            )}
-          </Box>
-        }
+        title='ClienteProtocol'
         action={
-          <Button
-            variant={isSelected ? 'contained' : 'outlined'}
-            size='small'
-            sx={{
-              // Adicionar cor especial se houver notificação crítica
-              ...(notificationType === 'operator_call' && {
-                backgroundColor: '#f44336',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#d32f2f'
-                }
-              })
-            }}
-          >
-            {buttonName}
-          </Button>
+          <Box>
+            <Chip label='Status do chat' color='success' className='mr-2' />
+            <CustomIconButton color='primary' variant='outlined' onClick={onClickMove}>
+              <i className='ri-drag-move-2-fill' />
+            </CustomIconButton>
+          </Box>
         }
-        sx={{
-          // Adicionar padding top se houver badge
-          ...(notificationType !== 'normal' && {
-            paddingTop: '24px'
-          })
-        }}
       />
-
-      {/* 🔥 MANTIDO: Seu CardContent original */}
-      <CardContent
-        sx={{
-          flex: 1,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          pb: 2
-        }}
-      >
-        {lastFourMessages.length === 0 ? (
-          <Box
+      <CardContent>
+        <Card>
+          <CardContent
+            ref={scrollContainerRef}
             sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              color: 'text.secondary'
+              position: 'relative',
+              minHeight: '200px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              backgroundImage: `${modeTheme === 'light' ? 'linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95))' : 'linear-gradient( rgba(28, 24, 48, 0.95), rgba(40,36,61,0.95))'}, url("/images/identidadeVisual/bgChat.png")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat'
             }}
           >
-            <Typography variant='body2'>Nenhuma mensagem</Typography>
-          </Box>
-        ) : (
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-              overflow: 'auto'
-            }}
-          >
-            {lastFourMessages.map(message => (
-              <Box
-                key={message.id}
-                sx={{
-                  display: 'flex',
-                  flexDirection: message.sender === 'client' ? 'row' : 'row-reverse',
-                  alignItems: 'flex-start',
-                  gap: 1
-                }}
-              >
-                <Avatar
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    fontSize: '0.75rem',
-                    bgcolor: getSenderColor(message.sender)
-                  }}
-                >
-                  {message.sender === 'IA' ? 'IA' : message.sender === 'operador' ? 'OP' : 'CL'}
-                </Avatar>
-
-                <Box
-                  sx={{
-                    flex: 1,
-                    maxWidth: '80%'
-                  }}
-                >
-                  <Box
-                    sx={{
-                      backgroundColor:
-                        message.sender === 'client'
-                          ? settings.mode === 'dark'
-                            ? '#838383'
-                            : '#e4e4e4'
-                          : getSenderColor(message.sender),
-                      borderRadius: 2,
-                      padding: '8px 12px',
-                      wordWrap: 'break-word',
-                      fontSize: '0.875rem',
-                      lineHeight: 1.3
-                    }}
-                  >
-                    <Typography
-                      variant='body2'
-                      component='div'
-                      color={
-                        message.sender === 'operador' || message.sender === 'IA'
-                          ? settings.mode === 'dark'
-                            ? 'black'
-                            : '#ffffff'
-                          : undefined
-                      }
-                    >
-                      {message.content}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: 1,
-                      mt: 0.5,
-                      alignItems: 'center',
-                      justifyContent: message.sender === 'client' ? 'flex-start' : 'flex-end'
-                    }}
-                  >
-                    <Typography variant='caption' color='text.secondary' sx={{ fontSize: '0.7rem' }}>
-                      {getSenderLabel(message.sender)}
-                    </Typography>
-                    <Typography variant='caption' color='text.secondary' sx={{ fontSize: '0.7rem' }}>
-                      {formatTime(message.timestamp)}
-                    </Typography>
-                  </Box>
-                </Box>
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Box className='flex flex-row'>
+                <ChatLog
+                  chatStore={chatFakeData}
+                  isBelowLgScreen={false}
+                  isBelowMdScreen={false}
+                  isBelowSmScreen={false}
+                />
               </Box>
-            ))}
-          </Box>
-        )}
-      </CardContent>
+            </Box>
+          </CardContent>
+        </Card>
 
-      {/* 🔥 NOVO: Rodapé com informações de notificação (opcional) */}
-      {notificationType !== 'normal' && (
-        <Box
-          sx={{
-            padding: '4px 16px',
-            backgroundColor: config.backgroundColor,
-            borderTop: `1px solid ${config.borderColor}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <Typography
-            variant='caption'
-            sx={{
-              color: config.color,
-              fontWeight: 500,
-              fontSize: '0.7rem'
-            }}
-          >
-            {config.label}
+        <Box className='flex flex-row justify-between mt-5'>
+          <Typography variant='subtitle2' color='textDisabled'>
+            Em andamento há: xh
+          </Typography>
+          <Typography variant='subtitle2' color='textDisabled'>
+            Sendo atendido por: atendente
           </Typography>
         </Box>
-      )}
+      </CardContent>
     </Card>
   )
 }

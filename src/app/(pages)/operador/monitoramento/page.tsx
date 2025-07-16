@@ -1,11 +1,11 @@
-// pages/monitoring/page.tsx (atualização da página principal)
+// pages/monitoring/page.tsx (com dados fake para teste)
 'use client'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 // Imports existentes...
 import Grid from '@mui/material/Grid2'
-import { Box as BoxIcon, Clock, XCircle, Bell, AlertTriangle, RefreshCw } from 'lucide-react'
-import { Button, Chip, Typography, Paper, Box, Alert, Card, CardContent, CircularProgress } from '@mui/material'
+import { Box as BoxIcon, RefreshCw } from 'lucide-react'
+import { Button, Typography, Paper, Box, Alert, CircularProgress } from '@mui/material'
 
 // DnD Kit imports existentes...
 import {
@@ -17,18 +17,13 @@ import {
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-import WebSocketDebugger from '@/components/WebSocketDebugger'
-import { useMonitoringData } from '@/hooks/useMonitoringData'
-import { useClientWebSocketManager } from '@/hooks/useWebsocketmanager'
 import { useAppSelector } from '@/redux-store'
 
 // Imports dos componentes existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
-import ChatViewDialog from '@/components/dialogs/chat-view'
-import { useCardNotifications } from '@/hooks/useCardNotifications'
 
 // Tipos para os filtros (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -45,20 +40,13 @@ interface ChatFilters {
   cardsPerRow: number
 }
 
+// 🔧 DADOS FAKE PARA TESTE DOS CARDS
+
 const MonitoringPage = () => {
-  // 🔧 Obter dados dos clients do login
+  // 🔧 Dados fake para teste
+
   const user = useAppSelector((state: any) => state.authReducer?.user)
   const clients = user?.clients || []
-
-  // 🔧 WebSocket Manager
-  const { isInitialized, activeChannels, protocolChannels, totalChannels, refetchClientData } =
-    useClientWebSocketManager({
-      clients,
-      enabled: clients.length > 0
-    })
-
-  // 🔧 Dados de monitoramento
-  const { stats, loading, enrichedProtocols, urgentCount, unreadCount, activeCount } = useMonitoringData()
 
   // Estados existentes (mantidos)
   const [filters, setFilters] = useState<ChatFilters>({
@@ -71,12 +59,26 @@ const MonitoringPage = () => {
     cardsPerRow: 4
   })
 
-  const [showComponentWarning, setShowComponentWarning] = useState(true)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedProtocolData, setSelectedProtocolData] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
 
-  // Hook para notificações (mantido)
-  const { handleCardClick, handleCardHover, isCardSelected, getNotificationType } = useCardNotifications()
+  // Hook para notificações (substituído por implementação simples)
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+
+  const handleCardClick = useCallback((clientId: string) => {
+    setSelectedCardId(clientId)
+  }, [])
+
+  const handleCardHover = useCallback((clientId: string, isHovered: boolean) => {
+    // Apenas log para debug, sem alterar filtros
+    console.log('Card hover:', clientId, isHovered)
+  }, [])
+
+  const isCardSelected = useCallback(
+    (clientId: string) => {
+      return selectedCardId === clientId
+    },
+    [selectedCardId]
+  )
 
   // Sensores DnD (mantidos)
   const sensors = useSensors(
@@ -88,74 +90,9 @@ const MonitoringPage = () => {
     })
   )
 
-  // 🔧 Filtros aplicados aos protocolos reais
-  const filteredProtocols = useMemo(() => {
-    let filtered = [...enrichedProtocols]
-
-    // Filtro por status
-    if (filters.statuses.length > 0) {
-      filtered = filtered.filter(protocol => filters.statuses.includes(protocol.status))
-    }
-
-    // Filtro por canal
-    if (filters.channels.length > 0) {
-      filtered = filtered.filter(protocol => filters.channels.includes(protocol.channel))
-    }
-
-    // Filtro por prioridade
-    if (filters.priorities.length > 0) {
-      filtered = filtered.filter(protocol => filters.priorities.includes(protocol.priority))
-    }
-
-    // Filtro de protocolos fechados
-    if (!filters.showClosed) {
-      filtered = filtered.filter(protocol => !['closed', 'resolved'].includes(protocol.status))
-    }
-
-    // Ordenação
-    filtered.sort((a, b) => {
-      switch (filters.orderBy) {
-        case 'priority':
-          const priorityOrder = { urgent: 4, high: 3, normal: 2, low: 1 }
-
-          return priorityOrder[b.priority] - priorityOrder[a.priority]
-        case 'last_activity':
-          return (
-            new Date(b.last_activity || b.updated_at).getTime() - new Date(a.last_activity || a.updated_at).getTime()
-          )
-        default:
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      }
-    })
-
-    return filtered
-  }, [enrichedProtocols, filters])
-
-  // 🔧 Contadores de notificação baseados nos dados reais
-  const notificationCounts = useMemo(() => {
-    return {
-      operator_call: urgentCount,
-      unresolved: filteredProtocols.filter(p => p.status === 'pending').length,
-      no_response: unreadCount,
-      operator_control: filteredProtocols.filter(p => p.operator_name && p.status === 'active').length
-    }
-  }, [filteredProtocols, urgentCount, unreadCount])
-
-  // Funções existentes (mantidas com adaptações mínimas)
-  const handleOpenModalCard = useCallback(
-    (protocolId: string) => {
-      const protocolData = enrichedProtocols.find(p => p.id === protocolId)
-
-      if (protocolData) {
-        setSelectedProtocolData(protocolData)
-        setIsDialogOpen(true)
-      }
-    },
-    [enrichedProtocols]
-  )
+  // 🔧 Filtros aplicados aos protocolos fake
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    // Implementar reordenação se necessário
     console.log('Drag end:', event)
   }, [])
 
@@ -175,20 +112,18 @@ const MonitoringPage = () => {
     return sizeMap[filters.cardsPerRow as keyof typeof sizeMap] || sizeMap[4]
   }, [filters.cardsPerRow])
 
-  // 🔧 Função para recarregar dados
+  // 🔧 Função para recarregar dados (fake)
   const handleRefreshData = useCallback(async () => {
-    for (const client of clients) {
-      await refetchClientData(client.id)
-    }
-  }, [clients, refetchClientData])
+    setLoading(true)
+
+    // Simular carregamento
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    setLoading(false)
+  }, [])
 
   return (
     <>
-      {/* 🔧 Debugger WebSocket */}
-      <WebSocketDebugger isConnected={isInitialized} activeChannels={[...activeChannels, ...protocolChannels]} />
-
-      {/* 🔧 Status de Inicialização */}
-      {!isInitialized && clients.length > 0 && (
+      {false && (
         <Alert severity='info' sx={{ mb: 2 }}>
           <Box display='flex' alignItems='center' gap={1}>
             <CircularProgress size={16} />
@@ -199,62 +134,6 @@ const MonitoringPage = () => {
         </Alert>
       )}
 
-      {/* Cards de Estatísticas - Dados Reais */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant='h4' color='primary'>
-                {stats.total}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Total de Chats
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant='h4' color='error'>
-                {urgentCount}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Urgentes
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant='h4' color='warning'>
-                {unreadCount}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Não Lidas
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 6, sm: 3 }}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center', py: 2 }}>
-              <Typography variant='h4' color='info'>
-                {activeCount}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Ativos
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Header com informações de conexão */}
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 3 }}>
@@ -264,10 +143,10 @@ const MonitoringPage = () => {
                 <Typography variant='h5' component='h1'>
                   Monitoramento de Interações
                 </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                  {filteredProtocols.length} de {enrichedProtocols.length} conversas
-                  {isInitialized && <span> • {totalChannels} canais WebSocket ativos</span>}
-                </Typography>
+                {/* <Typography variant='body2' color='text.secondary'>
+                  {filteredProtocols.length} de {fakeProtocols.length} conversas
+                  <span> • Modo de Teste</span>
+                </Typography> */}
               </div>
             </Box>
           </Grid>
@@ -285,7 +164,7 @@ const MonitoringPage = () => {
                 {loading ? 'Carregando...' : 'Atualizar'}
               </Button>
 
-              {/* Restante dos filtros existentes... */}
+              {/* Filtros */}
               <Button
                 variant={filters.orderBy === 'created_at' ? 'contained' : 'outlined'}
                 size='small'
@@ -297,104 +176,45 @@ const MonitoringPage = () => {
                 {filters.orderBy === 'created_at' ? 'Por Data' : 'Por Prioridade'}
               </Button>
 
-              {/* Outros controles de filtro mantidos... */}
+              <Button
+                variant={filters.showClosed ? 'contained' : 'outlined'}
+                size='small'
+                onClick={() => handleFilterChange('showClosed', !filters.showClosed)}
+              >
+                {filters.showClosed ? 'Ocultar Fechados' : 'Mostrar Fechados'}
+              </Button>
+
+              <Button
+                variant='outlined'
+                size='small'
+                onClick={() => handleFilterChange('cardsPerRow', filters.cardsPerRow === 4 ? 3 : 4)}
+              >
+                {filters.cardsPerRow === 4 ? '3 por linha' : '4 por linha'}
+              </Button>
             </Box>
           </Grid>
         </Grid>
       </Paper>
 
-      {/* Alertas de notificação baseados em dados reais */}
-      {showComponentWarning &&
-        (notificationCounts.operator_call > 0 ||
-          notificationCounts.unresolved > 0 ||
-          notificationCounts.no_response > 0) && (
-          <Alert severity='warning' sx={{ mb: 2 }} icon={<AlertTriangle size={20} />}>
-            <Box display='flex' gap={1} alignItems='center' flexWrap='wrap'>
-              <Typography variant='body2' fontWeight={500}>
-                Atenção necessária:
-              </Typography>
-
-              {notificationCounts.operator_call > 0 && (
-                <Chip
-                  icon={<Bell size={14} />}
-                  label={`${notificationCounts.operator_call} Urgentes`}
-                  color='error'
-                  size='small'
-                />
-              )}
-
-              {notificationCounts.unresolved > 0 && (
-                <Chip
-                  icon={<XCircle size={14} />}
-                  label={`${notificationCounts.unresolved} Pendentes`}
-                  color='warning'
-                  size='small'
-                />
-              )}
-
-              {notificationCounts.no_response > 0 && (
-                <Chip
-                  icon={<Clock size={14} />}
-                  label={`${notificationCounts.no_response} Não Lidas`}
-                  color='info'
-                  size='small'
-                />
-              )}
-            </Box>
-          </Alert>
-        )}
-
-      {/* Grid de Cards com dados reais */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={filteredProtocols.map(p => p.id)} strategy={rectSortingStrategy}>
-          <Grid container spacing={3}>
-            {filteredProtocols.map((protocol, index) => (
-              <Grid key={index} size={getGridSize()}>
-                <DraggableCard
-                  clientId={protocol.id}
-                  channel={protocol.channel}
-                  messages={protocol.messages}
-                  operatorName={protocol.operatorName}
-                  buttonName={protocol.buttonName}
-                  client={protocol}
-                  notificationType={getNotificationType(protocol)}
-                  isSelected={isCardSelected(protocol.id)}
-                  onCardClick={handleCardClick}
-                  onCardHover={handleCardHover}
-                  onOpenModalCard={handleOpenModalCard}
-                />
-              </Grid>
-            ))}
+        <Grid container spacing={3}>
+          <Grid size={getGridSize()}>
+            <DraggableCard
+              clientId={'1'}
+              channel={'channel'}
+              messages={['teste']}
+              operatorName={'teste'}
+              buttonName={'teste'}
+              client={'1321321321'}
+              notificationType={() => {}}
+              isSelected={isCardSelected('1')}
+              onCardClick={handleCardClick}
+              onCardHover={handleCardHover}
+              onOpenModalCard={() => {}}
+            />
           </Grid>
-        </SortableContext>
+        </Grid>
       </DndContext>
-
-      {/* Estado vazio */}
-      {filteredProtocols.length === 0 && !loading && (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant='h6' color='text.secondary' gutterBottom>
-            {enrichedProtocols.length === 0 ? 'Nenhum chat encontrado' : 'Nenhum chat corresponde aos filtros'}
-          </Typography>
-          <Typography variant='body2' color='text.secondary'>
-            {enrichedProtocols.length === 0
-              ? 'Aguarde novos chats serem iniciados'
-              : 'Ajuste os filtros para ver mais resultados'}
-          </Typography>
-        </Paper>
-      )}
-
-      {/* Dialog de chat */}
-      {selectedProtocolData && (
-        <ChatViewDialog
-          open={isDialogOpen}
-          setOpen={setIsDialogOpen}
-          clientData={selectedProtocolData}
-          clientId={selectedProtocolData.id}
-          messages={selectedProtocolData.messages}
-          channel={selectedProtocolData.channel}
-          operatorName={selectedProtocolData.operatorName}
-        />
-      )}
     </>
   )
 }
@@ -414,18 +234,7 @@ interface DraggableCardProps {
   onCardHover: (clientId: string, isHovered: boolean) => void
 }
 
-const DraggableCard = ({
-  clientId,
-  channel,
-  messages,
-  operatorName,
-  buttonName,
-  notificationType,
-  isSelected,
-  onCardClick,
-  onOpenModalCard,
-  onCardHover
-}: DraggableCardProps) => {
+const DraggableCard = ({ clientId }: DraggableCardProps) => {
   const {
     attributes,
     listeners,
@@ -444,18 +253,7 @@ const DraggableCard = ({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <CardMonitor
-        clientId={clientId}
-        channel={channel}
-        messages={messages}
-        operatorName={operatorName}
-        buttonName={buttonName}
-        notificationType={notificationType}
-        isSelected={isSelected}
-        onClick={onCardClick}
-        onOpenModal={onOpenModalCard}
-        onHover={onCardHover}
-      />
+      <CardMonitor />
     </div>
   )
 }
