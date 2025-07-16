@@ -267,7 +267,7 @@ const DraggableCard = ({ clientId }: DraggableCardProps) => {
             status: 'busy',
             settings: {
               isNotificationsOn: false,
-              isTwoStepAuthVerificationEnabled: false
+              isTwoStepAuthVerificationEnabled: true
             }
           },
           contacts: [],
