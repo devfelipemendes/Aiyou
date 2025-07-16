@@ -1,18 +1,13 @@
 import React, { useEffect, useRef } from 'react'
 
-import Image from 'next/image'
-
-import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
+import { Card, CardContent, CardHeader, Chip, Typography, Box, CircularProgress } from '@mui/material'
 
 import { useTheme } from '@mui/material/styles'
-
-import { motion } from 'framer-motion'
 
 import ChatLog from '../chatLog/chatLog'
 
 import CustomIconButton from '@core/components/mui/IconButton'
 import type { ChatDataType } from '@/types/chatTypes'
-import LoadingScreen from '../LoadingScreen'
 
 const getStatusProtocol = (status: string) => {
   switch (status) {
@@ -32,9 +27,20 @@ const getStatusProtocol = (status: string) => {
 type CardMonitorProps = {
   onClickMove: () => void
   ChatData: ChatDataType
+  clientProtocolName: string
+  statusChat: string
+  progressTime: string
+  attendant: string
 }
 
-export default function CardMonitor({ onClickMove, ChatData }: CardMonitorProps) {
+export default function CardMonitor({
+  onClickMove,
+  ChatData,
+  clientProtocolName,
+  statusChat,
+  progressTime,
+  attendant
+}: CardMonitorProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const theme = useTheme()
@@ -57,10 +63,10 @@ export default function CardMonitor({ onClickMove, ChatData }: CardMonitorProps)
   return (
     <Card>
       <CardHeader
-        title='ClienteProtocol'
+        title={clientProtocolName}
         action={
           <Box>
-            {getStatusProtocol('inativo')}
+            {getStatusProtocol(statusChat)}
 
             <CustomIconButton color='primary' variant='outlined' onClick={onClickMove}>
               <i className='ri-drag-move-2-fill' />
@@ -93,7 +99,10 @@ export default function CardMonitor({ onClickMove, ChatData }: CardMonitorProps)
                     isBelowSmScreen={false}
                   />
                 ) : (
-                  <Box className='flex items-center justify-center w-full h-full'></Box>
+                  <Box className='flex flex-col items-center justify-center w-full h-full'>
+                    <CircularProgress color='primary' />
+                    <Typography>Carregando Mensagens</Typography>
+                  </Box>
                 )}
               </Box>
             </Box>
@@ -102,10 +111,10 @@ export default function CardMonitor({ onClickMove, ChatData }: CardMonitorProps)
 
         <Box className='flex flex-row justify-between mt-5'>
           <Typography variant='subtitle2' color='textDisabled'>
-            Em andamento há: xh
+            Em andamento há: {progressTime}
           </Typography>
           <Typography variant='subtitle2' color='textDisabled'>
-            Sendo atendido por: atendente
+            Sendo atendido por: {attendant}
           </Typography>
         </Box>
       </CardContent>

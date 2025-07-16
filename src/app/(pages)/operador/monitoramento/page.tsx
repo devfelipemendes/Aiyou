@@ -253,7 +253,32 @@ const DraggableCard = ({ clientId }: DraggableCardProps) => {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <CardMonitor />
+      <CardMonitor
+        onClickMove={function (): void {
+          throw new Error('Function not implemented.')
+        }}
+        ChatData={{
+          profileUser: {
+            id: 0,
+            role: '',
+            about: '',
+            avatar: '',
+            fullName: '',
+            status: 'busy',
+            settings: {
+              isNotificationsOn: false,
+              isTwoStepAuthVerificationEnabled: false
+            }
+          },
+          contacts: [],
+          chats: [],
+          activeUser: undefined
+        }}
+        clientProtocolName={''}
+        statusChat={''}
+        progressTime={''}
+        attendant={''}
+      />
     </div>
   )
 }
