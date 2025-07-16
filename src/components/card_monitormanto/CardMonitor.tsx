@@ -73,10 +73,6 @@ export default function CardMonitor({
     }
   }, [ChatData])
 
-  useEffect(() => {
-    console.log(modeTheme)
-  }, [])
-
   return (
     <Card
       sx={{

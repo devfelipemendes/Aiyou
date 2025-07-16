@@ -259,10 +259,10 @@ const DraggableCard = ({ clientId }: DraggableCardProps) => {
         dragAttributes={attributes} // Função de pegar e Soltar
         isDragging={isCurrentlyDragging} // Função de pegar e soltar
         ChatData={chatFakeData} // Dados do chat
-        clientProtocolName={'teste'} // Nome no Header
-        statusChat={'unresolved'} // Status do chat
-        progressTime={'teste'} // tempo de progresso do chat
-        attendant={'teste'} // Tipo do atendente do momento
+        clientProtocolName={'# 12345678910121314150'} // Nome no Header
+        statusChat={'active'} // Status do chat
+        progressTime={'16h '} // tempo de progresso do chat
+        attendant={'Assistente'} // Tipo do atendente do momento
         protocol={'teste'} // Id do Protocolo
         callOperator={false} // Chamada do operador
       />
