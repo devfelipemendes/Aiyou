@@ -274,8 +274,8 @@ const DraggableCard = ({ clientId }: DraggableCardProps) => {
           chats: [],
           activeUser: undefined
         }}
-        clientProtocolName={''}
-        statusChat={''}
+        clientProtocolName={'Teste'}
+        statusChat={'chamada do operador'}
         progressTime={''}
         attendant={''}
       />
