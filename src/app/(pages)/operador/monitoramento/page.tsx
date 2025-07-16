@@ -24,6 +24,7 @@ import { useAppSelector } from '@/redux-store'
 
 // Imports dos componentes existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
+import { chatFakeData } from '@/components/card_monitormanto/datafake'
 
 // Tipos para os filtros (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -252,32 +253,18 @@ const DraggableCard = ({ clientId }: DraggableCardProps) => {
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style}>
       <CardMonitor
-        onClickMove={function (): void {
-          throw new Error('Function not implemented.')
-        }}
-        ChatData={{
-          profileUser: {
-            id: 0,
-            role: '',
-            about: '',
-            avatar: '',
-            fullName: '',
-            status: 'busy',
-            settings: {
-              isNotificationsOn: false,
-              isTwoStepAuthVerificationEnabled: false
-            }
-          },
-          contacts: [],
-          chats: [],
-          activeUser: undefined
-        }}
-        clientProtocolName={'Teste'}
-        statusChat={'chamada do operador'}
-        progressTime={''}
-        attendant={''}
+        dragListeners={listeners} // Função de pegar e Soltar
+        dragAttributes={attributes} // Função de pegar e Soltar
+        isDragging={isCurrentlyDragging} // Função de pegar e soltar
+        ChatData={chatFakeData} // Dados do chat
+        clientProtocolName={'teste'} // Nome no Header
+        statusChat={'inactive'} // Status do chat
+        progressTime={'teste'} // tempo de progresso do chat
+        attendant={'teste'} // Tipo do atendente do momento
+        protocol={'teste'} // Id do Protocolo
+        callOperator={false} // Chamada do operador
       />
     </div>
   )

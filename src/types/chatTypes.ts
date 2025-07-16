@@ -154,9 +154,40 @@ export class DateUtils {
   }
 }
 
-export type ChatDataType = {
-  profileUser: ProfileUserType
-  contacts: ContactType[]
-  chats: ChatType[]
-  activeUser?: ContactType
+export type ChatMessage = {
+  senderId: number
+  time: string
+  message: string
+  msgStatus?: {
+    isSent: boolean
+    isDelivered: boolean
+    isSeen: boolean
+  }
+}
+
+export type UserProfile = {
+  id: number
+  fullName: string
+  avatar?: string
+}
+
+export type ChatData = {
+  profileUser: UserProfile // Usuário atual
+  activeChat: {
+    userId: number
+    userInfo: UserProfile // Info do outro usuário
+    messages: ChatMessage[]
+  }
+}
+
+export type MsgGroupType = {
+  senderId: number
+  messages: Omit<ChatMessage, 'senderId'>[]
+}
+
+export type ChatLogProps = {
+  chatStore: ChatData
+  isBelowLgScreen: boolean
+  isBelowMdScreen: boolean
+  isBelowSmScreen: boolean
 }
