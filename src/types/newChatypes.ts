@@ -1,3 +1,5 @@
+import type { ChatHistoryMessage } from '@/api/endpoints/chat/history'
+
 export interface Phone {
   id: string
   phone: string
@@ -60,7 +62,7 @@ export interface ChatLogData {
 }
 
 export interface ChatLogProps {
-  chatStore: ChatLogData
+  chatStore: ChatHistoryMessage
   isBelowLgScreen: boolean
   isBelowMdScreen: boolean
   isBelowSmScreen: boolean
@@ -73,7 +75,7 @@ export interface ChatMonitorProps {
   dragListeners?: any
   dragAttributes?: any
   isDragging?: boolean
-  ChatData: ChatLogData
+  chatData: ChatLogData
   clientProtocolName: string
   statusChat: ActiveProtocol['status']
   progressTime: string

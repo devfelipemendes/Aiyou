@@ -1,208 +1,262 @@
-// Third-party Imports
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
-// Type Imports
-import type { StatusType } from '@/types/chatTypes'
+import type { ChatItem } from '@/api/endpoints/chat/queries'
 
-// Data Imports
-import { db } from '@/fake-db/apps/chat'
+// 🎯 IMPORT DOS TIPOS REAIS
 
+// 🎯 INTERFACE PARA MENSAGEM
+interface ChatMessage {
+  id: string
+  message: string
+  time: number // timestamp
+  senderId: string
+  senderType: 'user' | 'assistant' | 'operator'
+  msgStatus?: {
+    isSent: boolean
+    isDelivered: boolean
+    isSeen: boolean
+  }
+}
+
+// 🎯 INTERFACE PARA CHAT ATIVO (baseado na API real)
+interface ActiveChat extends ChatItem {
+  messages: ChatMessage[]
+  unseenMsgs: number
+  isTyping: boolean
+  lastActivity: number
+}
+
+// 🎯 ESTADO DO SLICE
 interface ChatState {
-  activeUserId: number | null
-  isUserProfileOpen: boolean
+  activeChats: ActiveChat[]
 
-  // Outros estados de UI que precisam ser globais podem ser adicionados aqui
+  // UI State
+  activeProtocol: string | null
+  selectedChat: ActiveChat | null
+  isLoading: boolean
+  error: string | null
+
+  // Chat Interface State
+  isUserProfileOpen: boolean
+  isEmojiPickerOpen: boolean
+
+  // Filtros e busca
+  searchTerm: string
+  statusFilter: 'all' | 'active' | 'inactive'
+  sourceFilter: 'all' | 'whatsapp' | 'telegram' | 'webchat' | 'email' | 'sms'
 }
 
 const initialState: ChatState = {
-  activeUserId: null,
-  isUserProfileOpen: false
-}
-
-// 🔥 CORRIGIDO: Combinamos o estado inicial com os dados do fake-db
-const initialStateWithData = {
-  ...initialState,
-  ...db
+  activeChats: [],
+  activeProtocol: null,
+  selectedChat: null,
+  isLoading: false,
+  error: null,
+  isUserProfileOpen: false,
+  isEmojiPickerOpen: false,
+  searchTerm: '',
+  statusFilter: 'all',
+  sourceFilter: 'all'
 }
 
 export const chatSlice = createSlice({
   name: 'chat',
-  initialState: initialStateWithData,
+  initialState,
   reducers: {
-    // Ações para gerenciar o usuário ativo
-    setActiveUser: (state, action: PayloadAction<number>) => {
-      state.activeUserId = action.payload
+    // 🎯 CARREGAR CHATS DA API (integração com RTK Query)
+    setActiveChats: (state, action: PayloadAction<ChatItem[]>) => {
+      state.activeChats = action.payload.map(chat => ({
+        ...chat,
+        messages: [], // Inicialmente vazio, carregado depois
+        unseenMsgs: 0,
+        isTyping: false,
+        lastActivity: Date.now()
+      }))
+      state.isLoading = false
+      state.error = null
     },
 
-    // Ações para gerenciar UI
+    // 🎯 MARCAR MENSAGENS COMO LIDAS
+    markMessagesAsRead: (state, action: PayloadAction<string>) => {
+      const protocol = action.payload
+      const chat = state.activeChats.find(c => c.protocol === protocol)
+
+      if (chat) {
+        chat.unseenMsgs = 0
+        chat.messages.forEach(msg => {
+          if (msg.msgStatus) {
+            msg.msgStatus.isSeen = true
+          }
+        })
+      }
+    },
+
+    // 🎯 MARCAR MENSAGENS COMO ENTREGUES
+    markMessagesAsDelivered: (
+      state,
+      action: PayloadAction<{
+        protocol: string
+        messageIds?: string[] // Se não fornecido, marca todas
+      }>
+    ) => {
+      const { protocol, messageIds } = action.payload
+      const chat = state.activeChats.find(c => c.protocol === protocol)
+
+      if (chat) {
+        chat.messages.forEach(msg => {
+          if (msg.msgStatus && (!messageIds || messageIds.includes(msg.id))) {
+            msg.msgStatus.isDelivered = true
+          }
+        })
+      }
+    },
+
+    // 🎯 INDICADOR DE DIGITAÇÃO
+    setTypingIndicator: (
+      state,
+      action: PayloadAction<{
+        protocol: string
+        isTyping: boolean
+      }>
+    ) => {
+      const { protocol, isTyping } = action.payload
+      const chat = state.activeChats.find(c => c.protocol === protocol)
+
+      if (chat) {
+        chat.isTyping = isTyping
+      }
+    },
+
+    setSearchTerm: (state, action: PayloadAction<string>) => {
+      state.searchTerm = action.payload
+    },
+
+    setStatusFilter: (state, action: PayloadAction<ChatState['statusFilter']>) => {
+      state.statusFilter = action.payload
+    },
+
+    setSourceFilter: (state, action: PayloadAction<ChatState['sourceFilter']>) => {
+      state.sourceFilter = action.payload
+    },
+
     openUserProfile: state => {
       state.isUserProfileOpen = true
     },
+
     closeUserProfile: state => {
       state.isUserProfileOpen = false
     },
 
-    // Obter dados do usuário ativo e limpar mensagens não vistas
-    getActiveUserData: (state, action: PayloadAction<number>) => {
-      const activeUser = state.contacts.find(user => user.id === action.payload)
-      const chat = state.chats.find(chat => chat.userId === action.payload)
-
-      // Limpa mensagens não vistas quando usuário é selecionado
-      if (chat && chat.unseenMsgs > 0) {
-        chat.unseenMsgs = 0
-      }
-
-      if (activeUser) {
-        state.activeUser = activeUser
-      }
+    toggleEmojiPicker: state => {
+      state.isEmojiPickerOpen = !state.isEmojiPickerOpen
     },
 
-    // Adicionar novo chat se não existir
-    addNewChat: (state, action) => {
-      const { id } = action.payload
-
-      state.contacts.find(contact => {
-        if (contact.id === id && !state.chats.find(chat => chat.userId === contact.id)) {
-          state.chats.unshift({
-            id: state.chats.length + 1,
-            userId: contact.id,
-            unseenMsgs: 0,
-            chat: []
-          })
-        }
-      })
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload
     },
 
-    // Atualizar status do usuário
-    setUserStatus: (state, action: PayloadAction<{ status: StatusType }>) => {
-      state.profileUser = {
-        ...state.profileUser,
-        status: action.payload.status
-      }
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload
     },
 
-    // 🔥 CORRIGIDO: Action principal que estava causando o erro
-    sendMsg: (state, action: PayloadAction<{ msg: string }>) => {
-      const { msg } = action.payload
-
-      // Encontra o chat ativo
-      const existingChat = state.chats.find(chat => chat.userId === state.activeUser?.id)
-
-      if (existingChat) {
-        // ✅ MUDANÇA PRINCIPAL: Usar Date.now() em vez de new Date()
-        existingChat.chat.push({
-          message: msg,
-          time: Date.now(), // 🎯 Aqui está a correção! Timestamp é serializável
-          senderId: state.profileUser.id,
-          msgStatus: {
-            isSent: true,
-            isDelivered: false,
-            isSeen: false
-          }
-        })
-
-        // Move o chat para o topo da lista (mais recente primeiro)
-        state.chats = state.chats.filter(chat => chat.userId !== state.activeUser?.id)
-        state.chats.unshift(existingChat)
-      }
-    },
-
-    // 🔥 NOVA ACTION: Receber mensagem (útil para WebSocket)
-    receiveMsg: (
-      state,
-      action: PayloadAction<{
-        msg: string
-        senderId: number
-        chatId: number
-      }>
-    ) => {
-      const { msg, senderId, chatId } = action.payload
-
-      const existingChat = state.chats.find(chat => chat.id === chatId)
-
-      if (existingChat) {
-        existingChat.chat.push({
-          message: msg,
-          time: Date.now(), // ✅ Sempre usar timestamp
-          senderId: senderId,
-          msgStatus: {
-            isSent: true,
-            isDelivered: true,
-            isSeen: false
-          }
-        })
-
-        // Se não é o chat ativo, incrementar mensagens não vistas
-        if (existingChat.userId !== state.activeUserId) {
-          existingChat.unseenMsgs += 1
-        }
-
-        // Move para o topo
-        state.chats = state.chats.filter(chat => chat.id !== chatId)
-        state.chats.unshift(existingChat)
-      }
-    },
-
-    // 🔥 NOVA ACTION: Marcar mensagens como entregues
-    markAsDelivered: (state, action: PayloadAction<{ chatId: number }>) => {
-      const { chatId } = action.payload
-      const chat = state.chats.find(chat => chat.id === chatId)
-
-      if (chat) {
-        chat.chat.forEach(message => {
-          if (message.senderId === state.profileUser.id && message.msgStatus) {
-            message.msgStatus.isDelivered = true
-          }
-        })
-      }
-    },
-
-    // 🔥 NOVA ACTION: Marcar mensagens como lidas
-    markAsRead: (state, action: PayloadAction<{ chatId: number }>) => {
-      const { chatId } = action.payload
-      const chat = state.chats.find(chat => chat.id === chatId)
-
-      if (chat) {
-        chat.chat.forEach(message => {
-          if (message.senderId === state.profileUser.id && message.msgStatus) {
-            message.msgStatus.isSeen = true
-          }
-        })
-      }
+    // 🎯 LIMPAR TODOS OS DADOS (útil para logout)
+    clearAllChats: state => {
+      state.activeChats = []
+      state.activeProtocol = null
+      state.selectedChat = null
+      state.searchTerm = ''
+      state.error = null
     }
   }
 })
 
-// Export das actions
+// 🎯 EXPORT DAS ACTIONS
 export const {
-  getActiveUserData,
-  addNewChat,
-  setUserStatus,
-  sendMsg,
-  receiveMsg, // 🔥 Nova
-  markAsDelivered, // 🔥 Nova
-  markAsRead, // 🔥 Nova
-  setActiveUser,
+  setActiveChats,
+  markMessagesAsRead,
+  markMessagesAsDelivered,
+  setTypingIndicator,
+  setSearchTerm,
+  setStatusFilter,
+  setSourceFilter,
   openUserProfile,
-  closeUserProfile
+  closeUserProfile,
+  toggleEmojiPicker,
+  setLoading,
+  setError,
+  clearAllChats
 } = chatSlice.actions
 
-// Export do reducer
 export default chatSlice.reducer
 
-// 🔥 NOVOS SELECTORS: Para facilitar o uso nos componentes
-export const selectActiveUser = (state: any) => state.chatReducer.activeUser
-export const selectActiveUserId = (state: any) => state.chatReducer.activeUserId
-export const selectChats = (state: any) => state.chatReducer.chats
-export const selectContacts = (state: any) => state.chatReducer.contacts
-export const selectProfileUser = (state: any) => state.chatReducer.profileUser
-export const selectIsUserProfileOpen = (state: any) => state.chatReducer.isUserProfileOpen
+// 🎯 SELECTORS AVANÇADOS
+export const selectActiveChats = (state: any) => state.chatReducer.activeChats
 
-// Selector para obter chat específico
-export const selectChatByUserId = (state: any, userId: number) =>
-  state.chatReducer.chats.find((chat: any) => chat.userId === userId)
+export const selectActiveChatsList = (state: any) => {
+  const chats = state.chatReducer.activeChats
+  const searchTerm = state.chatReducer.searchTerm
+  const statusFilter = state.chatReducer.statusFilter
+  const sourceFilter = state.chatReducer.sourceFilter
 
-// Selector para contar mensagens não lidas
-export const selectUnreadMessagesCount = (state: any) =>
-  state.chatReducer.chats.reduce((total: number, chat: any) => total + chat.unseenMsgs, 0)
+  return chats.filter((chat: ActiveChat) => {
+    // Filtro por busca
+    const matchesSearch =
+      !searchTerm ||
+      chat.assistant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      chat.identifier.includes(searchTerm) ||
+      chat.protocol.includes(searchTerm)
+
+    // Filtro por status
+    const matchesStatus = statusFilter === 'all' || chat.status === statusFilter
+
+    // Filtro por source
+    const matchesSource = sourceFilter === 'all' || chat.source === sourceFilter
+
+    return matchesSearch && matchesStatus && matchesSource
+  })
+}
+
+export const selectSelectedChat = (state: any) => state.chatReducer.selectedChat
+export const selectActiveProtocol = (state: any) => state.chatReducer.activeProtocol
+
+export const selectChatMessages = (state: any, protocol: string) => {
+  const chat = state.chatReducer.activeChats.find((c: ActiveChat) => c.protocol === protocol)
+
+  return chat?.messages || []
+}
+
+export const selectUnreadMessagesCount = (state: any) => {
+  return state.chatReducer.activeChats.reduce((total: number, chat: ActiveChat) => total + chat.unseenMsgs, 0)
+}
+
+export const selectChatsBySource = (state: any, source: ChatItem['source']) => {
+  return state.chatReducer.activeChats.filter((chat: ActiveChat) => chat.source === source)
+}
+
+export const selectIsLoading = (state: any) => state.chatReducer.isLoading
+export const selectError = (state: any) => state.chatReducer.error
+export const selectSearchTerm = (state: any) => state.chatReducer.searchTerm
+export const selectFilters = (state: any) => ({
+  status: state.chatReducer.statusFilter,
+  source: state.chatReducer.sourceFilter,
+  search: state.chatReducer.searchTerm
+})
+
+// 🎯 SELECTOR PARA ESTATÍSTICAS
+export const selectChatStats = (state: any) => {
+  const chats = state.chatReducer.activeChats
+
+  return {
+    total: chats.length,
+    active: chats.filter((c: ActiveChat) => c.status === 'active').length,
+    unread: chats.reduce((total: number, chat: ActiveChat) => total + chat.unseenMsgs, 0),
+    bySource: {
+      whatsapp: chats.filter((c: ActiveChat) => c.source === 'whatsapp').length,
+      telegram: chats.filter((c: ActiveChat) => c.source === 'telegram').length,
+      webchat: chats.filter((c: ActiveChat) => c.source === 'webchat').length,
+      email: chats.filter((c: ActiveChat) => c.source === 'email').length,
+      sms: chats.filter((c: ActiveChat) => c.source === 'sms').length
+    }
+  }
+}

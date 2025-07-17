@@ -17,45 +17,114 @@ import CustomAvatar from '@core/components/mui/Avatar'
 // Util Imports
 import { getInitials } from '@/utils/getInitials'
 
-import { type ChatLogProps, type ChatLogMessage, type MsgGroupType } from '@/types/newChatypes'
+import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
+
+interface AdaptedChatLogProps {
+  chatData: ChatWithHistory
+  isBelowLgScreen: boolean
+  isBelowMdScreen: boolean
+  isBelowSmScreen: boolean
+}
+
+interface AdaptedMsgGroup {
+  senderId: string
+  senderRole: 'user' | 'assistant' | 'operator'
+  senderName: string
+  messages: Array<{
+    time: number
+    message: string
+    msgStatus?: {
+      isSent: boolean
+      isDelivered: boolean
+      isSeen: boolean
+    }
+  }>
+}
 
 // ===== FUNÇÃO PARA AGRUPAR MENSAGENS =====
-const formatedChatData = (messages: ChatLogMessage[]): MsgGroupType[] => {
-  if (!messages || messages.length === 0) return []
+const formatChatHistory = (history: ChatHistoryMessage[]): AdaptedMsgGroup[] => {
+  if (!history || history.length === 0) return []
 
-  const formattedChatData: MsgGroupType[] = []
-  let chatMessageSenderId = messages[0].senderId
-  let msgGroup: MsgGroupType = {
-    senderId: chatMessageSenderId,
+  const formattedData: AdaptedMsgGroup[] = []
+  let currentRole = history[0].role
+  let msgGroup: AdaptedMsgGroup = {
+    senderId: history[0].id,
+    senderRole: history[0].role,
+    senderName: history[0].role === 'user' ? 'Cliente' : 'Assistente',
     messages: []
   }
 
-  messages.forEach((message, index) => {
-    if (chatMessageSenderId === message.senderId) {
+  history.forEach((message, index) => {
+    if (currentRole === message.role) {
+      // Mesma pessoa continuando a conversa
       msgGroup.messages.push({
-        time: message.time,
-        message: message.message,
-        msgStatus: message.msgStatus
+        time: new Date(message.created_at).getTime(),
+        message: message.content,
+        msgStatus: {
+          isSent: true,
+          isDelivered: true,
+          isSeen: true
+        }
       })
     } else {
-      chatMessageSenderId = message.senderId
-      formattedChatData.push(msgGroup)
+      // Nova pessoa falando
+      currentRole = message.role
+      formattedData.push(msgGroup)
       msgGroup = {
-        senderId: message.senderId,
+        senderId: message.id,
+        senderRole: message.role,
+        senderName: message.role === 'user' ? 'Cliente' : 'Assistente',
         messages: [
           {
-            time: message.time,
-            message: message.message,
-            msgStatus: message.msgStatus
+            time: new Date(message.created_at).getTime(),
+            message: message.content,
+            msgStatus: {
+              isSent: true,
+              isDelivered: true,
+              isSeen: true
+            }
           }
         ]
       }
     }
 
-    if (index === messages.length - 1) formattedChatData.push(msgGroup)
+    if (index === history.length - 1) formattedData.push(msgGroup)
   })
 
-  return formattedChatData
+  return formattedData
+}
+
+const getUserData = (role: 'user' | 'assistant' | 'operator', chatData: ChatWithHistory) => {
+  switch (role) {
+    case 'user':
+      return {
+        id: 'user',
+        fullName: `Cliente ${chatData.identifier.slice(-4)}`,
+        avatar: null,
+        role: 'Cliente'
+      }
+    case 'assistant':
+      return {
+        id: 'assistant',
+        fullName: chatData.assistant?.name || 'Assistente',
+        avatar: chatData.assistant?.img_url,
+        role: 'Assistente'
+      }
+    case 'operator':
+      return {
+        id: 'operator',
+        fullName: 'Operador',
+        avatar: null,
+        role: 'Operador'
+      }
+    default:
+      return {
+        id: 'unknown',
+        fullName: 'Usuário',
+        avatar: null,
+        role: 'Usuário'
+      }
+  }
 }
 
 // ===== COMPONENTE DE SCROLL =====
@@ -98,13 +167,10 @@ const ScrollWrapper = ({
 }
 
 // ===== COMPONENTE PRINCIPAL =====
-const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen }: ChatLogProps) => {
-  // Dados simplificados
-  const { profileUser, activeChat } = chatStore
-  const { userInfo: otherUser, messages } = activeChat
-
-  // Refs
+const ChatLog = ({ chatData, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen }: AdaptedChatLogProps) => {
   const scrollRef = useRef(null)
+
+  const formattedMessages = formatChatHistory(chatData.history)
 
   return (
     <ScrollWrapper isBelowLgScreen={isBelowLgScreen} scrollRef={scrollRef}>
@@ -115,18 +181,18 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
           overflow: 'visible' // ✅ Remove scroll interno
         }}
       >
-        {formatedChatData(messages).map((msgGroup, index) => {
-          const isSender = msgGroup.senderId === profileUser.id
-          const currentUser = isSender ? profileUser : otherUser
+        {formattedMessages.map((msgGroup, index) => {
+          const isSender = msgGroup.senderRole === 'operator'
+          const userData = getUserData(msgGroup.senderRole, chatData)
 
           return (
             <div key={index} className={classnames('flex gap-4 p-5', { 'flex-row-reverse': isSender })}>
               {/* ===== AVATAR SIMPLIFICADO ===== */}
-              {currentUser.avatar ? (
-                <Avatar alt={currentUser.fullName} src={currentUser.avatar} className='is-8 bs-8' />
+              {userData.avatar ? (
+                <Avatar alt={userData.fullName} src={userData.avatar} className='is-8 bs-8' />
               ) : (
-                <CustomAvatar skin='light' size={32}>
-                  {getInitials(currentUser.fullName)}
+                <CustomAvatar skin={isSender ? 'filled' : 'light'} color={isSender ? 'primary' : 'secondary'} size={32}>
+                  {getInitials(userData.fullName)}
                 </CustomAvatar>
               )}
 
@@ -139,6 +205,11 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
                   'max-is-[calc(100%-5.75rem)]': isBelowSmScreen
                 })}
               >
+                {!isSender && (
+                  <Typography variant='caption' color='text.secondary' className='px-2'>
+                    {userData.fullName}
+                  </Typography>
+                )}
                 {/* Renderizar mensagens do grupo */}
                 {msgGroup.messages.map((msg, msgIndex) => (
                   <Typography
@@ -173,32 +244,20 @@ const ChatLog = ({ chatStore, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen 
 
                           {/* Timestamp */}
                           <Typography variant='caption'>
-                            {msg.time
-                              ? new Date(msg.time).toLocaleString('en-US', {
-                                  hour: 'numeric',
-                                  minute: 'numeric',
-                                  hour12: true
-                                })
-                              : new Date().toLocaleString('en-US', {
-                                  hour: 'numeric',
-                                  minute: 'numeric',
-                                  hour12: true
-                                })}
+                            {new Date(msg.time).toLocaleString('pt-BR', {
+                              hour: 'numeric',
+                              minute: 'numeric',
+                              hour12: false
+                            })}
                           </Typography>
                         </div>
                       ) : (
                         <Typography variant='caption'>
-                          {msg.time
-                            ? new Date(msg.time).toLocaleString('en-US', {
-                                hour: 'numeric',
-                                minute: 'numeric',
-                                hour12: true
-                              })
-                            : new Date().toLocaleString('en-US', {
-                                hour: 'numeric',
-                                minute: 'numeric',
-                                hour12: true
-                              })}
+                          {new Date(msg.time).toLocaleString('pt-BR', {
+                            hour: 'numeric',
+                            minute: 'numeric',
+                            hour12: false
+                          })}
                         </Typography>
                       )}
                     </div>
