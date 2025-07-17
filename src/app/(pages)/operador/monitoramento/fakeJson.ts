@@ -13,6 +13,8 @@ interface ClientData {
   isAIActive: boolean
 }
 
+//teste
+
 // 🔥 DADOS VARIADOS para testar todas as notificações
 export const clientsData: ClientData[] = [
   // 🔴 CENÁRIO 1: Chamada do Operador (operator_call)
