@@ -17,15 +17,20 @@ import {
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core'
-import { sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
 import { useAppSelector } from '@/redux-store'
-import { useSimpleChatWithHistory, useMonitoringChatWithHistory } from '@/hooks/usersChatWithHistory'
+import { useMonitoringChatWithHistory } from '@/hooks/usersChatWithHistory'
 
 // Imports dos componentes existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
-import type { ChatWithHistory } from '@/api/endpoints/chat/history'
+import type { ChatHistoryMessage } from '@/api/endpoints/chat/history'
 
 // Tipos para os filtros (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -47,24 +52,10 @@ interface ChatFilters {
 const MonitoringPage = () => {
   // 🔧 Dados fake para teste
 
-  const {
-    chats,
-    filteredChats,
-    isLoading,
-    error,
-    stats,
-    refetch,
-    searchTerm,
-    setSearchTerm,
-    statusFilter,
-    setStatusFilter
-  } = useMonitoringChatWithHistory()
+  const { chats, filteredChats, isLoading, error, refetch } = useMonitoringChatWithHistory()
 
   const {
-    isLoading: isLoadingChatWhitHistory, // 🔄 Carregamento geral (primeira vez)
-    isRefreshing, // 🔄 Recarregamento (refresh manual)
-    error: errorChatWithHistory, // ❌ Erros
-    stats: statsChatWithHitory // 📊 Estatísticas úteis
+    isRefreshing // 🔄 Recarregamento (refresh manual)
   } = useMonitoringChatWithHistory()
 
   const user = useAppSelector((state: any) => state.authReducer?.user)
@@ -243,25 +234,30 @@ const MonitoringPage = () => {
       </Paper>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <Grid container spacing={3}>
-          {filteredChats.map(chat => (
-            <Grid size={getGridSize()} key={chat.protocol}>
-              <DraggableCard
-                clientId={chat.protocol}
-                channel={chat.source}
-                messages={chat.history}
-                operatorName={chat.assistant || 'Assistent'}
-                buttonName={`Chat ${chat.protocol.slice(-6)}`}
-                client={chat}
-                notificationType={() => {}}
-                isSelected={isCardSelected(chat.protocol)}
-                onCardClick={handleCardClick}
-                onCardHover={handleCardHover}
-                onOpenModalCard={() => {}}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <SortableContext
+          items={filteredChats.map(chat => chat.protocol)} // ⬅️ Array dos IDs
+          strategy={verticalListSortingStrategy} // ⬅️ Estratégia de ordenação
+        >
+          <Grid container spacing={3}>
+            {filteredChats.map(chat => (
+              <Grid size={getGridSize()} key={chat.protocol}>
+                <DraggableCard
+                  clientId={chat.protocol}
+                  channel={chat.source}
+                  messages={chat.history}
+                  operatorName={chat.assistant || 'Assistent'}
+                  buttonName={`Chat ${chat.protocol}`}
+                  client={chat}
+                  notificationType={() => {}}
+                  isSelected={isCardSelected(chat.protocol)}
+                  onCardClick={handleCardClick}
+                  onCardHover={handleCardHover}
+                  onOpenModalCard={() => {}}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </SortableContext>
       </DndContext>
     </>
   )
@@ -271,7 +267,7 @@ const MonitoringPage = () => {
 interface DraggableCardProps {
   clientId: string
   channel: string
-  messages: ChatWithHistory // Array de mensagens reais
+  messages: ChatHistoryMessage[] // Array de mensagens reais
   operatorName?: string
   buttonName: string
   client: any // ✅ OBJETO COMPLETO DO CHAT
@@ -282,7 +278,7 @@ interface DraggableCardProps {
   onCardHover: (clientId: string, isHovered: boolean) => void
 }
 
-const DraggableCard = ({ clientId, messages }: DraggableCardProps) => {
+const DraggableCard = ({ clientId, client }: DraggableCardProps) => {
   const {
     attributes,
     listeners,
@@ -305,7 +301,7 @@ const DraggableCard = ({ clientId, messages }: DraggableCardProps) => {
         dragListeners={listeners}
         dragAttributes={attributes}
         isDragging={isCurrentlyDragging}
-        chatData={messages}
+        chatData={client}
       />
     </div>
   )

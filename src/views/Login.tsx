@@ -26,6 +26,8 @@ import classnames from 'classnames'
 import * as v from 'valibot'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
+import Cookies from 'js-cookie'
+
 import { useWebSocket } from '@/hooks/useWebSocket'
 
 import type { Mode } from '@core/types'
@@ -98,6 +100,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
 
         // 💾 Salvar dados no localStorage
         localStorage.setItem('token', token)
+        Cookies.set('token', token)
         localStorage.setItem('userId', userId)
         localStorage.setItem('userData', JSON.stringify(user)) // 🔧 Salvar dados completos do usuário
 

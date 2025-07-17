@@ -148,13 +148,13 @@ export default function CardMonitor({
       <CardHeader
         title={
           <Typography variant='h5' sx={{ color: getStatusColor(status, callOperator) }}>
-            {identifier} • {protocol.slice(-8)}
+            {identifier} • {protocol || 'N/A'}
           </Typography>
         }
         subheader={
           <Box>
             <Typography variant='body2' color='text.secondary'>
-              {identifier} • {protocol.slice(-8)}
+              {identifier} • {protocol}
             </Typography>
             {lastMessage && (
               <Typography variant='caption' color='text.secondary'>
@@ -179,6 +179,7 @@ export default function CardMonitor({
                 }
               }}
               title='Clique e arraste para reordenar'
+              onCli
             >
               <i className='ri-drag-move-2-fill' />
             </CustomIconButton>
