@@ -49,7 +49,7 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
     // 🔥 ENDPOINT INDIVIDUAL: Buscar histórico de um chat específico
     getChatHistory: builder.query<ChatHistoryResponse, string>({
       query: protocol => ({
-        url: `/v1/chat/${protocol}/history`,
+        url: `/chat/${protocol}/history`,
         method: 'GET'
       }),
 
@@ -94,7 +94,7 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
           console.log('📋 Passo 1: Buscando chats ativos...')
 
           const chatsResult = await baseQuery({
-            url: '/v1/chat',
+            url: '/chat',
             method: 'GET'
           })
 
@@ -127,7 +127,7 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
               console.log(`  → Buscando histórico do protocol: ${chat.protocol}`)
 
               const historyResult = await baseQuery({
-                url: `/v1/chat/${chat.protocol}/history`,
+                url: `/chat/${chat.protocol}/history`,
                 method: 'GET'
               })
 
@@ -237,7 +237,7 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
     // 🔄 MUTATION: Atualizar histórico de um chat específico
     refreshChatHistory: builder.mutation<ChatHistoryResponse, string>({
       query: protocol => ({
-        url: `/v1/chat/${protocol}/history`,
+        url: `/chat/${protocol}/history`,
         method: 'GET'
       }),
 

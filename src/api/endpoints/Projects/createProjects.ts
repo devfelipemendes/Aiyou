@@ -26,7 +26,7 @@ export const clientApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     createClient: builder.mutation<CreateClientResponse, CreateClientRequest>({
       query: clientData => ({
-        url: '/v1/client',
+        url: '/client',
         method: 'POST',
         body: clientData
       }),
@@ -48,7 +48,7 @@ export const clientApi = apiSlice.injectEndpoints({
 
     getClients: builder.query<{ data: CreateClientResponse['data'][] }, void>({
       query: () => ({
-        url: '/v1/client',
+        url: '/client',
         method: 'GET'
       })
     })

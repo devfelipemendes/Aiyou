@@ -76,7 +76,7 @@ export const registerApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     registerUser: builder.mutation<RegisterResponse, CompleteRegistrationData>({
       query: registrationData => ({
-        url: '/v1/register',
+        url: '/register',
         method: 'POST',
         body: registrationData
       })

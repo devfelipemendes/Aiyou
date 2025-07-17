@@ -21,10 +21,11 @@ import { sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
 import { useAppSelector } from '@/redux-store'
+import { useSimpleChatWithHistory, useMonitoringChatWithHistory } from '@/hooks/usersChatWithHistory'
 
 // Imports dos componentes existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
-import { chatFakeData } from '@/components/card_monitormanto/datafake'
+import type { ChatWithHistory } from '@/api/endpoints/chat/history'
 
 // Tipos para os filtros (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -46,7 +47,28 @@ interface ChatFilters {
 const MonitoringPage = () => {
   // 🔧 Dados fake para teste
 
+  const {
+    chats,
+    filteredChats,
+    isLoading,
+    error,
+    stats,
+    refetch,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter
+  } = useMonitoringChatWithHistory()
+
+  const {
+    isLoading: isLoadingChatWhitHistory, // 🔄 Carregamento geral (primeira vez)
+    isRefreshing, // 🔄 Recarregamento (refresh manual)
+    error: errorChatWithHistory, // ❌ Erros
+    stats: statsChatWithHitory // 📊 Estatísticas úteis
+  } = useMonitoringChatWithHistory()
+
   const user = useAppSelector((state: any) => state.authReducer?.user)
+
   const clients = user?.clients || []
 
   // Estados existentes (mantidos)
@@ -59,8 +81,6 @@ const MonitoringPage = () => {
     messagesLimit: 10,
     cardsPerRow: 4
   })
-
-  const [loading, setLoading] = useState(false)
 
   // Hook para notificações (substituído por implementação simples)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
@@ -101,6 +121,10 @@ const MonitoringPage = () => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }, [])
 
+  const handleRefreshData = useCallback(() => {
+    refetch() // Esta função vem do hook e recarrega dados reais!
+  }, [refetch])
+
   const getGridSize = useCallback(() => {
     const sizeMap = {
       6: { md: 2, xl: 2, sm: 4 },
@@ -113,14 +137,27 @@ const MonitoringPage = () => {
     return sizeMap[filters.cardsPerRow as keyof typeof sizeMap] || sizeMap[4]
   }, [filters.cardsPerRow])
 
-  // 🔧 Função para recarregar dados (fake)
-  const handleRefreshData = useCallback(async () => {
-    setLoading(true)
+  if (isLoading && chats.length === 0) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Carregando chats e históricos...</Typography>
+      </Box>
+    )
+  }
 
-    // Simular carregamento
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setLoading(false)
-  }, [])
+  // 🚨 TRATAMENTO DE ERRO
+  if (error && chats.length === 0) {
+    return (
+      <Alert severity='error' sx={{ mt: 2 }}>
+        <Typography variant='h6'>Erro ao carregar dados</Typography>
+        <Typography>{error}</Typography>
+        <Button onClick={refetch} sx={{ mt: 1 }}>
+          Tentar novamente
+        </Button>
+      </Alert>
+    )
+  }
 
   return (
     <>
@@ -148,6 +185,14 @@ const MonitoringPage = () => {
                   {filteredProtocols.length} de {fakeProtocols.length} conversas
                   <span> • Modo de Teste</span>
                 </Typography> */}
+                {isRefreshing && (
+                  <Alert severity='info' sx={{ mb: 2 }}>
+                    <Box display='flex' alignItems='center' gap={1}>
+                      <CircularProgress size={16} />
+                      <Typography variant='body2'>Atualizando dados automaticamente...</Typography>
+                    </Box>
+                  </Alert>
+                )}
               </div>
             </Box>
           </Grid>
@@ -160,9 +205,9 @@ const MonitoringPage = () => {
                 size='small'
                 startIcon={<RefreshCw size={16} />}
                 onClick={handleRefreshData}
-                disabled={loading}
+                disabled={isLoading || isRefreshing} // ✅ Estados reais
               >
-                {loading ? 'Carregando...' : 'Atualizar'}
+                {isLoading ? 'Carregando...' : isRefreshing ? 'Atualizando...' : 'Atualizar'}
               </Button>
 
               {/* Filtros */}
@@ -199,21 +244,23 @@ const MonitoringPage = () => {
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <Grid container spacing={3}>
-          <Grid size={getGridSize()}>
-            <DraggableCard
-              clientId={'1'}
-              channel={'channel'}
-              messages={['teste']}
-              operatorName={'teste'}
-              buttonName={'teste'}
-              client={'1321321321'}
-              notificationType={() => {}}
-              isSelected={isCardSelected('1')}
-              onCardClick={handleCardClick}
-              onCardHover={handleCardHover}
-              onOpenModalCard={() => {}}
-            />
-          </Grid>
+          {filteredChats.map(chat => (
+            <Grid size={getGridSize()} key={chat.protocol}>
+              <DraggableCard
+                clientId={chat.protocol}
+                channel={chat.source}
+                messages={chat.history}
+                operatorName={chat.assistant || 'Assistent'}
+                buttonName={`Chat ${chat.protocol.slice(-6)}`}
+                client={chat}
+                notificationType={() => {}}
+                isSelected={isCardSelected(chat.protocol)}
+                onCardClick={handleCardClick}
+                onCardHover={handleCardHover}
+                onOpenModalCard={() => {}}
+              />
+            </Grid>
+          ))}
         </Grid>
       </DndContext>
     </>
@@ -224,10 +271,10 @@ const MonitoringPage = () => {
 interface DraggableCardProps {
   clientId: string
   channel: string
-  messages: any[]
+  messages: ChatWithHistory // Array de mensagens reais
   operatorName?: string
   buttonName: string
-  client: any
+  client: any // ✅ OBJETO COMPLETO DO CHAT
   notificationType: any
   isSelected: boolean
   onCardClick: (clientId: string) => void
@@ -235,7 +282,7 @@ interface DraggableCardProps {
   onCardHover: (clientId: string, isHovered: boolean) => void
 }
 
-const DraggableCard = ({ clientId }: DraggableCardProps) => {
+const DraggableCard = ({ clientId, messages }: DraggableCardProps) => {
   const {
     attributes,
     listeners,
@@ -255,16 +302,10 @@ const DraggableCard = ({ clientId }: DraggableCardProps) => {
   return (
     <div ref={setNodeRef} style={style}>
       <CardMonitor
-        dragListeners={listeners} // Função de pegar e Soltar
-        dragAttributes={attributes} // Função de pegar e Soltar
-        isDragging={isCurrentlyDragging} // Função de pegar e soltar
-        ChatData={chatFakeData} // Dados do chat
-        clientProtocolName={'# 12345678910121314150'} // Nome no Header
-        statusChat={'active'} // Status do chat
-        progressTime={'16h '} // tempo de progresso do chat
-        attendant={'Assistente'} // Tipo do atendente do momento
-        protocol={'teste'} // Id do Protocolo
-        callOperator={false} // Chamada do operador
+        dragListeners={listeners}
+        dragAttributes={attributes}
+        isDragging={isCurrentlyDragging}
+        chatData={messages}
       />
     </div>
   )

@@ -40,7 +40,7 @@ export const chatApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     getActiveChats: builder.query<ChatListResponse, void>({
       query: () => ({
-        url: '/v1/chat',
+        url: '/chat',
         method: 'GET'
       }),
 
@@ -78,7 +78,7 @@ export const chatApi = apiSlice.injectEndpoints({
 
     getChatByProtocol: builder.query<ChatItem, string>({
       query: protocol => ({
-        url: `/v1/chat/${protocol}`,
+        url: `/chat/${protocol}`,
         method: 'GET'
       }),
       providesTags: (result, error, protocol) => [{ type: 'Chat', id: protocol }]
