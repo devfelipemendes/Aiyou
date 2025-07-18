@@ -15,8 +15,8 @@ publish_staging:
   only:
     - main
   before_script:
-    - chmod +x ./automation/scripts/setup_env_staging.sh
-    - ./automation/scripts/setup_env_staging.sh
+    - chmod +x ./auto/scripts/setup_env_staging.sh
+    - ./auto/scripts/setup_env_staging.sh
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
     - docker build -t $TAG_COMMIT -t $TAG_LATEST -f ./auto/docker/Dockerfile.staging .
