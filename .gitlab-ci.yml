@@ -7,6 +7,19 @@ variables:
   TAG_LATEST: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME:latest
   TAG_COMMIT: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHORT_SHA
 
+build:
+  image: docker:24.0.5
+  stage: publish
+  tags:
+    - aiyou-staging
+  only:
+    - merge_requests
+  before_script:
+    - chmod +x ./auto/scripts/setup_env_ci.sh
+    - ./auto/scripts/setup_env_ci.sh
+  script:
+    - docker build -t $TAG_COMMIT -t $TAG_LATEST -f ./auto/docker/Dockerfile .
+
 publish_staging:
   image: docker:24.0.5
   stage: publish
@@ -19,7 +32,7 @@ publish_staging:
     - ./auto/scripts/setup_env_staging.sh
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
-    - docker build -t $TAG_COMMIT -t $TAG_LATEST -f ./auto/docker/Dockerfile.staging .
+    - docker build -t $TAG_COMMIT -t $TAG_LATEST -f ./auto/docker/Dockerfile .
     - docker push $TAG_COMMIT
     - docker push $TAG_LATEST
 
