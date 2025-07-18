@@ -24,7 +24,7 @@ publish_staging:
     - docker push $TAG_LATEST
 
 deploy_staging:
-  image: alpine:latest
+  image: docker:24.0.5
   stage: deploy
   tags:
     - aiyou-staging
