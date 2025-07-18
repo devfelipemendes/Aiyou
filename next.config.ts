@@ -8,10 +8,11 @@ const nextConfig: NextConfig = {
         source: '/',
         destination: '/painel',
         permanent: true,
-        locale: false
+        locale: false,
       }
     ]
-  }
+  },
+  output: "standalone",
 }
 
 export default nextConfig
