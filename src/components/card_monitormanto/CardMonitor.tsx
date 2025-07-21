@@ -97,10 +97,20 @@ export default function CardMonitor({
   const progressTime = calculateProgressTime(created_at, updated_at)
   const attendant = assistant?.name || 'Sistema'
 
+  const clickTimeout = useRef<NodeJS.Timeout | null>(null)
+  const clickCount = useRef(0)
+
   const handleCardClick = () => {
-    if (onChatSelect) {
-      onChatSelect(protocol)
-    }
+    clickCount.current += 1
+    if (clickTimeout.current) clearTimeout(clickTimeout.current)
+
+    clickTimeout.current = setTimeout(() => {
+      if (clickCount.current === 2 && onChatSelect) {
+        onChatSelect(protocol)
+      }
+
+      clickCount.current = 0
+    }, 250)
   }
 
   useEffect(() => {
@@ -113,7 +123,7 @@ export default function CardMonitor({
     <Card
       onClick={handleCardClick}
       sx={{
-        cursor: isDragging ? 'grabbing' : 'default',
+        cursor: isDragging ? 'grabbing' : 'pointer',
         transform: isDragging ? 'rotate(5deg)' : 'none',
         transition: 'all 0.2s ease',
         boxShadow: callOperator
@@ -176,6 +186,7 @@ export default function CardMonitor({
       <CardContent>
         <Card>
           <CardContent
+            className='cursor-pointer'
             ref={scrollContainerRef}
             sx={{
               position: 'relative',

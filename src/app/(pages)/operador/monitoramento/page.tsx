@@ -30,7 +30,8 @@ import { useMonitoringChatWithHistory } from '@/hooks/usersChatWithHistory'
 
 // Imports dos componentes existentes
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
-import type { ChatHistoryMessage } from '@/api/endpoints/chat/history'
+import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
+import ChatMonitoringModal from '@/components/dialogs/chat'
 
 // Tipos para os filtros (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -75,6 +76,20 @@ const MonitoringPage = () => {
 
   // Hook para notificações (substituído por implementação simples)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedChatForModal, setSelectedChatForModal] = useState<ChatWithHistory | null>(null)
+
+  const handleOpenModal = useCallback((chat: ChatWithHistory) => {
+    console.log('🔄 Abrindo modal para chat:', chat.protocol)
+    setSelectedChatForModal(chat)
+    setModalOpen(true)
+  }, [])
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setSelectedChatForModal(null)
+  }
 
   const handleCardClick = useCallback((clientId: string) => {
     setSelectedCardId(clientId)
@@ -255,20 +270,21 @@ const MonitoringPage = () => {
                   clientId={chat.protocol}
                   channel={chat.source}
                   messages={chat.history}
-                  operatorName={chat.assistant || 'Assistent'}
+                  operatorName={chat.assistant?.name || 'Assistent'}
                   buttonName={`Chat ${chat.protocol}`}
                   client={chat}
                   notificationType={() => {}}
                   isSelected={isCardSelected(chat.protocol)}
                   onCardClick={handleCardClick}
                   onCardHover={handleCardHover}
-                  onOpenModalCard={() => {}}
+                  onOpenModalCard={() => handleOpenModal(chat)} // ✅ Arrow function "binda" o chat
                 />
               </Grid>
             ))}
           </Grid>
         </SortableContext>
       </DndContext>
+      <ChatMonitoringModal open={modalOpen} onClose={handleCloseModal} chatData={selectedChatForModal} />
     </>
   )
 }
@@ -280,15 +296,23 @@ interface DraggableCardProps {
   messages: ChatHistoryMessage[] // Array de mensagens reais
   operatorName?: string
   buttonName: string
-  client: any // ✅ OBJETO COMPLETO DO CHAT
+  client: ChatWithHistory // ✅ Tipo correto
   notificationType: any
+  onOpenModalCard: () => void // ✅ MUDANÇA: função sem parâmetros
   isSelected: boolean
   onCardClick: (clientId: string) => void
-  onOpenModalCard: (clientId: string) => void
   onCardHover: (clientId: string, isHovered: boolean) => void
 }
 
-const DraggableCard = ({ clientId, client }: DraggableCardProps) => {
+// 2️⃣ CORRIGIR O DRAGGABLECARD:
+const DraggableCard = ({
+  clientId,
+  client,
+  onOpenModalCard, // ← Recebe função já "bindada" com o chat correto
+  isSelected,
+  onCardClick,
+  onCardHover
+}: DraggableCardProps) => {
   const {
     attributes,
     listeners,
@@ -305,6 +329,12 @@ const DraggableCard = ({ clientId, client }: DraggableCardProps) => {
     cursor: isCurrentlyDragging ? 'grabbing' : 'grab'
   }
 
+  // 🔥 FUNÇÃO SIMPLES: Apenas chama onOpenModalCard quando clicado
+  const handleChatSelect = useCallback(() => {
+    console.log('🔄 Card clicado! Abrindo modal para:', client.protocol)
+    onOpenModalCard() // ← Chama função que já tem o chat "bindado"
+  }, [onOpenModalCard, client.protocol])
+
   return (
     <div ref={setNodeRef} style={style}>
       <CardMonitor
@@ -312,6 +342,8 @@ const DraggableCard = ({ clientId, client }: DraggableCardProps) => {
         dragAttributes={attributes}
         isDragging={isCurrentlyDragging}
         chatData={client}
+        onChatSelect={handleChatSelect} // ← Função simples
+        isSelected={isSelected}
       />
     </div>
   )
