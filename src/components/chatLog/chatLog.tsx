@@ -182,17 +182,21 @@ const ChatLog = ({ chatData, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen }
         }}
       >
         {formattedMessages.map((msgGroup, index) => {
-          const isSender = msgGroup.senderRole === 'operator'
+          const isSender = msgGroup.senderRole === 'operator' || msgGroup.senderRole === 'assistant'
           const userData = getUserData(msgGroup.senderRole, chatData)
 
           return (
             <div key={index} className={classnames('flex gap-4 p-5', { 'flex-row-reverse': isSender })}>
               {/* ===== AVATAR SIMPLIFICADO ===== */}
               {userData.avatar ? (
-                <Avatar alt={userData.fullName} src={userData.avatar} className='is-8 bs-8' />
+                <Avatar
+                  alt={userData.fullName.toUpperCase()}
+                  src={userData.avatar.toUpperCase()}
+                  className='is-8 bs-8'
+                />
               ) : (
-                <CustomAvatar skin={isSender ? 'filled' : 'light'} color={isSender ? 'primary' : 'secondary'} size={32}>
-                  {getInitials(userData.fullName)}
+                <CustomAvatar skin={isSender ? 'filled' : 'light'} color={isSender ? 'primary' : 'info'} size={32}>
+                  {getInitials(userData.fullName.toUpperCase())}
                 </CustomAvatar>
               )}
 

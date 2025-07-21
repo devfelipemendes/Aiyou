@@ -150,6 +150,16 @@ const MonitoringPage = () => {
     )
   }
 
+  console.log('🔍 DEBUG - Dados dos chats:')
+  chats.forEach((chat, index) => {
+    console.log(`Chat ${index}:`, {
+      protocol: chat.protocol,
+      historyLength: chat.history?.length || 0,
+      firstMessage: chat.history?.[0]?.content || 'Sem mensagens',
+      lastMessage: chat.history?.[chat.history.length - 1]?.content || 'Sem mensagens'
+    })
+  })
+
   return (
     <>
       {false && (
