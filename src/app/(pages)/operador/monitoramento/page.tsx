@@ -309,9 +309,7 @@ const DraggableCard = ({
   clientId,
   client,
   onOpenModalCard, // ← Recebe função já "bindada" com o chat correto
-  isSelected,
-  onCardClick,
-  onCardHover
+  isSelected
 }: DraggableCardProps) => {
   const {
     attributes,

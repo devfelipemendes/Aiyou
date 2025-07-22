@@ -33,9 +33,7 @@ const ChatInitializer: React.FC<ChatInitializerProps> = ({
     connectedChannels,
     loading: chatsLoading,
     isWebSocketConnected,
-    error: chatsError,
-    refetchChats,
-    connectAllChannels
+    error: chatsError
   } = useActiveChatsManager({
     autoConncts: true,
     refetchInterval: 30000,

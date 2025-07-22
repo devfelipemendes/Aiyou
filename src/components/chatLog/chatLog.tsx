@@ -230,7 +230,6 @@ const ChatLog = ({ chatData, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen }
 
                 {/* ===== TIMESTAMP E STATUS ===== */}
                 {msgGroup.messages.map((msg, msgIndex) => {
-                  // Mostrar apenas para a última mensagem do grupo
                   if (msgIndex !== msgGroup.messages.length - 1) return null
 
                   return (

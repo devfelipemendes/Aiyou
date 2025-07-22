@@ -10,7 +10,7 @@ import Grid from '@mui/material/Grid2'
 
 import CardUser from '@/@core/components/Cards/CardUser'
 
-export const usersData: any[] = [
+const usersData: any[] = [
   {
     id: 1,
     avatarSrc: '/images/avatars/1.png',

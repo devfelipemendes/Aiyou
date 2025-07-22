@@ -158,7 +158,15 @@ export function useActiveChatsManager(options: UseActiveChatsManagerOptions = {}
   useEffect(() => {
     if (apiResponse?.data) {
       console.log('Chats ativos recebidos:', apiResponse.data.length)
-      dispatch(initializeChats(apiResponse.data))
+
+      const mappedChats = apiResponse.data.map((chat: any) => ({
+        ...chat,
+        assistant_id: chat.assistant_id || null, // ou um valor padrão
+        client_id: chat.client_id || null, // ou um valor padrão
+        active: chat.active !== undefined ? chat.active : 1 // ou um valor padrão
+      }))
+
+      dispatch(initializeChats(mappedChats))
     }
   }, [apiResponse, dispatch])
 

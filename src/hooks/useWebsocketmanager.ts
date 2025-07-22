@@ -242,6 +242,7 @@ export const useClientWebSocketManager = ({ clients, enabled = true }: UseClient
         return false
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [dispatch]
   )
 
@@ -494,7 +495,9 @@ export const useClientWebSocketManager = ({ clients, enabled = true }: UseClient
           }
         })
 
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         activeChannelsRef.current.clear()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         protocolChannelsRef.current.clear()
       }
     }

@@ -2,7 +2,7 @@
 'use client'
 
 // React Imports
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
 // MUI Imports
 import {
@@ -18,7 +18,10 @@ import {
   Avatar,
   Divider,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useTheme,
+  Stack,
+  Badge
 } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
@@ -30,6 +33,7 @@ import ChatLog from '@/components/chatLog/chatLog'
 
 // Types - vamos usar os mesmos tipos que você já tem
 import type { ChatWithHistory } from '@/api/endpoints/chat/history'
+import type { ChatMonitorProps } from '@/types/newChatypes'
 
 // ===== TIPOS PARA AS AÇÕES =====
 type ActionType = 'assume_chat' | 'transfer_operator' | 'add_comment' | 'client_details' | 'end_chat'
@@ -99,7 +103,9 @@ interface ChatMonitoringModalProps {
 
 const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalProps) => {
   // Estados internos do modal
-  const [selectedSection, setSelectedSection] = useState<'chat' | 'details'>('chat')
+
+  const theme = useTheme()
+  const modeTheme = theme.palette.mode
 
   // Estado para controle das ações
   const [actionState, setActionState] = useState<ActionState>({
@@ -286,14 +292,77 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
   const clientChannel = chatData.source || 'WhatsApp'
   const clientStatus = chatData.status === 'active' ? 'Ativo' : 'Inativo'
 
+  const getStatusColors = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
+    if (callOperator) {
+      return {
+        backgroundColor: '#f44336', // Vermelho para chamada de operador
+        color: '#ffffff'
+      }
+    }
+
+    const colorConfig = {
+      active: { backgroundColor: '#44b700', color: '#ffffff' }, // Verde para ativo
+      inactive: { backgroundColor: '#797979', color: '#ffffff' }, // Cinza para inativo
+      resolved: { backgroundColor: '#2e7d32', color: '#ffffff' }, // Verde escuro para resolvido
+      unresolved: { backgroundColor: '#ed6c02', color: '#ffffff' } // Laranja para não resolvido
+    }
+
+    return colorConfig[status] ?? colorConfig.active
+  }
+
+  const StyledBadge = styled(Badge)<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({
+    theme,
+    status,
+    callOperator
+  }) => {
+    const colors = getStatusColors(status, callOperator)
+
+    return {
+      '& .MuiBadge-badge': {
+        backgroundColor: colors.backgroundColor,
+        color: colors.color,
+        boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+        '&::after': {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          animation: 'ripple 1.2s infinite ease-in-out',
+          border: '1px solid currentColor',
+          content: '""'
+        }
+      },
+      '@keyframes ripple': {
+        '0%': {
+          transform: 'scale(.8)',
+          opacity: 1
+        },
+        '100%': {
+          transform: 'scale(2.4)',
+          opacity: 0
+        }
+      }
+    }
+  })
+
   return (
     <LargeMonitoringDialog open={open} onClose={onClose}>
       {/* HEADER DO MODAL */}
       <ModalHeader>
         <Box display='flex' alignItems='center' gap={2}>
-          <Avatar sx={{ bgcolor: 'primary.main' }}>
-            <User size={24} />
-          </Avatar>
+          <Stack direction='row' spacing={2}>
+            <StyledBadge
+              status={chatData.status}
+              callOperator={chatData.operator === 1 ? true : false}
+              overlap='circular'
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              variant='dot'
+            >
+              <Avatar alt='Remy Sharp' src='/static/images/avatar/1.jpg' />
+            </StyledBadge>
+          </Stack>
           <Box>
             <Typography variant='h6' component='div'>
               {clientName}
@@ -525,7 +594,11 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                 position: 'relative',
                 overflowY: 'auto', // ✅ Scroll vertical
                 overflowX: 'hidden',
-                backgroundImage: `linear-gradient(rgba(245, 245, 245, 0.9), rgba(255,255,255,0.9)), url("/images/identidadeVisual/bgChat.png")`,
+                backgroundImage: `${
+                  modeTheme === 'light'
+                    ? 'linear-gradient(rgba(241, 241, 241, 0.95), rgba(255,255,255,0.95))'
+                    : 'linear-gradient( rgba(28, 24, 48, 0.95), rgba(40,36,61,0.95))'
+                }, url("/images/identidadeVisual/bgChat.png")`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
@@ -550,7 +623,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                 // ✅ Auto-scroll para o final quando o conteúdo muda
                 if (element && chatData?.history?.length) {
                   requestAnimationFrame(() => {
-                    element.scrollTop = element.scrollHeight
+                    ;(element as HTMLDivElement).scrollTop = (element as HTMLDivElement).scrollHeight
                   })
                 }
               }}

@@ -1,9 +1,5 @@
 import type { Theme } from '@mui/material/styles'
 
-import { Mode } from './../../types'
-
-// MUI Imports
-
 // Type Imports
 import type { Skin } from '@core/types'
 
