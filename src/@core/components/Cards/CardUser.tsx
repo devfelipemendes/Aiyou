@@ -29,7 +29,7 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
   return (
     <Card>
       <CardMedia image={`/images/cards/${randomCardNumber}.png`} className='bs-[180px]' />
-      <CardContent className='relative' sx={{ backgroundColor: _mode === 'dark' && '#0089ad' }}>
+      <CardContent className='relative' sx={{ backgroundColor: _mode === 'dark' ? '#0089ad' : undefined }}>
         <Avatar
           src={avatarSrc}
           alt={name}

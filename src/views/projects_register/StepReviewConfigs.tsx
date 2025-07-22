@@ -139,10 +139,11 @@ const mockProjectData: Project = {
   ]
 }
 
-const StepReviewProject = ({ activeStep, handleNext, handlePrev, steps }: Props) => {
+const StepReviewProject = ({ handleNext, handlePrev }: Props) => {
   // States para controlar expansão dos cards
   const [expandedProject, setExpandedProject] = useState(true)
-  const [expandedAssistants, setExpandedAssistants] = useState<Record<string, boolean>>({})
+
+  // const [expandedAssistants, setExpandedAssistants] = useState<Record<string, boolean>>({})
   const [expandedFunctions, setExpandedFunctions] = useState<Record<string, boolean>>({})
 
   // Dados do projeto (substituir por dados reais do seu store)
@@ -173,12 +174,12 @@ const StepReviewProject = ({ activeStep, handleNext, handlePrev, steps }: Props)
   }, [projectData])
 
   // Handlers
-  const toggleAssistantExpansion = (assistantId: string) => {
-    setExpandedAssistants(prev => ({
-      ...prev,
-      [assistantId]: !prev[assistantId]
-    }))
-  }
+  // const toggleAssistantExpansion = () => {
+  //   // setExpandedAssistants(prev => ({
+  //   //   ...prev,
+  //   //   [assistantId]: !prev[assistantId]
+  //   // }))
+  // }
 
   const toggleFunctionExpansion = (functionId: string) => {
     setExpandedFunctions(prev => ({
@@ -398,7 +399,8 @@ const StepReviewProject = ({ activeStep, handleNext, handlePrev, steps }: Props)
             <Accordion key={assistant.id} sx={{ mb: 2 }}>
               <AccordionSummary
                 expandIcon={<i className='ri-arrow-down-s-line' />}
-                onClick={() => toggleAssistantExpansion(assistant.id)}
+
+                // onClick={() => toggleAssistantExpansion(assistant.id)}
               >
                 <Box display='flex' alignItems='center' justifyContent='space-between' width='100%'>
                   <Box display='flex' alignItems='center' gap={2}>

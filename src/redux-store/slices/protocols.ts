@@ -55,19 +55,19 @@ const protocolsSlice = createSlice({
 
       // Atualizar estatísticas
       state.stats.total = state.protocols.length
-      state.stats.active = state.protocols.filter(p => p.status === 'active').length
-      state.stats.urgent = state.protocols.filter(p => p.priority === 'urgent').length
-      state.stats.unread = state.protocols.reduce((sum, p) => sum + p.unread_count, 0)
+      state.stats.active = state.protocols.filter((p: any) => p.status === 'active').length
+      state.stats.urgent = state.protocols.filter((p: any) => p.priority === 'urgent').length
+      state.stats.unread = state.protocols.reduce(({ sum, p }: any) => sum + p.unread_count, 0)
 
       state.loading[clientId] = false
     },
 
     // 🔧 Adicionar novo protocolo
     addProtocol: (state, action: PayloadAction<Protocol>) => {
-      const protocol = action.payload
+      const protocol: any = action.payload
 
       // Verificar se já existe
-      const existingIndex = state.protocols.findIndex(p => p.id === protocol.id)
+      const existingIndex = state.protocols.findIndex((p: any) => p.id === protocol.id)
 
       if (existingIndex === -1) {
         // Adicionar ao array global
@@ -93,7 +93,7 @@ const protocolsSlice = createSlice({
       const updatedData = action.payload
 
       // Atualizar no array global
-      const globalIndex = state.protocols.findIndex(p => p.id === updatedData.id)
+      const globalIndex = state.protocols.findIndex((p: any) => p.id === updatedData.id)
 
       if (globalIndex !== -1) {
         const oldProtocol = state.protocols[globalIndex]
@@ -104,7 +104,7 @@ const protocolsSlice = createSlice({
         const clientProtocols = state.protocolsByClient[oldProtocol.client_id]
 
         if (clientProtocols) {
-          const clientIndex = clientProtocols.findIndex(p => p.id === updatedData.id)
+          const clientIndex = clientProtocols.findIndex((p: any) => p.id === updatedData.id)
 
           if (clientIndex !== -1) {
             clientProtocols[clientIndex] = { ...oldProtocol, ...updatedData }
@@ -112,9 +112,9 @@ const protocolsSlice = createSlice({
         }
 
         // Recalcular estatísticas
-        state.stats.active = state.protocols.filter(p => p.status === 'active').length
-        state.stats.urgent = state.protocols.filter(p => p.priority === 'urgent').length
-        state.stats.unread = state.protocols.reduce((sum, p) => sum + p.unread_count, 0)
+        state.stats.active = state.protocols.filter((p: any) => p.status === 'active').length
+        state.stats.urgent = state.protocols.filter((p: any) => p.priority === 'urgent').length
+        state.stats.unread = state.protocols.reduce(({ sum, p }: any) => sum + p.unread_count, 0)
       }
     },
 
@@ -123,17 +123,17 @@ const protocolsSlice = createSlice({
       const protocolId = action.payload
 
       // Encontrar protocolo para pegar client_id
-      const protocolToRemove = state.protocols.find(p => p.id === protocolId)
+      const protocolToRemove: any = state.protocols.find((p: any) => p.id === protocolId)
 
       if (protocolToRemove) {
         // Remover do array global
-        state.protocols = state.protocols.filter(p => p.id !== protocolId)
+        state.protocols = state.protocols.filter((p: any) => p.id !== protocolId)
 
         // Remover do array do client
         const clientProtocols = state.protocolsByClient[protocolToRemove.client_id]
 
         if (clientProtocols) {
-          state.protocolsByClient[protocolToRemove.client_id] = clientProtocols.filter(p => p.id !== protocolId)
+          state.protocolsByClient[protocolToRemove.client_id] = clientProtocols.filter((p: any) => p.id !== protocolId)
         }
 
         // Atualizar estatísticas
@@ -146,16 +146,16 @@ const protocolsSlice = createSlice({
 
     // 🔧 Incrementar contador de mensagens não lidas
     incrementUnreadCount: (state, action: PayloadAction<string>) => {
-      const protocolId = action.payload
+      const protocolId: any = action.payload
 
-      const protocol = state.protocols.find(p => p.id === protocolId)
+      const protocol: any = state.protocols.find((p: any) => p.id === protocolId)
 
       if (protocol) {
         protocol.unread_count++
 
         // Atualizar também no array do client
         const clientProtocols = state.protocolsByClient[protocol.client_id]
-        const clientProtocol = clientProtocols?.find(p => p.id === protocolId)
+        const clientProtocol: any = clientProtocols?.find((p: any) => p.id === protocolId)
 
         if (clientProtocol) {
           clientProtocol.unread_count++
@@ -170,7 +170,7 @@ const protocolsSlice = createSlice({
     markAsRead: (state, action: PayloadAction<string>) => {
       const protocolId = action.payload
 
-      const protocol = state.protocols.find(p => p.id === protocolId)
+      const protocol: any = state.protocols.find((p: any) => p.id === protocolId)
 
       if (protocol && protocol.unread_count > 0) {
         const previousUnread = protocol.unread_count
@@ -179,7 +179,7 @@ const protocolsSlice = createSlice({
 
         // Atualizar também no array do client
         const clientProtocols = state.protocolsByClient[protocol.client_id]
-        const clientProtocol = clientProtocols?.find(p => p.id === protocolId)
+        const clientProtocol: any = clientProtocols?.find((p: any) => p.id === protocolId)
 
         if (clientProtocol) {
           clientProtocol.unread_count = 0
@@ -219,8 +219,6 @@ export const {
 export const selectAllProtocols = (state: any) => state.protocolsReducer.protocols
 export const selectProtocolsByClient = (clientId: string) => (state: any) =>
   state.protocolsReducer.protocolsByClient[clientId] || []
-export const selectProtocolById = (protocolId: string) => (state: any) =>
-  state.protocolsReducer.protocols.find((p: Protocol) => p.id === protocolId)
 export const selectProtocolStats = (state: any) => state.protocolsReducer.stats
 export const selectProtocolsLoading = (state: any) => state.protocolsReducer.loading
 export const selectProtocolsError = (state: any) => state.protocolsReducer.error

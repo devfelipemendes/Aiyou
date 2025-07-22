@@ -124,6 +124,7 @@ export const useWebSocketChannels = ({ clientsData, enabled = true }: UseWebSock
 
     // 🧹 Cleanup: desconectar canais não utilizados
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       const currentChannels = Array.from(activeChannelsRef.current)
 
       currentChannels.forEach(channelKey => {

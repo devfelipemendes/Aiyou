@@ -122,9 +122,14 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
           // 📨 PASSO 2: Buscar históricos em PARALELO (muito mais rápido!)
           console.log('📨 Passo 2: Buscando históricos em paralelo...')
 
-          const historyPromises = activeChats.map(async (chat: any) => {
+          const historyPromises = activeChats.map(async (chat: any, chatIndex: number) => {
             try {
               console.log(`  → Buscando histórico do protocol: ${chat.protocol}`)
+
+              const url = `/chat/${chat.protocol}/history`
+
+              console.log(`🔍 [${chatIndex}] URL construída:`, url)
+              console.log(`🔍 [${chatIndex}] Protocol original:`, chat.protocol)
 
               const historyResult = await baseQuery({
                 url: `/chat/${chat.protocol}/history`,
@@ -146,12 +151,31 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
 
               const historyData = (historyResult.data as ChatHistoryResponse)?.data || []
 
+              console.log(`🔍 [${chatIndex}] RESPOSTA DA API para ${chat.protocol}:`, {
+                totalMessages: historyData.length,
+                primeiraMensagem: historyData[0]?.content?.slice(0, 50) || 'Sem mensagens',
+                ultimaMensagem: historyData[historyData.length - 1]?.content?.slice(0, 50) || 'Sem mensagens',
+                todasMensagensIDs: historyData.map(msg => msg.id).join(', ')
+              })
+
+              console.log(`🔍 [${chatIndex}] Resposta da API:`, {
+                protocol: chat.protocol,
+                totalMessages: historyData.length,
+                firstMessage: historyData[0]?.content?.slice(0, 30) || 'Vazia',
+                lastMessage: historyData[historyData.length - 1]?.content?.slice(0, 30) || 'Vazia'
+              })
+
               // Ordenar mensagens por data
               const sortedHistory = historyData.sort(
                 (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
               )
 
               console.log(`  ✅ ${sortedHistory.length} mensagens carregadas para ${chat.protocol}`)
+              console.log(`🔍 [${chatIndex}] Resultado final:`, {
+                protocol: chat.protocol,
+                historyLength: sortedHistory.length,
+                messageCount: sortedHistory.length
+              })
 
               return {
                 ...chat,

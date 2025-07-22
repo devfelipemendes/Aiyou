@@ -6,6 +6,7 @@ interface ImageDropzoneProps {
   initialImage?: string | null
 
   /** Callback chamado quando a imagem muda */
+  /** Callback chamado quando a imagem muda */
   onImageChange?: (image: File | null, imageUrl: string | null) => void
 
   /** Tamanho do componente */

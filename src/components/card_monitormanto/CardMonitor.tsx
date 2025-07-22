@@ -88,20 +88,8 @@ export default function CardMonitor({
   const theme = useTheme()
   const modeTheme = theme.palette.mode
 
-  const {
-    protocol,
-    assistant,
-    source,
-    identifier,
-    status,
-
-    historyError,
-    historyLoading,
-    messageCount,
-    lastMessage,
-    created_at,
-    updated_at
-  } = chatData
+  const { protocol, assistant, identifier, status, historyError, historyLoading, lastMessage, created_at, updated_at } =
+    chatData
 
   const callOperator = !!historyError
 
@@ -109,10 +97,20 @@ export default function CardMonitor({
   const progressTime = calculateProgressTime(created_at, updated_at)
   const attendant = assistant?.name || 'Sistema'
 
+  const clickTimeout = useRef<NodeJS.Timeout | null>(null)
+  const clickCount = useRef(0)
+
   const handleCardClick = () => {
-    if (onChatSelect) {
-      onChatSelect(protocol)
-    }
+    clickCount.current += 1
+    if (clickTimeout.current) clearTimeout(clickTimeout.current)
+
+    clickTimeout.current = setTimeout(() => {
+      if (clickCount.current === 2 && onChatSelect) {
+        onChatSelect(protocol)
+      }
+
+      clickCount.current = 0
+    }, 250)
   }
 
   useEffect(() => {
@@ -125,7 +123,7 @@ export default function CardMonitor({
     <Card
       onClick={handleCardClick}
       sx={{
-        cursor: isDragging ? 'grabbing' : 'default',
+        cursor: isDragging ? 'grabbing' : 'pointer',
         transform: isDragging ? 'rotate(5deg)' : 'none',
         transition: 'all 0.2s ease',
         boxShadow: callOperator
@@ -147,14 +145,14 @@ export default function CardMonitor({
     >
       <CardHeader
         title={
-          <Typography variant='h5' sx={{ color: getStatusColor(status, callOperator) }}>
-            {identifier} • {protocol || 'N/A'}
+          <Typography variant='h4' sx={{ color: getStatusColor(status, callOperator) }}>
+            # {identifier}
           </Typography>
         }
         subheader={
           <Box>
             <Typography variant='body2' color='text.secondary'>
-              {identifier} • {protocol}
+              Protocolo: {protocol}
             </Typography>
             {lastMessage && (
               <Typography variant='caption' color='text.secondary'>
@@ -179,7 +177,6 @@ export default function CardMonitor({
                 }
               }}
               title='Clique e arraste para reordenar'
-              onCli
             >
               <i className='ri-drag-move-2-fill' />
             </CustomIconButton>
@@ -189,6 +186,7 @@ export default function CardMonitor({
       <CardContent>
         <Card>
           <CardContent
+            className='cursor-pointer'
             ref={scrollContainerRef}
             sx={{
               position: 'relative',
@@ -242,9 +240,6 @@ export default function CardMonitor({
           </Typography>
           <Typography variant='subtitle2' color='textDisabled'>
             Sendo atendido por: {attendant}
-          </Typography>
-          <Typography variant='caption' color='textDisabled'>
-            {messageCount} mensagens • {source}
           </Typography>
         </Box>
       </CardContent>
