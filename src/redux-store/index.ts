@@ -40,7 +40,7 @@ const rootReducer = combineReducers({
   protocolsReducer,
   questionsReducer,
   messagesReducer,
-  activeChatsReducer,
+  activeChats: activeChatsReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })

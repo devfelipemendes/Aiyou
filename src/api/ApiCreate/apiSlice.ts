@@ -44,6 +44,8 @@ export const apiSlice = createApi({
     'ChatItem',
     'User', // ✅ Para dados do usuário
     'Project', // ✅ Para projetos
-    'Client' // ✅ Para clientes
+    'Client', // ✅ Para clientes
+    'ProtocolHistory', // ✅ Para histórico de protocolos
+    'ProtocolHistoryItem' // ✅ Para itens individuais do histórico de protocolos
   ]
 })

@@ -26,7 +26,19 @@ import {
 import { styled } from '@mui/material/styles'
 
 // Icon Imports
-import { MessageSquare, Phone, User, Settings, X, UserPlus, MessageCircle, UserCheck, XCircle } from 'lucide-react'
+import {
+  MessageSquare,
+  Phone,
+  User,
+  Settings,
+  X,
+  UserPlus,
+  MessageCircle,
+  UserCheck,
+  XCircle,
+  RefreshCw,
+  MessageCircleIcon
+} from 'lucide-react'
 
 // Component Imports
 import ChatLog from '@/components/chatLog/chatLog'
@@ -34,6 +46,8 @@ import ChatLog from '@/components/chatLog/chatLog'
 // Types - vamos usar os mesmos tipos que você já tem
 import type { ChatWithHistory } from '@/api/endpoints/chat/history'
 import type { ChatMonitorProps } from '@/types/newChatypes'
+import { useProtocolHistory } from '@/hooks/useProtocolHistory'
+import { ProtocolHistoryAccordion } from './(components)/ProtocolHistoryAccordion'
 
 // ===== TIPOS PARA AS AÇÕES =====
 type ActionType = 'assume_chat' | 'transfer_operator' | 'add_comment' | 'client_details' | 'end_chat'
@@ -102,6 +116,26 @@ interface ChatMonitoringModalProps {
 }
 
 const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalProps) => {
+  const [expandedProtocols, setExpandedProtocols] = useState<Set<string>>(
+    new Set([chatData?.protocol || '']) // Protocolo atual já expandido
+  )
+
+  // 🔥 NOVO: Hook para histórico
+  const {
+    historyData,
+    isLoading: historyLoading,
+    error: historyError,
+    refreshHistory
+  } = useProtocolHistory(chatData?.protocol || '', {
+    autoFetch: open, // Só busca quando modal está aberto
+    onSuccess: data => {
+      console.log(`✅ Histórico carregado: ${data.stats.totalProtocols} protocolos`)
+    },
+    onError: error => {
+      console.error('❌ Erro ao carregar histórico:', error)
+    }
+  })
+
   // Estados internos do modal
 
   const theme = useTheme()
@@ -310,11 +344,9 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
     return colorConfig[status] ?? colorConfig.active
   }
 
-  const StyledBadge = styled(Badge)<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({
-    theme,
-    status,
-    callOperator
-  }) => {
+  const StyledBadge = styled(Badge, {
+    shouldForwardProp: prop => !['status', 'callOperator'].includes(prop as string)
+  })<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({ theme, status, callOperator }) => {
     const colors = getStatusColors(status, callOperator)
 
     return {
@@ -395,7 +427,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
         {/* SIDEBAR ESQUERDA */}
         <Paper
           sx={{
-            width: 280,
+            width: 370,
             flexShrink: 0,
             borderRadius: 0,
             borderRight: 1,
@@ -546,13 +578,71 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
 
           {/* Histórico de Interações */}
           <Box p={2}>
-            <Typography variant='subtitle2' gutterBottom color='text.secondary'>
-              Histórico de interações com este cliente:
-            </Typography>
-            {/* TODO: Implementar lista de interações anteriores */}
-            <Typography variant='body2' color='text.secondary'>
-              Histórico será implementado aqui
-            </Typography>
+            <Box display='flex' justifyContent='space-between' alignItems='center' mb={1}>
+              <Typography variant='subtitle2' color='text.secondary'>
+                Histórico de interações com este cliente:
+              </Typography>
+              <IconButton size='small' onClick={refreshHistory} disabled={historyLoading}>
+                <RefreshCw size={14} className={historyLoading ? 'animate-spin' : ''} />
+              </IconButton>
+            </Box>
+
+            {/* 🔄 LOADING STATE */}
+            {historyLoading && (
+              <Box display='flex' alignItems='center' gap={1} py={2}>
+                <CircularProgress size={16} />
+                <Typography variant='body2' color='text.secondary'>
+                  Carregando histórico...
+                </Typography>
+              </Box>
+            )}
+
+            {/* ❌ ERROR STATE */}
+            {historyError && (
+              <Alert severity='error' sx={{ mb: 2 }}>
+                <Typography variant='body2'>{historyError}</Typography>
+                <Button size='small' onClick={() => window.location.reload()}>
+                  Tentar novamente
+                </Button>
+              </Alert>
+            )}
+
+            {/* 📊 DATA STATE */}
+            {historyData && !historyLoading && (
+              <>
+                {/* 📋 LISTA DE PROTOCOLOS */}
+                {historyData.data.length === 0 ? (
+                  <Box textAlign='center' py={3}>
+                    <MessageCircleIcon size={32} color='#ccc' />
+                    <Typography variant='body2' color='text.secondary' mt={1}>
+                      Primeiro contato do cliente
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {historyData.data.map(protocolItem => (
+                      <ProtocolHistoryAccordion
+                        key={protocolItem.protocol}
+                        protocolData={protocolItem}
+                        isCurrentProtocol={protocolItem.protocol === chatData?.protocol}
+                        isExpanded={expandedProtocols.has(protocolItem.protocol)}
+                        onToggle={() => {
+                          const newExpanded = new Set(expandedProtocols)
+
+                          if (newExpanded.has(protocolItem.protocol)) {
+                            newExpanded.delete(protocolItem.protocol)
+                          } else {
+                            newExpanded.add(protocolItem.protocol)
+                          }
+
+                          setExpandedProtocols(newExpanded)
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+              </>
+            )}
           </Box>
         </Paper>
 
