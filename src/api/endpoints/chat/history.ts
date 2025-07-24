@@ -5,7 +5,7 @@ export interface ChatHistoryMessage {
   id: string
   content: string
   role: 'assistant' | 'user' | 'operator'
-  operator: string | null
+  operator: number | null
   created_at: string
 }
 

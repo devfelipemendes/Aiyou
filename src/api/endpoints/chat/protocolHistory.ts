@@ -3,8 +3,8 @@ import { apiSlice } from '@/api/ApiCreate/apiSlice'
 export interface ProtocolHistoryMessage {
   id: string
   content: string
-  role: 'user' | 'assistant'
-  operador: number | null
+  role: 'user' | 'assistant' | 'operator'
+  operator: number | null
   created_at: string
 }
 
@@ -27,6 +27,7 @@ export interface ProcessedProtocolHistoryResponse {
   stats: {
     totalProtocols: number
     totalMessages: number
+
     oldestProtocol?: string
     newestProtocol?: string
   }

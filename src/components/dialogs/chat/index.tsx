@@ -2,7 +2,7 @@
 'use client'
 
 // React Imports
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 // MUI Imports
 import {
@@ -44,10 +44,11 @@ import {
 import ChatLog from '@/components/chatLog/chatLog'
 
 // Types - vamos usar os mesmos tipos que você já tem
-import type { ChatWithHistory } from '@/api/endpoints/chat/history'
+import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 import type { ChatMonitorProps } from '@/types/newChatypes'
 import { useProtocolHistory } from '@/hooks/useProtocolHistory'
-import { ProtocolHistoryAccordion } from './(components)/ProtocolHistoryAccordion'
+import { ProtocolHistoryList } from './(components)/ProtocolHistoryAccordion'
+import type { ProtocolHistoryItem } from '@/api/endpoints/chat/protocolHistory'
 
 // ===== TIPOS PARA AS AÇÕES =====
 type ActionType = 'assume_chat' | 'transfer_operator' | 'add_comment' | 'client_details' | 'end_chat'
@@ -116,9 +117,8 @@ interface ChatMonitoringModalProps {
 }
 
 const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalProps) => {
-  const [expandedProtocols, setExpandedProtocols] = useState<Set<string>>(
-    new Set([chatData?.protocol || '']) // Protocolo atual já expandido
-  )
+  const [selectedProtocol, setSelectedProtocol] = useState<string>(chatData?.protocol || '')
+  const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
 
   // 🔥 NOVO: Hook para histórico
   const {
@@ -135,6 +135,82 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
       console.error('❌ Erro ao carregar histórico:', error)
     }
   })
+
+  const convertProtocolToDisplay = useCallback(
+    (protocolData: ProtocolHistoryItem): ChatWithHistory => {
+      console.log('🔄 Convertendo protocolo:', protocolData.protocol, protocolData)
+
+      // Verificar se há mensagens no histórico
+      const historyMessages = protocolData.history || []
+
+      console.log('📨 Mensagens encontradas:', historyMessages.length, historyMessages)
+
+      // Converter mensagens para o formato esperado pelo ChatLog
+      const convertedHistory: ChatHistoryMessage[] = historyMessages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        role: msg.role,
+        operator: msg.operator,
+        created_at: msg.created_at
+      }))
+
+      console.log('✅ Histórico convertido:', convertedHistory)
+
+      const result: ChatWithHistory = {
+        protocol: protocolData.protocol,
+        assistant: chatData?.assistant || { name: 'Assistente' },
+        source: chatData?.source || 'whatsapp',
+        identifier: chatData?.identifier || `cliente_${protocolData.protocol.slice(-4)}`,
+        status: chatData?.status || 'active',
+        history: convertedHistory, // ← Array de mensagens convertidas
+        historyLoading: false,
+        historyError: null,
+        lastMessage: convertedHistory.length > 0 ? convertedHistory[convertedHistory.length - 1] : undefined,
+        messageCount: convertedHistory.length,
+        project_id: chatData?.project_id || '',
+        operator: chatData?.operator || 0,
+        question_operator: chatData?.question_operator || 0,
+        updated_at: chatData?.updated_at || new Date().toISOString(),
+        created_at: protocolData.createdAt || new Date().toISOString()
+      }
+
+      console.log('🎯 Resultado final da conversão:', result)
+
+      return result
+    },
+    [chatData]
+  )
+
+  const handleProtocolSelect = useCallback(
+    (protocol: string, protocolData: any) => {
+      console.log('🔄 Selecionando protocolo:', protocol)
+
+      try {
+        // Atualizar estado do protocolo selecionado
+        setSelectedProtocol(protocol)
+
+        // Converter dados para formato do ChatLog
+        const convertedChatData = convertProtocolToDisplay(protocolData)
+
+        // Atualizar dados exibidos no chat
+        setDisplayChatData(convertedChatData)
+
+        console.log('✅ Protocolo selecionado com sucesso:', convertedChatData)
+      } catch (error) {
+        console.error('💥 Erro ao selecionar protocolo:', error)
+      }
+    },
+    [convertProtocolToDisplay]
+  )
+
+  // ========== 5. ATUALIZAR EFEITO PARA RESETAR SELEÇÃO QUANDO MODAL ABRE ==========
+  // ✅ ADICIONAR este useEffect para sincronizar com chatData inicial:
+  useEffect(() => {
+    if (open && chatData) {
+      setSelectedProtocol(chatData.protocol)
+      setDisplayChatData(chatData)
+    }
+  }, [open, chatData])
 
   // Estados internos do modal
 
@@ -610,7 +686,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
             {/* 📊 DATA STATE */}
             {historyData && !historyLoading && (
               <>
-                {/* 📋 LISTA DE PROTOCOLOS */}
                 {historyData.data.length === 0 ? (
                   <Box textAlign='center' py={3}>
                     <MessageCircleIcon size={32} color='#ccc' />
@@ -620,25 +695,11 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                   </Box>
                 ) : (
                   <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                    {historyData.data.map(protocolItem => (
-                      <ProtocolHistoryAccordion
-                        key={protocolItem.protocol}
-                        protocolData={protocolItem}
-                        isCurrentProtocol={protocolItem.protocol === chatData?.protocol}
-                        isExpanded={expandedProtocols.has(protocolItem.protocol)}
-                        onToggle={() => {
-                          const newExpanded = new Set(expandedProtocols)
-
-                          if (newExpanded.has(protocolItem.protocol)) {
-                            newExpanded.delete(protocolItem.protocol)
-                          } else {
-                            newExpanded.add(protocolItem.protocol)
-                          }
-
-                          setExpandedProtocols(newExpanded)
-                        }}
-                      />
-                    ))}
+                    <ProtocolHistoryList
+                      historyData={historyData.data}
+                      currentProtocol={selectedProtocol}
+                      onProtocolSelect={handleProtocolSelect}
+                    />
                   </Box>
                 )}
               </>
@@ -726,7 +787,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                   }}
                 >
                   <ChatLog
-                    chatData={chatData}
+                    chatData={displayChatData || chatData}
                     isBelowLgScreen={true} // ✅ Usa scroll nativo
                     isBelowMdScreen={false}
                     isBelowSmScreen={false}
