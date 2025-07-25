@@ -10,6 +10,10 @@ export interface ProtocolHistoryMessage {
 
 export interface ProtocolHistoryItem {
   protocol: string
+  identifier: string | null
+  source: string | null
+  assistant_name: string
+  operator_name: string
   history: ProtocolHistoryMessage[]
   createdAt?: string
   messageCount: number
