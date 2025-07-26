@@ -23,6 +23,7 @@ import websocketReducer from './slices/webSocket'
 import protocolsReducer from './slices/protocols'
 import questionsReducer from './slices/questions'
 import messagesReducer from './slices/messages'
+import clientHistoriesReducer from './slices/clientHistoriesSlice'
 
 const persistConfig = {
   key: 'root',
@@ -41,6 +42,7 @@ const rootReducer = combineReducers({
   questionsReducer,
   messagesReducer,
   activeChats: activeChatsReducer,
+  clientHistories: clientHistoriesReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })
@@ -63,7 +65,6 @@ export const store = configureStore({
           'websocket/disconnect',
           'websocket/joinProtocolChannel',
           'websocket/joinProjectChannel',
-
           'activeChats/markChannelConnected', // 🔥 NOVO: Ignorar Set objects
           'activeChats/markChannelDisconnected'
         ],

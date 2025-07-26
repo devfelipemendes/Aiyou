@@ -2,7 +2,7 @@
 'use client'
 
 // React Imports
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 
 // MUI Imports
 import {
@@ -28,9 +28,8 @@ import ChatLog from '@/components/chatLog/chatLog'
 // Types - vamos usar os mesmos tipos que você já tem
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 import type { ChatMonitorProps } from '@/types/newChatypes'
-import { useProtocolHistory } from '@/hooks/useProtocolHistory'
 
-import type { ProtocolHistoryItem } from '@/api/endpoints/chat/protocolHistory'
+// import type { ProtocolHistoryItem } from '@/api/endpoints/chat/protocolHistory'
 import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
@@ -72,9 +71,10 @@ interface ChatMonitoringModalProps {
   open: boolean
   onClose: () => void
   chatData: ChatWithHistory | null
+  clientHistories?: Record<string, any>
 }
 
-const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalProps) => {
+const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: ChatMonitoringModalProps) => {
   const [selectedProtocol, setSelectedProtocol] = useState<string>(chatData?.protocol || '')
   const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -86,32 +86,60 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
   const isBelowSmScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'))
 
   // 🔥 NOVO: Hook para histórico
-  const {
-    historyData,
-    isLoading: historyLoading,
-    error: historyError,
-    refreshHistory
-  } = useProtocolHistory(chatData?.protocol || '', {
-    autoFetch: open, // Só busca quando modal está aberto
-    onSuccess: data => {
-      console.log(`✅ Histórico carregado: ${data.stats.totalProtocols} protocolos`)
-    },
-    onError: error => {
-      console.error('❌ Erro ao carregar histórico:', error)
+  const historyData = useMemo(() => {
+    if (!clientHistories || Object.keys(clientHistories).length === 0) {
+      return {
+        data: [],
+        stats: {
+          totalProtocols: 0,
+          totalMessages: 0,
+          oldestProtocol: undefined,
+          newestProtocol: undefined
+        }
+      }
     }
-  })
+
+    // Converter Record<string, ProtocolHistoryItem> para array
+    const protocolsArray = Object.entries(clientHistories).map(([protocol, data]) => ({
+      protocol, // 🔥 ADICIONAR: protocolo como propriedade
+      identifier: data.identifier,
+      source: data.source,
+      assistant_name: data.assistant_name,
+      operator_name: data.operator_name,
+      history: data.history,
+      messageCount: data.history?.length || 0,
+      lastActivity: data.history?.[data.history.length - 1]?.created_at || '',
+      createdAt: data.history?.[0]?.created_at || '' // 🔥 ADICIONAR: createdAt
+    }))
+
+    return {
+      data: protocolsArray,
+      stats: {
+        totalProtocols: protocolsArray.length,
+        totalMessages: protocolsArray.reduce((sum, p) => sum + p.messageCount, 0),
+        oldestProtocol: protocolsArray[protocolsArray.length - 1]?.protocol,
+        newestProtocol: protocolsArray[0]?.protocol
+      }
+    }
+  }, [clientHistories])
+
+  const historyLoading = false
+  const historyError = null
+
+  const refreshHistory = () => {
+    console.log('🔄 Refresh via prop clientHistories')
+
+    // Aqui poderia chamar refetchAll() do hook pai se necessário
+  }
 
   const convertProtocolToDisplay = useCallback(
-    (protocolData: ProtocolHistoryItem): ChatWithHistory => {
-      console.log('🔄 Convertendo protocolo:', protocolData.protocol, protocolData)
+    (protocolData: any): ChatWithHistory => {
+      // 🔥 MUDANÇA: any em vez de ProtocolHistoryItem
+      console.log('🔄 Convertendo protocolo:', protocolData)
 
-      // Verificar se há mensagens no histórico
       const historyMessages = protocolData.history || []
 
-      console.log('📨 Mensagens encontradas:', historyMessages.length, historyMessages)
-
-      // Converter mensagens para o formato esperado pelo ChatLog
-      const convertedHistory: ChatHistoryMessage[] = historyMessages.map(msg => ({
+      const convertedHistory: ChatHistoryMessage[] = historyMessages.map((msg: any) => ({
         id: msg.id,
         content: msg.content,
         role: msg.role,
@@ -119,15 +147,13 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
         created_at: msg.created_at
       }))
 
-      console.log('✅ Histórico convertido:', convertedHistory)
-
       const result: ChatWithHistory = {
-        protocol: protocolData.protocol,
+        protocol: protocolData.protocol, // 🔥 OK: agora existe
         assistant: chatData?.assistant || { name: 'Assistente' },
         source: chatData?.source || 'whatsapp',
-        identifier: chatData?.identifier || `cliente_${protocolData.protocol.slice(-4)}`,
+        identifier: chatData?.identifier || `cliente_${protocolData.protocol?.slice(-4)}`,
         status: chatData?.status || 'active',
-        history: convertedHistory, // ← Array de mensagens convertidas
+        history: convertedHistory,
         historyLoading: false,
         historyError: null,
         lastMessage: convertedHistory.length > 0 ? convertedHistory[convertedHistory.length - 1] : undefined,
@@ -136,10 +162,8 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
         operator: chatData?.operator || 0,
         question_operator: chatData?.question_operator || 0,
         updated_at: chatData?.updated_at || new Date().toISOString(),
-        created_at: protocolData.createdAt || new Date().toISOString()
+        created_at: protocolData.createdAt || new Date().toISOString() // 🔥 OK: agora existe
       }
-
-      console.log('🎯 Resultado final da conversão:', result)
 
       return result
     },
@@ -147,25 +171,34 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
   )
 
   const handleProtocolSelect = useCallback(
-    (protocol: string, protocolData: any) => {
+    (protocol: string, protocolData?: any) => {
       console.log('🔄 Selecionando protocolo:', protocol)
 
       try {
-        // Atualizar estado do protocolo selecionado
         setSelectedProtocol(protocol)
 
-        // Converter dados para formato do ChatLog
-        const convertedChatData = convertProtocolToDisplay(protocolData)
+        // 🔥 NOVO: Buscar dados do protocolo correto
+        let selectedData = protocolData
 
-        // Atualizar dados exibidos no chat
-        setDisplayChatData(convertedChatData)
+        if (!selectedData && clientHistories[protocol]) {
+          selectedData = {
+            protocol,
+            ...clientHistories[protocol],
+            createdAt: clientHistories[protocol].history?.[0]?.created_at || ''
+          }
+        }
 
-        console.log('✅ Protocolo selecionado com sucesso:', convertedChatData)
+        if (selectedData) {
+          const convertedChatData = convertProtocolToDisplay(selectedData)
+
+          setDisplayChatData(convertedChatData)
+          console.log('✅ Protocolo selecionado:', convertedChatData)
+        }
       } catch (error) {
         console.error('💥 Erro ao selecionar protocolo:', error)
       }
     },
-    [convertProtocolToDisplay]
+    [clientHistories, convertProtocolToDisplay]
   )
 
   // ========== 5. ATUALIZAR EFEITO PARA RESETAR SELEÇÃO QUANDO MODAL ABRE ==========

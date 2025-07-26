@@ -15,6 +15,7 @@ interface ChatMonitorAdaptedProps {
   dragListeners?: any
   dragAttributes?: any
   onChatSelect?: (protocol: string) => void
+  onChatDoubleClick?: (protocol: string) => void
   isSelected?: boolean
 }
 
@@ -82,7 +83,8 @@ export default function CardMonitor({
   dragListeners,
   dragAttributes,
   onChatSelect,
-  isDragging = false
+  isDragging = false,
+  onChatDoubleClick
 }: ChatMonitorAdaptedProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const theme = useTheme()
@@ -113,6 +115,13 @@ export default function CardMonitor({
     }, 250)
   }
 
+  // 🔥 ADICIONAR ESTA FUNÇÃO
+  const handleCardDoubleClick = () => {
+    if (onChatDoubleClick) {
+      onChatDoubleClick(protocol)
+    }
+  }
+
   useEffect(() => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
@@ -122,6 +131,7 @@ export default function CardMonitor({
   return (
     <Card
       onClick={handleCardClick}
+      onDoubleClick={handleCardDoubleClick}
       sx={{
         cursor: isDragging ? 'grabbing' : 'pointer',
         transform: isDragging ? 'rotate(5deg)' : 'none',

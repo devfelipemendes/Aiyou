@@ -1,482 +1,231 @@
-// hooks/useMonitoringData.ts
-import { useEffect, useMemo } from 'react'
+// hooks/useMonitoringData.ts - VERSÃO CORRIGIDA
+import { useEffect } from 'react'
 
-import { useAppSelector } from '@/redux-store'
+import { useAppDispatch, useAppSelector } from '@/redux-store'
+
+// RTK Query imports
+import { useGetActiveChatsQuery, type ChatItem } from '@/api/endpoints/chat/queries'
+import { useGetMultipleProtocolHistoriesQuery } from '@/api/endpoints/chat/protocolHistory'
+
+// Active Chats slice - 🔥 CORRIGIDO: Usar o slice correto
 import {
-  selectAllProtocols,
-  selectProtocolStats,
-  selectProtocolsLoading,
-  selectProtocolsError
-} from '@/redux-store/slices/protocols'
+  initializeChats,
+  setLoading as setActiveChatsLoading,
+  setError as setActiveChatsError,
+  selectActiveChats,
+  selectActiveChatsLoading,
+  selectActiveChatsError
+} from '@/redux-store/slices/activeChats'
 
-// 🔧 Interface para dados enriquecidos dos protocolos
-interface EnrichedProtocol {
-  id: string
-  client_id: string
-  status: 'active' | 'resolved' | 'closed' | 'pending'
-  priority: 'low' | 'normal' | 'high' | 'urgent'
-  created_at: string
-  updated_at: string
-  last_activity?: string
-  messages_count: number
-  unread_count: number
-  operator_name?: string
-  client_name?: string
-  channel: 'whatsapp' | 'telegram' | 'webchat' | 'email' | 'sms'
-  metadata?: any
+// Client Histories slice
+import {
+  setClientHistories,
+  setLoading as setHistoriesLoading,
+  setError as setHistoriesError,
+  selectAllHistories,
+  selectClientHistoriesLoading,
+  selectClientHistoriesError,
+  selectClientHistoriesStats
+} from '@/redux-store/slices/clientHistoriesSlice'
 
-  // Dados enriquecidos para compatibilidade com componentes existentes
-  clientId: string // Mesmo que 'id' para compatibilidade
-  messages: any[] // Últimas mensagens do protocolo
-  totalMessages: number // Total de mensagens
-  lastMessage: any | null // Última mensagem
-  unreadMessages: any[] // Mensagens não lidas
-  buttonName: string // Para o componente CardMonitor
-  operatorName: string // Nome do operador formatado
-
-  // Dados calculados
-  hasUnreadMessages: boolean
-  isUrgent: boolean
-  isActive: boolean
-  timeSinceLastActivity: number // em minutos
+// 🔥 FUNÇÃO DE CONVERSÃO: ChatItem → ActiveChat
+const convertChatItemToActiveChat = (chatItem: ChatItem) => {
+  return {
+    protocol: chatItem.protocol,
+    assistant_id: chatItem.assistant.id,
+    client_id: chatItem.project_id, // Usando project_id como client_id
+    source: chatItem.source,
+    identifier: chatItem.identifier,
+    operator: chatItem.operator,
+    active: chatItem.status === 'active' ? 1 : 0, // Converter string para number
+    updated_at: chatItem.updated_at,
+    created_at: chatItem.created_at
+  }
 }
 
-interface MonitoringStats {
-  total: number
-  active: number
-  urgent: number
-  unread: number
-  resolved: number
-  pending: number
-  byChannel: Record<string, number>
-  byPriority: Record<string, number>
-  byOperator: Record<string, number>
+interface UseMonitoringDataOptions {
+  autoRefresh?: boolean
+  refreshInterval?: number
+  skipHistories?: boolean
 }
 
 interface UseMonitoringDataReturn {
-  protocols: any[]
-  enrichedProtocols: EnrichedProtocol[]
-  stats: MonitoringStats
+  activeChats: any[]
+  activeChatsLoading: boolean
+  activeChatsError: string | null
 
-  // Estados
-  loading: boolean
-  error: string | null
-  isEmpty: boolean
+  // Históricos de clientes
+  clientHistories: Record<string, any>
+  historiesLoading: boolean
+  historiesError: string | null
+  historiesStats: any
 
-  // Utilitários
-  getProtocolById: (id: string) => EnrichedProtocol | undefined
-  getProtocolsByClient: (clientId: string) => EnrichedProtocol[]
-  getProtocolsByStatus: (status: string) => EnrichedProtocol[]
-  getProtocolsByPriority: (priority: string) => EnrichedProtocol[]
+  // Estados combinados
+  isFullyLoaded: boolean
+  hasErrors: boolean
 
-  // Contadores específicos
-  urgentCount: number
-  unreadCount: number
-  activeCount: number
+  // Funções
+  refetchActiveChats: () => void
+  refetchHistories: () => void
+  refetchAll: () => void
+
+  // Helpers
+  getHistoryByProtocol: (protocol: string) => any
+  getHistoriesByClient: (identifier: string) => Record<string, any>
 }
 
-export const useMonitoringData = (): UseMonitoringDataReturn => {
-  // 📊 Selectors básicos
-  const protocols = useAppSelector(selectAllProtocols)
-  const protocolStats = useAppSelector(selectProtocolStats)
-  const loadingStates = useAppSelector(selectProtocolsLoading)
-  const error = useAppSelector(selectProtocolsError)
+export function useMonitoringData(options: UseMonitoringDataOptions = {}): UseMonitoringDataReturn {
+  const { autoRefresh = false, refreshInterval = 30000, skipHistories = false } = options
 
-  // const totalMessages = useAppSelector(selectTotalMessages)
+  const dispatch = useAppDispatch()
 
-  // 🔧 Verificar se está carregando
-  const loading = useMemo(() => {
-    return Object.values(loadingStates).some(Boolean)
-  }, [loadingStates])
+  // 🔗 RTK QUERY: Chats ativos
+  const {
+    data: activeChatsResponse,
+    error: activeChatsApiError,
+    isLoading: activeChatsApiLoading,
+    refetch: refetchActiveChats
+  } = useGetActiveChatsQuery(undefined, {
+    pollingInterval: autoRefresh ? refreshInterval : 0
+  })
 
-  // 🔧 Enriquecer protocolos com dados das mensagens
-  const enrichedProtocols = useMemo((): EnrichedProtocol[] => {
-    return protocols.map((protocol: any) => {
-      //! 🔧 NOTA: Em um ambiente real, você precisaria otimizar isso
-      //! criando selectors que retornem todos os dados necessários de uma vez
-      //! ou usando uma estrutura de dados denormalizada no Redux
-      //!
-      //! Para usar as mensagens reais do Redux, substitua este hook por
-      //! useOptimizedMonitoringData() quando implementar os selectors corretamente
+  // 🔗 EXTRAIR PROTOCOLOS DOS CHATS ATIVOS
+  const activeProtocols = activeChatsResponse?.data?.map(chat => chat.protocol) || []
 
-      //! Por agora, vamos simular os dados das mensagens baseado no protocolo
-      const messageCount = protocol.messages_count || 0
-      const unreadCount = protocol.unread_count || 0
+  // 🔗 RTK QUERY: Históricos
+  const shouldFetchHistories = activeProtocols.length > 0 && !skipHistories
 
-      // Simular últimas mensagens baseado nos dados do protocolo
-      const messages = Array.from({ length: Math.min(messageCount, 10) }, (_, index) => ({
-        id: `msg-${protocol.id}-${index}`,
-        content: `Mensagem ${index + 1}`,
-        timestamp: new Date(Date.now() - index * 60000).toISOString(),
-        type: index % 2 === 0 ? 'user' : 'operator'
-      }))
+  const {
+    data: historiesResponse,
+    error: historiesApiError,
+    isLoading: historiesApiLoading,
+    refetch: refetchHistories
+  } = useGetMultipleProtocolHistoriesQuery(activeProtocols, {
+    skip: !shouldFetchHistories,
+    pollingInterval: autoRefresh ? refreshInterval : 0
+  })
 
-      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null
+  // 🔗 REDUX SELECTORS: Estados locais
+  const activeChats = useAppSelector(selectActiveChats)
+  const activeChatsLoading = useAppSelector(selectActiveChatsLoading)
+  const activeChatsError = useAppSelector(selectActiveChatsError)
 
-      // 🕒 Calcular tempo desde última atividade
-      const lastActivityTime = protocol.last_activity || protocol.updated_at
+  const clientHistories = useAppSelector(selectAllHistories)
+  const historiesLoading = useAppSelector(selectClientHistoriesLoading)
+  const historiesError = useAppSelector(selectClientHistoriesError)
+  const historiesStats = useAppSelector(selectClientHistoriesStats)
 
-      const timeSinceLastActivity = Math.floor((Date.now() - new Date(lastActivityTime).getTime()) / (1000 * 60))
-
-      return {
-        // Dados originais do protocolo
-        ...protocol,
-
-        // Compatibilidade com componentes existentes
-        clientId: protocol.id,
-
-        // Dados das mensagens (simulados por enquanto)
-        messages,
-        totalMessages: messageCount,
-        lastMessage,
-        unreadMessages: messages.slice(-unreadCount),
-
-        // Formatação para componentes
-        buttonName: 'IA',
-        operatorName: protocol.operator_name || 'Sistema',
-
-        // Dados calculados
-        hasUnreadMessages: unreadCount > 0,
-        isUrgent: protocol.priority === 'urgent',
-        isActive: protocol.status === 'active',
-        timeSinceLastActivity
-      }
-    })
-  }, [protocols])
-
-  // 📊 Estatísticas avançadas
-  const stats = useMemo((): MonitoringStats => {
-    const baseStats = protocolStats
-
-    // 📈 Estatísticas por canal
-    const byChannel = enrichedProtocols.reduce(
-      (acc, protocol) => {
-        acc[protocol.channel] = (acc[protocol.channel] || 0) + 1
-
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    // 🎯 Estatísticas por prioridade
-    const byPriority = enrichedProtocols.reduce(
-      (acc, protocol) => {
-        acc[protocol.priority] = (acc[protocol.priority] || 0) + 1
-
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    // 👨‍💼 Estatísticas por operador
-    const byOperator = enrichedProtocols.reduce(
-      (acc, protocol) => {
-        const operator = protocol.operator_name || 'Não atribuído'
-
-        acc[operator] = (acc[operator] || 0) + 1
-
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    // 📊 Contadores específicos
-    const resolved = enrichedProtocols.filter(p => p.status === 'resolved').length
-    const pending = enrichedProtocols.filter(p => p.status === 'pending').length
-
-    return {
-      ...baseStats,
-      resolved,
-      pending,
-      byChannel,
-      byPriority,
-      byOperator
-    }
-  }, [protocolStats, enrichedProtocols])
-
-  // 🔧 Funções utilitárias
-  const getProtocolById = useMemo(() => {
-    return (id: string): EnrichedProtocol | undefined => {
-      return enrichedProtocols.find(p => p.id === id)
-    }
-  }, [enrichedProtocols])
-
-  const getProtocolsByClient = useMemo(() => {
-    return (clientId: string): EnrichedProtocol[] => {
-      return enrichedProtocols.filter(p => p.client_id === clientId)
-    }
-  }, [enrichedProtocols])
-
-  const getProtocolsByStatus = useMemo(() => {
-    return (status: string): EnrichedProtocol[] => {
-      return enrichedProtocols.filter(p => p.status === status)
-    }
-  }, [enrichedProtocols])
-
-  const getProtocolsByPriority = useMemo(() => {
-    return (priority: string): EnrichedProtocol[] => {
-      return enrichedProtocols.filter(p => p.priority === priority)
-    }
-  }, [enrichedProtocols])
-
-  // 📊 Contadores específicos para facilitar uso
-  const urgentCount = useMemo(() => {
-    return enrichedProtocols.filter(p => p.priority === 'urgent').length
-  }, [enrichedProtocols])
-
-  const unreadCount = useMemo(() => {
-    return enrichedProtocols.reduce((sum, p) => sum + p.unread_count, 0)
-  }, [enrichedProtocols])
-
-  const activeCount = useMemo(() => {
-    return enrichedProtocols.filter(p => p.status === 'active').length
-  }, [enrichedProtocols])
-
-  return {
-    // Dados principais
-    protocols,
-    enrichedProtocols,
-    stats,
-
-    // Estados
-    loading,
-    error,
-    isEmpty: enrichedProtocols.length === 0,
-
-    // Utilitários
-    getProtocolById,
-    getProtocolsByClient,
-    getProtocolsByStatus,
-    getProtocolsByPriority,
-
-    // Contadores específicos
-    urgentCount,
-    unreadCount,
-    activeCount
-  }
-}
-
-// 🔧 Hook especializado para dados de um client específico
-export const useClientMonitoringData = (clientId: string) => {
-  const { getProtocolsByClient } = useMonitoringData()
-
-  const clientProtocols = useMemo(() => {
-    return getProtocolsByClient(clientId)
-  }, [clientId, getProtocolsByClient])
-
-  const clientStats = useMemo(() => {
-    return {
-      total: clientProtocols.length,
-      active: clientProtocols.filter(p => p.status === 'active').length,
-      urgent: clientProtocols.filter(p => p.priority === 'urgent').length,
-      unread: clientProtocols.reduce((sum, p) => sum + p.unread_count, 0)
-    }
-  }, [clientProtocols])
-
-  return {
-    protocols: clientProtocols,
-    stats: clientStats,
-    isEmpty: clientProtocols.length === 0
-  }
-}
-
-// 🔧 Hook para dados em tempo real (com refresh automático)
-export const useRealTimeMonitoringData = (refreshInterval = 30000) => {
-  const monitoringData = useMonitoringData()
-
+  // 🎯 SINCRONIZAÇÃO: Active Chats API → Redux Slice
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Trigger refresh se necessário
-    }, refreshInterval)
+    dispatch(setActiveChatsLoading(activeChatsApiLoading))
 
-    return () => clearInterval(interval)
-  }, [refreshInterval])
+    if (activeChatsApiError) {
+      const errorMessage = (activeChatsApiError as any)?.message || 'Erro ao carregar chats ativos'
 
-  return monitoringData
-}
+      dispatch(setActiveChatsError(errorMessage))
+    } else if (activeChatsResponse?.data) {
+      console.log('🔄 Sincronizando chats ativos com Redux...')
 
-// 🔧 Hook para filtros avançados
-export const useFilteredMonitoringData = (filters: {
-  status?: string[]
-  priority?: string[]
-  channel?: string[]
-  operator?: string[]
-  timeRange?: { start: Date; end: Date }
-  searchTerm?: string
-}) => {
-  const { enrichedProtocols, ...rest } = useMonitoringData()
+      // 🔥 CORRIGIDO: Converter ChatItem[] → ActiveChat[]
+      const convertedChats = activeChatsResponse.data.map(convertChatItemToActiveChat)
 
-  const filteredProtocols = useMemo(() => {
-    let filtered = [...enrichedProtocols]
-
-    // Filtro por status
-    if (filters.status && filters.status.length > 0) {
-      filtered = filtered.filter(p => filters.status!.includes(p.status))
+      dispatch(initializeChats(convertedChats))
+      dispatch(setActiveChatsError(null))
     }
+  }, [activeChatsResponse, activeChatsApiError, activeChatsApiLoading, dispatch])
 
-    // Filtro por prioridade
-    if (filters.priority && filters.priority.length > 0) {
-      filtered = filtered.filter(p => filters.priority!.includes(p.priority))
+  // 🎯 SINCRONIZAÇÃO: Histories API → Redux Slice
+  useEffect(() => {
+    if (skipHistories) return
+
+    dispatch(setHistoriesLoading(historiesApiLoading))
+
+    if (historiesApiError) {
+      const errorMessage = (historiesApiError as any)?.message || 'Erro ao carregar históricos'
+
+      dispatch(setHistoriesError(errorMessage))
+    } else if (historiesResponse?.data) {
+      console.log('🔄 Sincronizando históricos com Redux...')
+      dispatch(setClientHistories(historiesResponse.data))
+      dispatch(setHistoriesError(null))
     }
+  }, [historiesResponse, historiesApiError, historiesApiLoading, dispatch, skipHistories])
 
-    // Filtro por canal
-    if (filters.channel && filters.channel.length > 0) {
-      filtered = filtered.filter(p => filters.channel!.includes(p.channel))
-    }
-
-    // Filtro por operador
-    if (filters.operator && filters.operator.length > 0) {
-      filtered = filtered.filter(p => filters.operator!.includes(p.operator_name || 'Não atribuído'))
-    }
-
-    // Filtro por período
-    if (filters.timeRange) {
-      filtered = filtered.filter(p => {
-        const createdAt = new Date(p.created_at)
-
-        return createdAt >= filters.timeRange!.start && createdAt <= filters.timeRange!.end
-      })
-    }
-
-    // Filtro por termo de busca
-    if (filters.searchTerm && filters.searchTerm.length > 0) {
-      const searchLower = filters.searchTerm.toLowerCase()
-
-      filtered = filtered.filter(
-        p =>
-          p.client_name?.toLowerCase().includes(searchLower) ||
-          p.operator_name?.toLowerCase().includes(searchLower) ||
-          p.lastMessage?.content?.toLowerCase().includes(searchLower)
-      )
-    }
-
-    return filtered
-  }, [enrichedProtocols, filters])
-
-  return {
-    ...rest,
-    enrichedProtocols: filteredProtocols,
-    originalCount: enrichedProtocols.length,
-    filteredCount: filteredProtocols.length
+  // 🎯 HELPERS FUNCTIONS
+  const getHistoryByProtocol = (protocol: string) => {
+    return clientHistories[protocol] || null
   }
-}
 
-export default useMonitoringData
+  const getHistoriesByClient = (identifier: string) => {
+    const result: Record<string, any> = {}
 
-export const useOptimizedMonitoringData = (): UseMonitoringDataReturn => {
-  const protocols = useAppSelector(selectAllProtocols)
-  const protocolStats = useAppSelector(selectProtocolStats)
-  const loadingStates = useAppSelector(selectProtocolsLoading)
-  const error = useAppSelector(selectProtocolsError)
+    Object.keys(clientHistories).forEach(protocol => {
+      const history = clientHistories[protocol]
 
-  // 🔧 Criar um seletor que retorna todas as mensagens organizadas por protocolo
-  const allMessagesByProtocol = useAppSelector((state: any) => state.messagesReducer.messagesByProtocol)
-
-  const enrichedProtocols = useMemo((): EnrichedProtocol[] => {
-    return protocols.map((protocol: any) => {
-      // Agora podemos acessar as mensagens diretamente do estado global
-      const messages = allMessagesByProtocol[protocol.id] || []
-      const lastMessage = messages[messages.length - 1] || null
-      const unreadMessages = messages.filter((m: any) => !m.is_read)
-
-      const lastActivityTime = protocol.last_activity || protocol.updated_at
-
-      const timeSinceLastActivity = Math.floor((Date.now() - new Date(lastActivityTime).getTime()) / (1000 * 60))
-
-      return {
-        ...protocol,
-        clientId: protocol.id,
-        messages: messages.slice(-10),
-        totalMessages: messages.length,
-        lastMessage,
-        unreadMessages,
-        buttonName: 'IA',
-        operatorName: protocol.operator_name || 'Sistema',
-        hasUnreadMessages: unreadMessages.length > 0,
-        isUrgent: protocol.priority === 'urgent',
-        isActive: protocol.status === 'active',
-        timeSinceLastActivity
+      if (history.identifier === identifier) {
+        result[protocol] = history
       }
     })
-  }, [protocols, allMessagesByProtocol])
 
-  // Resto da implementação igual...
-  const loading = useMemo(() => Object.values(loadingStates).some(Boolean), [loadingStates])
+    return result
+  }
 
-  const stats = useMemo((): MonitoringStats => {
-    const baseStats = protocolStats
+  const refetchAll = () => {
+    refetchActiveChats()
 
-    const byChannel = enrichedProtocols.reduce(
-      (acc, protocol) => {
-        acc[protocol.channel] = (acc[protocol.channel] || 0) + 1
+    if (!skipHistories) {
+      refetchHistories()
+    }
+  }
 
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    const byPriority = enrichedProtocols.reduce(
-      (acc, protocol) => {
-        acc[protocol.priority] = (acc[protocol.priority] || 0) + 1
-
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    const byOperator = enrichedProtocols.reduce(
-      (acc, protocol) => {
-        const operator = protocol.operator_name || 'Não atribuído'
-
-        acc[operator] = (acc[operator] || 0) + 1
-
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    const resolved = enrichedProtocols.filter(p => p.status === 'resolved').length
-    const pending = enrichedProtocols.filter(p => p.status === 'pending').length
-
-    return { ...baseStats, resolved, pending, byChannel, byPriority, byOperator }
-  }, [protocolStats, enrichedProtocols])
-
-  const getProtocolById = useMemo(() => (id: string) => enrichedProtocols.find(p => p.id === id), [enrichedProtocols])
-
-  const getProtocolsByClient = useMemo(
-    () => (clientId: string) => enrichedProtocols.filter(p => p.client_id === clientId),
-    [enrichedProtocols]
-  )
-
-  const getProtocolsByStatus = useMemo(
-    () => (status: string) => enrichedProtocols.filter(p => p.status === status),
-    [enrichedProtocols]
-  )
-
-  const getProtocolsByPriority = useMemo(
-    () => (priority: string) => enrichedProtocols.filter(p => p.priority === priority),
-    [enrichedProtocols]
-  )
-
-  const urgentCount = useMemo(() => enrichedProtocols.filter(p => p.priority === 'urgent').length, [enrichedProtocols])
-
-  const unreadCount = useMemo(() => enrichedProtocols.reduce((sum, p) => sum + p.unread_count, 0), [enrichedProtocols])
-
-  const activeCount = useMemo(() => enrichedProtocols.filter(p => p.status === 'active').length, [enrichedProtocols])
+  // 🎯 ESTADOS COMBINADOS
+  const isFullyLoaded = !activeChatsLoading && (!shouldFetchHistories || !historiesLoading)
+  const hasErrors = !!activeChatsError || !!historiesError
 
   return {
-    protocols,
-    enrichedProtocols,
-    stats,
-    loading,
-    error,
-    isEmpty: enrichedProtocols.length === 0,
-    getProtocolById,
-    getProtocolsByClient,
-    getProtocolsByStatus,
-    getProtocolsByPriority,
-    urgentCount,
-    unreadCount,
-    activeCount
+    // Chats ativos
+    activeChats,
+    activeChatsLoading,
+    activeChatsError,
+
+    // Históricos
+    clientHistories,
+    historiesLoading,
+    historiesError,
+    historiesStats,
+
+    // Estados combinados
+    isFullyLoaded,
+    hasErrors,
+
+    // Funções
+    refetchActiveChats,
+    refetchHistories,
+    refetchAll,
+
+    // Helpers
+    getHistoryByProtocol,
+    getHistoriesByClient
   }
+}
+
+// 🎯 HOOKS ESPECIALIZADOS
+export function useMonitoringDataWithRefresh() {
+  return useMonitoringData({
+    autoRefresh: true,
+    refreshInterval: 30000
+  })
+}
+
+export function useActiveChatsOnly() {
+  return useMonitoringData({
+    skipHistories: true,
+    autoRefresh: false
+  })
+}
+
+export function useMonitoringDataStatic() {
+  return useMonitoringData({
+    autoRefresh: false
+  })
 }
