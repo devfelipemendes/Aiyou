@@ -33,6 +33,7 @@ import { useAppSelector } from '@/redux-store'
 import CardMonitor from '@/components/card_monitormanto/CardMonitor'
 import { useMockMonitoringData } from '@/hooks/useMockMonitoringData'
 import ChatMonitoringModal from '@/components/dialogs/chat'
+import { useMonitoringDataWithRefresh } from '@/hooks/useMonitoringData'
 
 // Tipos (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -87,7 +88,7 @@ const MonitoringPage = () => {
     getHistoryByProtocol,
     getHistoriesByClient,
     isRefreshing
-  } = useMockMonitoringData()
+  } = useMonitoringDataWithRefresh()
 
   const user = useAppSelector((state: any) => state.authReducer?.user)
 
@@ -212,6 +213,7 @@ const MonitoringPage = () => {
           chatData={client} // 🔥 NOVO: Dados enriquecidos com histórico
           onChatSelect={handleCardClick}
           isSelected={isCardSelected(clientId)}
+          onChatDoubleClick={handleCardDoubleClick}
         />
       </div>
     )
