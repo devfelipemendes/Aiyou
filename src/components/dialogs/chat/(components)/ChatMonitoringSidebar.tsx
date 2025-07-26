@@ -248,6 +248,8 @@ const ChatMonitoringSidebar = ({
   }, [])
 
   // Aplicar filtros combinados
+  // Aplicar filtros combinados
+  // Aplicar filtros combinados
   const applyFilters = useCallback(() => {
     if (!historyData?.data) {
       setFilteredProtocols([])
@@ -268,20 +270,33 @@ const ChatMonitoringSidebar = ({
     // Ordenar por data (mais recente primeiro)
     filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
-    setFilteredProtocols(filtered)
-  }, [historyData?.data, filterStatus, searchValue, filterProtocolsByStatus, searchProtocols])
+    // 🎯 NOVA LÓGICA CORRIGIDA: Fixar protocolo ativo do CardMonitor no topo
+    const activeProtocolFromMonitor = chatData?.protocol // <- Protocolo FIXO do CardMonitor
 
-  // Atualizar filtros quando dados mudam
+    if (activeProtocolFromMonitor) {
+      const activeProtocolIndex = filtered.findIndex(p => p.protocol === activeProtocolFromMonitor)
+
+      if (activeProtocolIndex > 0) {
+        // Se o protocolo ativo existe e não está em primeiro lugar
+        const activeProtocol = filtered[activeProtocolIndex]
+        const otherProtocols = filtered.filter(p => p.protocol !== activeProtocolFromMonitor)
+
+        // Reorganizar: [protocoloAtivoDoCardMonitor, ...demaisProtocolos]
+        filtered = [activeProtocol, ...otherProtocols]
+      }
+    }
+
+    setFilteredProtocols(filtered)
+  }, [historyData?.data, filterStatus, searchValue, chatData?.protocol, filterProtocolsByStatus, searchProtocols])
+
   useEffect(() => {
     applyFilters()
   }, [applyFilters])
 
-  // Handler para mudança na busca
   const handleSearchChange = useCallback((event: any, newValue: string | null) => {
     setSearchValue(newValue)
   }, [])
 
-  // Handler para seleção de protocolo via autocomplete
   const handleProtocolSelection = useCallback(
     (protocolId: string) => {
       const protocol = filteredProtocols.find(p => p.protocol === protocolId)

@@ -3,16 +3,16 @@ import { ListItemButton, ListItemText, Typography, Box } from '@mui/material'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-// 🎯 IMPORTAR TIPOS DA API
-import type { ProtocolHistoryItem } from '@/api/endpoints/chat/protocolHistory'
+// 🎯 IMPORTAR TIPOS CORRETOS DA API
+import type { ChatWithHistory } from '@/api/endpoints/chat/history'
 import CustomAvatar from '@/@core/components/mui/Avatar'
 import { getInitials } from '@/utils/getInitials'
 
-// 🎯 PROPS DO COMPONENTE
+// 🎯 PROPS DO COMPONENTE ATUALIZADAS
 interface ProtocolHistoryListProps {
-  historyData: ProtocolHistoryItem[]
+  historyData: ChatWithHistory[] // ✅ Mudança aqui
   currentProtocol?: string // Para destacar o protocolo atual
-  onProtocolSelect: (protocol: string, protocolData: ProtocolHistoryItem) => void // 🔥 CALLBACK para seleção
+  onProtocolSelect: (protocol: string, protocolData: ChatWithHistory) => void // ✅ Mudança aqui
 }
 
 export const ProtocolHistoryList = ({ historyData, currentProtocol, onProtocolSelect }: ProtocolHistoryListProps) => {
@@ -61,28 +61,35 @@ export const ProtocolHistoryList = ({ historyData, currentProtocol, onProtocolSe
                         color: isCurrentProtocol ? 'white' : 'var(--mui-palette-primary-main)'
                       }}
                     >
-                      # {protocolItem.identifier || 'Desconhecido'}
+                      # {protocolItem.identifier || protocolItem.protocol}
                     </Typography>
-                    <Typography color={isCurrentProtocol ? 'white' : 'text.prymary'} variant='caption'>
-                      {protocolItem.createdAt
-                        ? format(new Date(protocolItem.createdAt), 'dd/MM/yyyy', { locale: ptBR })
+                    <Typography color={isCurrentProtocol ? 'white' : 'text.primary'} variant='caption'>
+                      {protocolItem.created_at
+                        ? format(new Date(protocolItem.created_at), 'dd/MM/yyyy', { locale: ptBR })
                         : '--'}
                     </Typography>
                   </Box>
                 }
                 secondary={
                   <Box>
-                    {/* Data de criação */}
-                    {protocolItem.createdAt && (
-                      <Typography
-                        variant='caption'
-                        color={isCurrentProtocol ? ' white' : 'textPrimary'}
-                        display='block'
-                        sx={{ mt: 0.5 }}
-                      >
-                        Atendido por: {protocolItem.assistant_name || protocolItem.operator_name || 'Desconhecido'}
-                      </Typography>
-                    )}
+                    {/* Informações do assistente/operador */}
+                    <Typography
+                      variant='caption'
+                      color={isCurrentProtocol ? 'white' : 'text.secondary'}
+                      display='block'
+                    >
+                      Protocolo: {protocolItem.protocol}
+                    </Typography>
+                    <Typography
+                      variant='caption'
+                      color={isCurrentProtocol ? 'white' : 'textPrimary'}
+                      display='block'
+                      sx={{ mt: 0.5 }}
+                    >
+                      Atendido por: {protocolItem.assistant?.name || 'Assistente IA'}
+                    </Typography>
+
+                    {/* Número de mensagens */}
                   </Box>
                 }
               />
