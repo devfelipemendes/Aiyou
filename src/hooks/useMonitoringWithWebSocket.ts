@@ -1,6 +1,8 @@
 import { useEffect, useCallback, useRef } from 'react'
 
-import { useAppDispatch, useAppSelector } from '@/redux-store'
+import { useAppDispatch, useAppSelector, store } from '@/redux-store'
+
+// Adicionar junto com os outros imports
 
 // 🔥 IMPORTS DO REDUX (nossa nova estrutura)
 import {
@@ -26,7 +28,8 @@ import {
   selectOrderedChats,
   selectMonitoringStats,
   selectMonitoringUI,
-  selectSelectedChat
+  selectSelectedChat,
+  selectChatByProtocol
 } from '@/redux-store/selectors/monitoring'
 
 // RTK Query (mantido)
@@ -411,14 +414,21 @@ export function useMonitoringWithWebSocket(
 
   const selectChat = useCallback(
     (protocol: string) => {
+      // ✅ SEMPRE: Marcar chat como selecionado no Redux
       dispatch(setSelectedChat(protocol))
-      const chat = chats.find(c => c.protocol === protocol)
 
-      if (chat && onChatSelect) {
-        onChatSelect(protocol, chat)
+      // 🔥 BUSCAR CHAT NA HORA DA EXECUÇÃO (não na dependência!)
+      if (onChatSelect) {
+        // Usar store diretamente para buscar o chat
+        const currentState = store.getState()
+        const chat = selectChatByProtocol(currentState, protocol)
+
+        if (chat) {
+          onChatSelect(protocol, chat)
+        }
       }
     },
-    [dispatch, chats, onChatSelect]
+    [dispatch, onChatSelect] // ✅ SEM "chats" - estável!
   )
 
   // 🔥 DRAG AND DROP (REDUX VERSION)

@@ -204,6 +204,7 @@ const MonitoringPageOptimized = () => {
   }, [filters.cardsPerRow])
 
   // 🎨 COMPONENTE: Card Draggable OTIMIZADO (separado para evitar problemas com hooks)
+  // ✅ OTIMIZAÇÃO: Separar drag props dos dados
   const DraggableCardOptimized = memo(({ protocol }: { protocol: string }) => {
     const {
       attributes,
@@ -214,54 +215,38 @@ const MonitoringPageOptimized = () => {
       isDragging: isCurrentlyDragging
     } = useSortable({ id: protocol })
 
-    const dragProps = useMemo(
+    // 🔥 PROPS ESTÁVEIS (não dependem de drag)
+    const stableProps = useMemo(
       () => ({
-        dragListeners: listeners,
-        dragAttributes: attributes
+        protocol,
+        onChatSelect: handleCardClick,
+        onChatDoubleClick: handleCardDoubleClick,
+        isSelected: isCardSelected(protocol),
+        isWebSocketConnected,
+        isInModal: isCardInModal(protocol)
       }),
-      [listeners, attributes]
+      [protocol, isWebSocketConnected] // ← Só dependências estáveis
     )
+
+    // 🔥 PROPS INSTÁVEIS (apenas drag)
+    const dragProps = {
+      dragListeners: listeners,
+      dragAttributes: attributes,
+      isDragging: isCurrentlyDragging
+    }
 
     const style = useMemo(
       () => ({
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isCurrentlyDragging ? 0.5 : 1,
-        cursor: isCurrentlyDragging ? 'grabbing' : 'grab'
+        opacity: isCurrentlyDragging ? 0.5 : 1
       }),
       [transform, transition, isCurrentlyDragging]
     )
 
-    const isSelected = useMemo(() => isCardSelected(protocol), [protocol, selectedCardId])
-    const isInModal = useMemo(() => isCardInModal(protocol), [protocol, selectedProtocolForDialog])
-
-    // 🔥 QUEBRAR PROPS AQUI!
-    const cardProps = useMemo(
-      () => ({
-        protocol,
-        dragListeners: dragProps.dragListeners,
-        dragAttributes: dragProps.dragAttributes,
-        isDragging: isCurrentlyDragging,
-        onChatSelect: handleCardClick,
-        onChatDoubleClick: handleCardDoubleClick,
-        isSelected,
-        isWebSocketConnected,
-        isInModal
-      }),
-      [
-        protocol,
-        listeners,
-        attributes,
-        isCurrentlyDragging,
-        isWebSocketConnected,
-        isSelected, // ← Dependencies corretas
-        isInModal
-      ]
-    )
-
     return (
       <div ref={setNodeRef} style={style}>
-        <CardMonitorOptimized {...cardProps} />
+        <CardMonitorOptimized {...stableProps} {...dragProps} />
       </div>
     )
   })

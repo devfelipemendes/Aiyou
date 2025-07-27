@@ -3,7 +3,7 @@ import React, { useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
-import { useAppSelector } from '@/redux-store'
+import { useAppSelector, store } from '@/redux-store'
 import { selectChatByProtocol } from '@/redux-store/selectors/monitoring'
 
 import ChatLog from '../chatLog/chatLog'
@@ -73,7 +73,6 @@ const calculateProgressTime = (createdAt: string, updatedAt: string) => {
 // 🔥 COMPONENTE OTIMIZADO
 const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
   props => {
-    // ← ADICIONAR props aqui
     const {
       protocol,
       dragListeners,
@@ -87,11 +86,14 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     } = props
 
     // 🔥 TODOS OS HOOKS DEVEM VIR PRIMEIRO (antes de qualquer condicional)
-
     const prevPropsRef = useRef(props)
 
     if (process.env.NODE_ENV === 'development') {
-      const changedProps = Object.keys(props).filter(key => prevPropsRef.current[key] !== props[key])
+      // ✅ CORREÇÃO: Type assertion para debugging de props
+      const prevProps = prevPropsRef.current as Record<string, any>
+      const currentProps = props as Record<string, any>
+
+      const changedProps = Object.keys(props).filter(key => prevProps[key] !== currentProps[key])
 
       if (changedProps.length > 0) {
         console.log(`🔄 CARD ${protocol} - Props mudaram:`, {
@@ -119,12 +121,17 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     const prevChatDataRef = useRef(chatData)
 
     if (process.env.NODE_ENV === 'development' && prevChatDataRef.current !== chatData) {
+      // ✅ CORREÇÃO: Type assertion para debugging de chatData
+      const prevData = prevChatDataRef.current as Record<string, any>
+      const currentData = chatData as Record<string, any>
+
       console.log(`📊 CARD ${protocol} - ChatData mudou:`, {
         prevData: prevChatDataRef.current,
         newData: chatData,
-        changedFields: chatData
-          ? Object.keys(chatData).filter(key => prevChatDataRef.current?.[key] !== chatData[key])
-          : []
+        changedFields:
+          chatData && prevChatDataRef.current
+            ? Object.keys(chatData).filter(key => prevData?.[key] !== currentData[key])
+            : []
       })
       prevChatDataRef.current = chatData
     }
@@ -382,42 +389,49 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       </Card>
     )
   },
+
+  // ✅ MEMO COMPARADOR CORRIGIDO
   (prevProps, nextProps) => {
-    // 🔍 DEBUG NA COMPARAÇÃO
-    if (process.env.NODE_ENV === 'development') {
-      const shouldUpdate = !(
-        prevProps.protocol === nextProps.protocol &&
-        prevProps.isDragging === nextProps.isDragging &&
-        prevProps.isSelected === nextProps.isSelected &&
-        prevProps.isInModal === nextProps.isInModal &&
-        prevProps.isWebSocketConnected === nextProps.isWebSocketConnected &&
-        prevProps.onChatSelect === nextProps.onChatSelect &&
-        prevProps.onChatDoubleClick === nextProps.onChatDoubleClick &&
-        prevProps.dragListeners === nextProps.dragListeners &&
-        prevProps.dragAttributes === nextProps.dragAttributes
-      )
+    // 1. Protocolo mudou? (nunca deveria mudar)
+    if (prevProps.protocol !== nextProps.protocol) {
+      console.log(`🔄 MEMO ${nextProps.protocol} - Protocolo mudou`)
 
-      if (shouldUpdate) {
-        const changedProps = Object.keys(nextProps).filter(key => prevProps[key] !== nextProps[key])
-
-        console.log(`🔍 MEMO ${nextProps.protocol} - Vai re-renderizar por:`, changedProps)
-      } else {
-        console.log(`✅ MEMO ${nextProps.protocol} - Bloqueou re-render`)
-      }
+      return false
     }
 
-    // Retorna true se NÃO deve re-renderizar
-    return (
-      prevProps.protocol === nextProps.protocol &&
-      prevProps.isDragging === nextProps.isDragging &&
-      prevProps.isSelected === nextProps.isSelected &&
-      prevProps.isInModal === nextProps.isInModal &&
-      prevProps.isWebSocketConnected === nextProps.isWebSocketConnected &&
-      prevProps.onChatSelect === nextProps.onChatSelect &&
-      prevProps.onChatDoubleClick === nextProps.onChatDoubleClick &&
-      prevProps.dragListeners === nextProps.dragListeners &&
-      prevProps.dragAttributes === nextProps.dragAttributes
-    )
+    // 2. Estados visuais mudaram?
+    if (
+      prevProps.isSelected !== nextProps.isSelected ||
+      prevProps.isInModal !== nextProps.isInModal ||
+      prevProps.isDragging !== nextProps.isDragging ||
+      prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
+    ) {
+      console.log(`🔄 MEMO ${nextProps.protocol} - Estados visuais mudaram`)
+
+      return false
+    }
+
+    // 3. 🔥 DADOS DO CHAT mudaram? (usando store diretamente)
+    try {
+      const currentState = store.getState()
+      const prevChatData = selectChatByProtocol(currentState, prevProps.protocol)
+      const nextChatData = selectChatByProtocol(currentState, nextProps.protocol)
+
+      if (prevChatData !== nextChatData) {
+        console.log(`🔄 MEMO ${nextProps.protocol} - ChatData mudou`)
+
+        return false
+      }
+    } catch (error) {
+      console.warn(`⚠️ MEMO ${nextProps.protocol} - Erro ao comparar chat data:`, error)
+
+      return false // Re-renderizar por segurança
+    }
+
+    // ✅ Todos os dados importantes são iguais - bloquear re-render
+    console.log(`✅ MEMO ${nextProps.protocol} - Bloqueou re-render`)
+
+    return true
   }
 )
 
