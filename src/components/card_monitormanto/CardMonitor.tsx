@@ -1,43 +1,28 @@
 import React, { useEffect, useRef, memo, useCallback, useMemo } from 'react'
 
-import { Card, CardContent, CardHeader, Chip, Typography, Box, Button } from '@mui/material'
+import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import { Refresh } from '@mui/icons-material'
+
+import { useAppSelector } from '@/redux-store'
+import { selectChatByProtocol } from '@/redux-store/selectors/monitoring'
 
 import ChatLog from '../chatLog/chatLog'
 import CustomIconButton from '@core/components/mui/IconButton'
 
-// 🔧 TIPOS SIMPLIFICADOS
-interface CardData {
-  protocol: string
-  source: string
-  identifier: string
-  status: string
-  messageCount: number
-  lastMessage: any
-  history: any[]
-  assistant: any
-  created_at: string
-  updated_at: string
-  historyError?: any
-  historyLoading?: boolean
-}
-
+// 🔧 INTERFACE SIMPLIFICADA
 interface ChatMonitorOptimizedProps {
-  chatData: CardData
+  protocol: string
   isDragging?: boolean
   dragListeners?: any
   dragAttributes?: any
   onChatSelect?: (protocol: string) => void
   onChatDoubleClick?: (protocol: string) => void
   isSelected?: boolean
-
-  // 🆕 NOVOS PROPS PARA OTIMIZAÇÃO
   isWebSocketConnected?: boolean
   isInModal?: boolean
 }
 
-// 🔧 FUNÇÕES HELPER MOVIDAS PARA FORA (não recriam a cada render)
+// 🔧 FUNÇÕES HELPER (mantidas iguais)
 const getStatusColor = (status: string, callOperator: boolean): string => {
   if (callOperator) return 'error.main'
 
@@ -85,10 +70,10 @@ const calculateProgressTime = (createdAt: string, updatedAt: string) => {
   return `${minutes}m`
 }
 
-// 🔥 COMPONENTE OTIMIZADO COM MEMO
+// 🔥 COMPONENTE OTIMIZADO
 const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
   ({
-    chatData,
+    protocol,
     dragListeners,
     dragAttributes,
     onChatSelect,
@@ -98,6 +83,8 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     isWebSocketConnected = false,
     isInModal = false
   }) => {
+    // 🔥 TODOS OS HOOKS DEVEM VIR PRIMEIRO (antes de qualquer condicional)
+
     // 🔧 REFS
     const scrollContainerRef = useRef<HTMLDivElement>(null)
     const clickTimeout = useRef<NodeJS.Timeout | null>(null)
@@ -107,21 +94,21 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     const theme = useTheme()
     const modeTheme = theme.palette.mode
 
-    // 📊 DADOS EXTRAÍDOS (memoizados se necessário)
-    const {
-      protocol,
-      assistant,
-      identifier,
-      status,
-      historyError,
-      historyLoading,
-      lastMessage,
-      created_at,
-      updated_at,
-      messageCount
-    } = chatData
+    // 🔥 SELETOR REDUX
+    const chatData = useAppSelector(state => selectChatByProtocol(state, protocol))
 
-    // 🔧 VALORES CALCULADOS MEMOIZADOS
+    // 📊 EXTRAIR DADOS (com valores padrão para evitar erros)
+    const identifier = chatData?.identifier || protocol.slice(-6)
+    const status = chatData?.status || 'active'
+    const historyError = chatData?.historyError
+    const historyLoading = chatData?.historyLoading || false
+    const lastMessage = chatData?.lastMessage
+    const created_at = chatData?.created_at || new Date().toISOString()
+    const updated_at = chatData?.updated_at || new Date().toISOString()
+    const messageCount = chatData?.messageCount || 0
+    const assistant = chatData?.assistant
+
+    // 🔧 VALORES CALCULADOS MEMOIZADOS (SEMPRE EXECUTADOS)
     const callOperator = useMemo(() => !!historyError, [historyError])
 
     const progressTime = useMemo(() => calculateProgressTime(created_at, updated_at), [created_at, updated_at])
@@ -130,7 +117,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
 
     const statusColor = useMemo(() => getStatusColor(status, callOperator), [status, callOperator])
 
-    // 🎨 ESTILOS MEMOIZADOS
+    // 🎨 ESTILOS MEMOIZADOS (SEMPRE EXECUTADOS)
     const cardStyles = useMemo(() => {
       return {
         cursor: isDragging ? 'grabbing' : 'pointer',
@@ -142,8 +129,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
             ? '0 4px 20px rgba(0,0,0,0.3)'
             : '0 2px 8px rgba(0,0,0,0.1)',
         animation: callOperator ? 'pulseShadow 2s cubic-bezier(0.66, 0, 0, 1) infinite' : 'none',
-
-        // 🆕 DESTAQUE SE ESTIVER NO MODAL
         border: isInModal ? '2px solid #1976d2' : '1px solid transparent',
 
         '@keyframes pulseShadow': {
@@ -183,7 +168,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       [modeTheme, theme.palette.divider, theme.palette.text.secondary]
     )
 
-    // 🎛️ CALLBACKS OTIMIZADOS
+    // 🎛️ CALLBACKS (SEMPRE EXECUTADOS)
     const handleCardClick = useCallback(() => {
       clickCount.current += 1
       if (clickTimeout.current) clearTimeout(clickTimeout.current)
@@ -198,7 +183,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     }, [onChatSelect, protocol])
 
     const handleCardDoubleClick = useCallback(() => {
-      // 🔧 LIMPAR TIMEOUT DO CLIQUE SIMPLES
       if (clickTimeout.current) {
         clearTimeout(clickTimeout.current)
         clickCount.current = 0
@@ -209,28 +193,42 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       }
     }, [onChatDoubleClick, protocol])
 
-    // 🔄 AUTO SCROLL (otimizado com useCallback)
     const scrollToBottom = useCallback(() => {
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
       }
     }, [])
 
-    // 🔄 EFEITO DE SCROLL (só roda quando messageCount muda)
+    // 🔄 EFFECTS (SEMPRE EXECUTADOS)
     useEffect(() => {
       scrollToBottom()
     }, [messageCount, scrollToBottom])
 
-    // 📊 DEBUG RE-RENDER (remover em produção)
+    // 📊 DEBUG (desenvolvimento)
     if (process.env.NODE_ENV === 'development') {
       console.log(`🔄 CardMonitor ${protocol} re-renderizou`, {
         messageCount,
         lastUpdate: updated_at,
         isSelected,
-        isInModal
+        isInModal,
+        chatDataExists: !!chatData
       })
     }
 
+    // 🚨 RENDER CONDICIONAL (SÓ DEPOIS DE TODOS OS HOOKS)
+    if (!chatData) {
+      return (
+        <Card sx={{ opacity: 0.5, border: '2px dashed #ccc' }}>
+          <CardContent>
+            <Typography color='text.secondary' align='center'>
+              Chat {protocol} não encontrado
+            </Typography>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    // 🎨 RENDER PRINCIPAL
     return (
       <Card onClick={handleCardClick} onDoubleClick={handleCardDoubleClick} sx={cardStyles}>
         <CardHeader
@@ -268,7 +266,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
                 Protocolo: {protocol}
               </Typography>
 
-              {/* 🆕 CONTADOR DE MENSAGENS EM TEMPO REAL */}
               <Typography variant='caption' color='text.secondary'>
                 {messageCount || 0} mensagem{messageCount !== 1 ? 's' : ''}
               </Typography>
@@ -310,7 +307,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
                 <Box className='flex flex-row'>
                   {!historyLoading && !callOperator && (
                     <Box className='flex flex-row'>
-                      {/* ✅ CHATLOG EXISTENTE - Dados já atualizados pelo WebSocket */}
                       <ChatLog
                         chatData={chatData}
                         isBelowLgScreen={false}
@@ -320,7 +316,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
                     </Box>
                   )}
 
-                  {/* 🆕 LOADING STATE */}
                   {historyLoading && (
                     <Box display='flex' justifyContent='center' alignItems='center' minHeight='100px'>
                       <Typography variant='body2' color='text.secondary'>
@@ -329,7 +324,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
                     </Box>
                   )}
 
-                  {/* 🆕 ERROR STATE */}
                   {callOperator && (
                     <Box display='flex' justifyContent='center' alignItems='center' minHeight='100px'>
                       <Typography variant='body2' color='error'>
@@ -355,60 +349,18 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     )
   },
   (prevProps, nextProps) => {
-    // 🔥 COMPARAÇÃO CUSTOMIZADA - Performance Critical
-
-    // 1. 📊 Dados principais do chat mudaram?
-    const prevData = prevProps.chatData
-    const nextData = nextProps.chatData
-
-    if (
-      prevData.protocol !== nextData.protocol ||
-      prevData.messageCount !== nextData.messageCount ||
-      prevData.status !== nextData.status ||
-      prevData.updated_at !== nextData.updated_at ||
-      prevData.historyLoading !== nextData.historyLoading ||
-      prevData.historyError !== nextData.historyError
-    ) {
-      return false // Re-renderizar
-    }
-
-    // 2. 📝 Última mensagem mudou?
-    const prevLastMsg = prevData.lastMessage
-    const nextLastMsg = nextData.lastMessage
-
-    if (prevLastMsg?.id !== nextLastMsg?.id) {
-      return false // Re-renderizar
-    }
-
-    // 3. 🎨 Props visuais mudaram?
-    if (
-      prevProps.isDragging !== nextProps.isDragging ||
-      prevProps.isSelected !== nextProps.isSelected ||
-      prevProps.isInModal !== nextProps.isInModal ||
-      prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
-    ) {
-      return false // Re-renderizar
-    }
-
-    // 4. 🎛️ Callbacks mudaram? (não deveria acontecer se bem implementado)
-    if (
-      prevProps.onChatSelect !== nextProps.onChatSelect ||
-      prevProps.onChatDoubleClick !== nextProps.onChatDoubleClick
-    ) {
-      return false // Re-renderizar
-    }
-
-    // 5. 🔧 Props de drag mudaram?
-    if (prevProps.dragListeners !== nextProps.dragListeners || prevProps.dragAttributes !== nextProps.dragAttributes) {
-      return false // Re-renderizar
-    }
-
-    // ✅ Nenhuma mudança relevante detectada
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`✅ Card ${nextData.protocol} evitou re-render desnecessário`)
-    }
-
-    return true // NÃO re-renderizar
+    // 🔥 COMPARAÇÃO SIMPLES
+    return (
+      prevProps.protocol === nextProps.protocol &&
+      prevProps.isDragging === nextProps.isDragging &&
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.isInModal === nextProps.isInModal &&
+      prevProps.isWebSocketConnected === nextProps.isWebSocketConnected &&
+      prevProps.onChatSelect === nextProps.onChatSelect &&
+      prevProps.onChatDoubleClick === nextProps.onChatDoubleClick &&
+      prevProps.dragListeners === nextProps.dragListeners &&
+      prevProps.dragAttributes === nextProps.dragAttributes
+    )
   }
 )
 

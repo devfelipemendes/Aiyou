@@ -34,6 +34,9 @@ import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSock
 import CardMonitor from '@/components/card_monitormanto/CardMonitor' // Agora é o otimizado
 import ChatMonitoringModal from '@/components/dialogs/chat'
 
+import { useAppSelector } from '@/redux-store'
+import { selectChatOrder } from '@/redux-store/slices/monitoring'
+
 // Tipos (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
 type ChatStatus = 'active' | 'resolved' | 'closed' | 'pending'
@@ -64,6 +67,8 @@ const MonitoringPageOptimized = () => {
     isWebSocketConnected,
     connectedChannels
   } = useMonitoringChatWithWebSocket()
+
+  const chatProtocols = useAppSelector(selectChatOrder)
 
   // const user = useAppSelector((state: any) => state.authReducer?.user)
 
@@ -198,7 +203,7 @@ const MonitoringPageOptimized = () => {
   }, [filters.cardsPerRow])
 
   // 🎨 COMPONENTE: Card Draggable OTIMIZADO (separado para evitar problemas com hooks)
-  const DraggableCardOptimized = memo(({ clientId, client }: { clientId: string; client: any }) => {
+  const DraggableCardOptimized = memo(({ protocol }: { protocol: string }) => {
     const {
       attributes,
       listeners,
@@ -206,7 +211,7 @@ const MonitoringPageOptimized = () => {
       transform,
       transition,
       isDragging: isCurrentlyDragging
-    } = useSortable({ id: clientId })
+    } = useSortable({ id: protocol })
 
     const dragProps = useMemo(
       () => ({
@@ -229,48 +234,22 @@ const MonitoringPageOptimized = () => {
     // 🔥 QUEBRAR PROPS AQUI!
     const cardProps = useMemo(
       () => ({
-        protocol: client.protocol,
-        identifier: client.identifier,
-        status: client.status,
-        source: client.source,
-        messageCount: client.messageCount || 0,
-        lastMessage: client.lastMessage,
-        history: client.history || [],
-        assistant: client.assistant,
-        created_at: client.created_at,
-        updated_at: client.updated_at,
-        historyError: client.historyError,
-        historyLoading: client.historyLoading
+        protocol,
+        dragListeners: dragProps.dragListeners,
+        dragAttributes: dragProps.dragAttributes,
+        isDragging: isCurrentlyDragging,
+        onChatSelect: handleCardClick,
+        onChatDoubleClick: handleCardDoubleClick,
+        isSelected: isCardSelected(protocol),
+        isWebSocketConnected,
+        isInModal: isCardInModal(protocol)
       }),
-      [
-        client.protocol,
-        client.identifier,
-        client.status,
-        client.source,
-        client.messageCount,
-        client.lastMessage,
-        client.history,
-        client.assistant,
-        client.created_at,
-        client.updated_at,
-        client.historyError,
-        client.historyLoading
-      ]
+      [protocol, dragProps.dragListeners, dragProps.dragAttributes, isCurrentlyDragging, isWebSocketConnected]
     )
 
     return (
       <div ref={setNodeRef} style={style}>
-        <CardMonitor
-          chatData={cardProps}
-          dragListeners={dragProps.dragListeners} // ← ESTÁVEL
-          dragAttributes={dragProps.dragAttributes} // ← ESTÁVEL
-          isDragging={isCurrentlyDragging}
-          onChatSelect={handleCardClick}
-          onChatDoubleClick={handleCardDoubleClick}
-          isSelected={isCardSelected(clientId)}
-          isWebSocketConnected={isWebSocketConnected}
-          isInModal={isCardInModal(clientId)}
-        />
+        <CardMonitor {...cardProps} />
       </div>
     )
   })
@@ -394,11 +373,11 @@ const MonitoringPageOptimized = () => {
 
       {/* 🔥 GRID OTIMIZADO COM CARDS */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={chats.map(chat => chat.protocol)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={chatProtocols} strategy={verticalListSortingStrategy}>
           <Grid container spacing={3}>
-            {chats.map(chat => (
-              <Grid size={getGridSize()} key={chat.protocol}>
-                <DraggableCardOptimized clientId={chat.protocol} client={chat} />
+            {chatProtocols.map(protocol => (
+              <Grid size={getGridSize()} key={protocol}>
+                <DraggableCardOptimized protocol={protocol} />
               </Grid>
             ))}
           </Grid>

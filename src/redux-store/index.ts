@@ -35,7 +35,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
   authReducer,
   chatReducer,
-  monitoringReducer,
+  monitoring: monitoringReducer,
   registration: register,
   websocketReducer,
   protocolsReducer,
@@ -66,7 +66,9 @@ export const store = configureStore({
           'websocket/joinProtocolChannel',
           'websocket/joinProjectChannel',
           'activeChats/markChannelConnected', // 🔥 NOVO: Ignorar Set objects
-          'activeChats/markChannelDisconnected'
+          'activeChats/markChannelDisconnected',
+          'monitoring/addConnectedChannel',
+          'monitoring/removeConnectedChannel'
         ],
         ignoredPaths: ['register', 'websocket.connection', 'websocket.channels', 'activeChatsReducer.connectedChannels']
       }
