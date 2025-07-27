@@ -31,7 +31,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSocket'
 
 // 🔥 COMPONENTES OTIMIZADOS
-import CardMonitor from '@/components/card_monitormanto/CardMonitor' // Agora é o otimizado
+import CardMonitorOptimized from '@/components/card_monitormanto/CardMonitor' // Agora é o otimizado
 import ChatMonitoringModal from '@/components/dialogs/chat'
 
 import { useAppSelector } from '@/redux-store'
@@ -154,8 +154,9 @@ const MonitoringPageOptimized = () => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        const oldIndex = chats.findIndex(chat => chat.protocol === active.id)
-        const newIndex = chats.findIndex(chat => chat.protocol === over.id)
+        // ✅ USAR chatProtocols ao invés de chats
+        const oldIndex = chatProtocols.findIndex((protocol: any) => protocol === active.id)
+        const newIndex = chatProtocols.findIndex((protocol: any) => protocol === over.id)
 
         if (oldIndex !== -1 && newIndex !== -1) {
           console.log(`🔄 Movendo chat: ${oldIndex} → ${newIndex}`)
@@ -163,7 +164,7 @@ const MonitoringPageOptimized = () => {
         }
       }
     },
-    [chats, updateChatOrder]
+    [chatProtocols, updateChatOrder] // ← chatProtocols, não chats
   )
 
   // 🔄 CALLBACKS DE FILTROS
@@ -231,6 +232,9 @@ const MonitoringPageOptimized = () => {
       [transform, transition, isCurrentlyDragging]
     )
 
+    const isSelected = useMemo(() => isCardSelected(protocol), [protocol, selectedCardId])
+    const isInModal = useMemo(() => isCardInModal(protocol), [protocol, selectedProtocolForDialog])
+
     // 🔥 QUEBRAR PROPS AQUI!
     const cardProps = useMemo(
       () => ({
@@ -240,16 +244,24 @@ const MonitoringPageOptimized = () => {
         isDragging: isCurrentlyDragging,
         onChatSelect: handleCardClick,
         onChatDoubleClick: handleCardDoubleClick,
-        isSelected: isCardSelected(protocol),
+        isSelected,
         isWebSocketConnected,
-        isInModal: isCardInModal(protocol)
+        isInModal
       }),
-      [protocol, dragProps.dragListeners, dragProps.dragAttributes, isCurrentlyDragging, isWebSocketConnected]
+      [
+        protocol,
+        listeners,
+        attributes,
+        isCurrentlyDragging,
+        isWebSocketConnected,
+        isSelected, // ← Dependencies corretas
+        isInModal
+      ]
     )
 
     return (
       <div ref={setNodeRef} style={style}>
-        <CardMonitor {...cardProps} />
+        <CardMonitorOptimized {...cardProps} />
       </div>
     )
   })
@@ -375,9 +387,9 @@ const MonitoringPageOptimized = () => {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={chatProtocols} strategy={verticalListSortingStrategy}>
           <Grid container spacing={3}>
-            {chatProtocols.map(protocol => (
+            {chatProtocols.map((protocol: any) => (
               <Grid size={getGridSize()} key={protocol}>
-                <DraggableCardOptimized protocol={protocol} />
+                <DraggableCardOptimized protocol={protocol} /> {/* ← SÓ PROTOCOL */}
               </Grid>
             ))}
           </Grid>
@@ -385,20 +397,21 @@ const MonitoringPageOptimized = () => {
       </DndContext>
 
       {/* 🔥 MENSAGEM QUANDO NÃO HÁ CHATS */}
-      {chats.length === 0 && !isLoading && (
-        <Box display='flex' flexDirection='column' alignItems='center' py={8}>
-          <BoxIcon size={64} color='#ccc' />
-          <Typography variant='h6' color='text.secondary' mt={2}>
-            Nenhum chat ativo encontrado
-          </Typography>
-          <Typography variant='body2' color='text.secondary' mt={1}>
-            {isWebSocketConnected ? 'Aguardando novos chats...' : 'Conectando ao WebSocket...'}
-          </Typography>
-          <Button variant='outlined' onClick={handleRefreshData} sx={{ mt: 2 }}>
-            Atualizar dados
-          </Button>
-        </Box>
-      )}
+      {chatProtocols.length === 0 &&
+        !isLoading && ( // ← chatProtocols, não chats
+          <Box display='flex' flexDirection='column' alignItems='center' py={8}>
+            <BoxIcon size={64} color='#ccc' />
+            <Typography variant='h6' color='text.secondary' mt={2}>
+              Nenhum chat ativo encontrado
+            </Typography>
+            <Typography variant='body2' color='text.secondary' mt={1}>
+              {isWebSocketConnected ? 'Aguardando novos chats...' : 'Conectando ao WebSocket...'}
+            </Typography>
+            <Button variant='outlined' onClick={handleRefreshData} sx={{ mt: 2 }}>
+              Atualizar dados
+            </Button>
+          </Box>
+        )}
 
       {/* 🔥 MODAL EM TEMPO REAL */}
       {dialogOpen && selectedChatForDialog && (

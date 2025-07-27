@@ -81,8 +81,7 @@ export function useChatWithHistory(options: UseChatWithHistoryOptions = {}): Use
   const {
     data,
     error: apiError,
-    isLoading: apiLoading,
-    refetch: apiRefetch
+    isLoading: apiLoading
   } = useGetAllChatsWithHistoryQuery(undefined, {
     pollingInterval: autoRefresh ? refreshInterval : 0,
     refetchOnMountOrArgChange: true,
@@ -102,7 +101,6 @@ export function useChatWithHistory(options: UseChatWithHistoryOptions = {}): Use
   const [searchTerm, setSearchTerm] = useState('')
   const [sourceFilter, setSourceFilter] = useState(defaultSource)
   const [statusFilter, setStatusFilter] = useState(defaultStatus)
-  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // 📋 DADOS PROCESSADOS (✅ MEMOIZADO CORRETAMENTE)
   const chats = useMemo(() => {
@@ -193,15 +191,6 @@ export function useChatWithHistory(options: UseChatWithHistoryOptions = {}): Use
   }, [chats])
 
   // 🎛️ AÇÕES (✅ USECALLBACK PARA PERFORMANCE)
-  const refetch = useCallback(async () => {
-    setIsRefreshing(true)
-
-    try {
-      await apiRefetch()
-    } finally {
-      setIsRefreshing(false)
-    }
-  }, [apiRefetch])
 
   const refreshSpecificChat = useCallback(
     async (protocol: string) => {
@@ -290,9 +279,7 @@ export function useChatWithHistory(options: UseChatWithHistoryOptions = {}): Use
     filteredChats,
     stats,
     isLoading,
-    isRefreshing,
     error,
-    refetch,
     refreshSpecificChat,
     clearAllData: () => dispatch(clearAllChats()),
     searchTerm,

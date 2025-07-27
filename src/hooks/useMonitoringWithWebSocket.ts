@@ -105,8 +105,7 @@ export function useMonitoringWithWebSocket(
   const {
     data,
     error: apiError,
-    isLoading: apiLoading,
-    refetch: apiRefetch
+    isLoading: apiLoading
   } = useGetAllChatsWithHistoryQuery(undefined, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: false,
@@ -150,19 +149,19 @@ export function useMonitoringWithWebSocket(
   }, [])
 
   // 🔧 VALIDAÇÃO COM API (mantido)
-  const validateWithAPI = useCallback(
-    async (protocol: string) => {
-      try {
-        console.log('🔍 Validando protocolo com API:', protocol)
-        await refreshChatHistory(protocol).unwrap()
-        console.log('✅ Protocolo validado com sucesso')
-      } catch (error) {
-        console.error('💥 Erro ao validar protocolo:', error)
-        setTimeout(() => apiRefetch(), 1000)
-      }
-    },
-    [refreshChatHistory, apiRefetch]
-  )
+  // const validateWithAPI = useCallback(
+  //   async (protocol: string) => {
+  //     try {
+  //       console.log('🔍 Validando protocolo com API:', protocol)
+  //       await refreshChatHistory(protocol).unwrap()
+  //       console.log('✅ Protocolo validado com sucesso')
+  //     } catch (error) {
+  //       console.error('💥 Erro ao validar protocolo:', error)
+  //       setTimeout(() => apiRefetch(), 1000)
+  //     }
+  //   },
+  //   [refreshChatHistory, apiRefetch]
+  // )
 
   // 🔥 HANDLER: Nova mensagem (REDUX VERSION)
   const handleNewMessage = useCallback(
@@ -204,12 +203,9 @@ export function useMonitoringWithWebSocket(
         }
 
         dispatch(addNewChat(orphanChat))
-
-        // Validar com API
-        setTimeout(() => validateWithAPI(messageEvent.protocol), 2000)
       }
     },
-    [dispatch, createChatHistoryMessage, chats, validateWithAPI]
+    [dispatch, createChatHistoryMessage, chats]
   )
 
   // 🔥 HANDLER: Novo protocolo (REDUX VERSION)
@@ -239,9 +235,8 @@ export function useMonitoringWithWebSocket(
       dispatch(addNewChat(newChat))
 
       // Validar com API
-      setTimeout(() => validateWithAPI(protocolEvent.protocol), 1000)
     },
-    [dispatch, validateWithAPI]
+    [dispatch]
   )
 
   // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)
@@ -398,12 +393,8 @@ export function useMonitoringWithWebSocket(
   const refetch = useCallback(async () => {
     dispatch(setRefreshing(true))
 
-    try {
-      await apiRefetch()
-    } finally {
-      dispatch(setRefreshing(false))
-    }
-  }, [apiRefetch, dispatch])
+    dispatch(setRefreshing(false))
+  }, [dispatch])
 
   const refreshSpecificChat = useCallback(
     async (protocol: string) => {

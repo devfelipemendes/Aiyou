@@ -72,18 +72,37 @@ const calculateProgressTime = (createdAt: string, updatedAt: string) => {
 
 // 🔥 COMPONENTE OTIMIZADO
 const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
-  ({
-    protocol,
-    dragListeners,
-    dragAttributes,
-    onChatSelect,
-    isDragging = false,
-    onChatDoubleClick,
-    isSelected = false,
-    isWebSocketConnected = false,
-    isInModal = false
-  }) => {
+  props => {
+    // ← ADICIONAR props aqui
+    const {
+      protocol,
+      dragListeners,
+      dragAttributes,
+      onChatSelect,
+      isDragging = false,
+      onChatDoubleClick,
+      isSelected = false,
+      isWebSocketConnected = false,
+      isInModal = false
+    } = props
+
     // 🔥 TODOS OS HOOKS DEVEM VIR PRIMEIRO (antes de qualquer condicional)
+
+    const prevPropsRef = useRef(props)
+
+    if (process.env.NODE_ENV === 'development') {
+      const changedProps = Object.keys(props).filter(key => prevPropsRef.current[key] !== props[key])
+
+      if (changedProps.length > 0) {
+        console.log(`🔄 CARD ${protocol} - Props mudaram:`, {
+          changedProps,
+          prevProps: prevPropsRef.current,
+          newProps: props
+        })
+      }
+
+      prevPropsRef.current = props
+    }
 
     // 🔧 REFS
     const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -96,6 +115,19 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
 
     // 🔥 SELETOR REDUX
     const chatData = useAppSelector(state => selectChatByProtocol(state, protocol))
+
+    const prevChatDataRef = useRef(chatData)
+
+    if (process.env.NODE_ENV === 'development' && prevChatDataRef.current !== chatData) {
+      console.log(`📊 CARD ${protocol} - ChatData mudou:`, {
+        prevData: prevChatDataRef.current,
+        newData: chatData,
+        changedFields: chatData
+          ? Object.keys(chatData).filter(key => prevChatDataRef.current?.[key] !== chatData[key])
+          : []
+      })
+      prevChatDataRef.current = chatData
+    }
 
     // 📊 EXTRAIR DADOS (com valores padrão para evitar erros)
     const identifier = chatData?.identifier || protocol.slice(-6)
@@ -211,7 +243,9 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
         lastUpdate: updated_at,
         isSelected,
         isInModal,
-        chatDataExists: !!chatData
+        isDragging,
+        chatDataExists: !!chatData,
+        renderReason: 'Props ou ChatData mudaram'
       })
     }
 
@@ -349,7 +383,30 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     )
   },
   (prevProps, nextProps) => {
-    // 🔥 COMPARAÇÃO SIMPLES
+    // 🔍 DEBUG NA COMPARAÇÃO
+    if (process.env.NODE_ENV === 'development') {
+      const shouldUpdate = !(
+        prevProps.protocol === nextProps.protocol &&
+        prevProps.isDragging === nextProps.isDragging &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.isInModal === nextProps.isInModal &&
+        prevProps.isWebSocketConnected === nextProps.isWebSocketConnected &&
+        prevProps.onChatSelect === nextProps.onChatSelect &&
+        prevProps.onChatDoubleClick === nextProps.onChatDoubleClick &&
+        prevProps.dragListeners === nextProps.dragListeners &&
+        prevProps.dragAttributes === nextProps.dragAttributes
+      )
+
+      if (shouldUpdate) {
+        const changedProps = Object.keys(nextProps).filter(key => prevProps[key] !== nextProps[key])
+
+        console.log(`🔍 MEMO ${nextProps.protocol} - Vai re-renderizar por:`, changedProps)
+      } else {
+        console.log(`✅ MEMO ${nextProps.protocol} - Bloqueou re-render`)
+      }
+    }
+
+    // Retorna true se NÃO deve re-renderizar
     return (
       prevProps.protocol === nextProps.protocol &&
       prevProps.isDragging === nextProps.isDragging &&
