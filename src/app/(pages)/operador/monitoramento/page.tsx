@@ -1,6 +1,6 @@
 // app/(pages)/operador/monitoramento/page.tsx - IMPLEMENTAÇÃO COMPLETA OTIMIZADA
 'use client'
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, memo } from 'react'
 
 import { Box as BoxIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { Button, Typography, Paper, Box, Alert, CircularProgress, Chip } from '@mui/material'
@@ -198,7 +198,7 @@ const MonitoringPageOptimized = () => {
   }, [filters.cardsPerRow])
 
   // 🎨 COMPONENTE: Card Draggable OTIMIZADO (separado para evitar problemas com hooks)
-  const DraggableCardOptimized = ({ clientId, client }: { clientId: string; client: any }) => {
+  const DraggableCardOptimized = memo(({ clientId, client }: { clientId: string; client: any }) => {
     const {
       attributes,
       listeners,
@@ -207,6 +207,14 @@ const MonitoringPageOptimized = () => {
       transition,
       isDragging: isCurrentlyDragging
     } = useSortable({ id: clientId })
+
+    const dragProps = useMemo(
+      () => ({
+        dragListeners: listeners,
+        dragAttributes: attributes
+      }),
+      [listeners, attributes]
+    )
 
     const style = useMemo(
       () => ({
@@ -218,23 +226,54 @@ const MonitoringPageOptimized = () => {
       [transform, transition, isCurrentlyDragging]
     )
 
+    // 🔥 QUEBRAR PROPS AQUI!
+    const cardProps = useMemo(
+      () => ({
+        protocol: client.protocol,
+        identifier: client.identifier,
+        status: client.status,
+        source: client.source,
+        messageCount: client.messageCount || 0,
+        lastMessage: client.lastMessage,
+        history: client.history || [],
+        assistant: client.assistant,
+        created_at: client.created_at,
+        updated_at: client.updated_at,
+        historyError: client.historyError,
+        historyLoading: client.historyLoading
+      }),
+      [
+        client.protocol,
+        client.identifier,
+        client.status,
+        client.source,
+        client.messageCount,
+        client.lastMessage,
+        client.history,
+        client.assistant,
+        client.created_at,
+        client.updated_at,
+        client.historyError,
+        client.historyLoading
+      ]
+    )
+
     return (
       <div ref={setNodeRef} style={style}>
         <CardMonitor
-          chatData={client}
-          dragListeners={listeners}
-          dragAttributes={attributes}
+          chatData={cardProps}
+          dragListeners={dragProps.dragListeners} // ← ESTÁVEL
+          dragAttributes={dragProps.dragAttributes} // ← ESTÁVEL
           isDragging={isCurrentlyDragging}
           onChatSelect={handleCardClick}
           onChatDoubleClick={handleCardDoubleClick}
           isSelected={isCardSelected(clientId)}
-          // 🔥 NOVOS PROPS OTIMIZADOS
           isWebSocketConnected={isWebSocketConnected}
           isInModal={isCardInModal(clientId)}
         />
       </div>
     )
-  }
+  })
 
   // 🔧 DnD SENSORS
   const sensors = useSensors(
