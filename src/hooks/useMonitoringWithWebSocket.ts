@@ -18,7 +18,8 @@ import {
   setSelectedChat,
   setWebSocketConnected,
   addConnectedChannel,
-  clearAllChats
+  clearAllChats,
+  updatedQuestionOperator
 
   // removeConnectedChannel
 } from '@/redux-store/slices/monitoring'
@@ -168,7 +169,7 @@ export function useMonitoringWithWebSocket(
 
   // 🔥 HANDLER: Nova mensagem (REDUX VERSION)
   const handleNewMessage = useCallback(
-    (messageEvent: MessageEvent) => {
+    (messageEvent: MessageEvent & { question_operator?: 0 | 1 }) => {
       console.log('💬 Nova mensagem recebida:', messageEvent.protocol)
 
       const newMessage = createChatHistoryMessage(messageEvent)
@@ -180,6 +181,17 @@ export function useMonitoringWithWebSocket(
           message: newMessage
         })
       )
+
+      console.log('🔍 Conteúdo da mensagem recebida:', messageEvent)
+
+      if (typeof messageEvent.question_operator !== 'undefined') {
+        dispatch(
+          updatedQuestionOperator({
+            protocol: messageEvent.protocol,
+            question_operator: messageEvent.question_operator
+          })
+        )
+      }
 
       // 🔍 Se chat não existe, criar temporário
       const chatExists = chats.some(chat => chat.protocol === messageEvent.protocol)
@@ -210,6 +222,34 @@ export function useMonitoringWithWebSocket(
     },
     [dispatch, createChatHistoryMessage, chats]
   )
+
+  // const handleCallOperator = useCallback(
+  //   async (protocol: string, operator: 0 | 1) => {
+  //     console.log(`📞 ${operator === 1 ? 'Chamando' : 'Desligando'} operador para o chat:`, protocol)
+
+  //     // Atualiza a informação no Redux
+  //     dispatch(
+  //       updateChatInfo({
+  //         protocol,
+  //         updates: {
+  //           question_operator: operator,
+  //           updated_at: new Date().toISOString()
+  //         }
+  //       })
+  //     )
+
+  //     // Quando operador é chamado, atualiza o chat
+  //     if (operator === 1) {
+  //       try {
+  //         await refreshChatHistory(protocol).unwrap()
+  //         console.log(`✅ Chat ${protocol} atualizado após chamada do operador`)
+  //       } catch (error) {
+  //         console.error(`💥 Erro ao atualizar chat ${protocol} após operador ser chamado:`, error)
+  //       }
+  //     }
+  //   },
+  //   [dispatch, refreshChatHistory]
+  // )
 
   // 🔥 HANDLER: Novo protocolo (REDUX VERSION)
   const handleProtocolCreated = useCallback(
@@ -273,6 +313,10 @@ export function useMonitoringWithWebSocket(
     [dispatch]
   )
 
+  const chatsRef = useRef(chats)
+
+  chatsRef.current = chats // Sempre atualizado
+
   // 🔥 WEBSOCKET: Conectar aos canais (mantido, mas com dispatch Redux)
   const connectToProjectChannels = useCallback(() => {
     if (!enableWebSocket) return
@@ -282,7 +326,9 @@ export function useMonitoringWithWebSocket(
 
       if (!echo || !isEchoConnected()) return
 
-      const clientIds = [...new Set(chats.map(chat => chat.project_id).filter(Boolean))]
+      // ✅ USAR REF ao invés de dependência
+      const currentChats = chatsRef.current
+      const clientIds = [...new Set(currentChats.map(chat => chat.project_id).filter(Boolean))]
 
       console.log('🏢 Conectando aos canais de projeto:', clientIds)
 
@@ -311,7 +357,9 @@ export function useMonitoringWithWebSocket(
     } catch (error) {
       console.error('💥 Erro geral nos canais de projeto:', error)
     }
-  }, [chats, enableWebSocket, dispatch, handleProtocolCreated, handleProtocolUpdated, handleProtocolDeleted])
+  }, [enableWebSocket, dispatch, handleProtocolCreated, handleProtocolUpdated, handleProtocolDeleted])
+
+  //  ^^^^^ ← SEM "chats"!
 
   const connectToProtocolChannels = useCallback(() => {
     if (!enableWebSocket) return
@@ -323,7 +371,10 @@ export function useMonitoringWithWebSocket(
 
       console.log('💬 Conectando aos canais de protocolo...')
 
-      chats.forEach(chat => {
+      // ✅ USAR REF ao invés de dependência
+      const currentChats = chatsRef.current
+
+      currentChats.forEach(chat => {
         const channelName = `protocol.${chat.protocol}`
 
         if (channelsRef.current.has(channelName)) return
@@ -347,7 +398,7 @@ export function useMonitoringWithWebSocket(
     } catch (error) {
       console.error('💥 Erro geral nos canais de protocolo:', error)
     }
-  }, [chats, enableWebSocket, dispatch, handleNewMessage])
+  }, [enableWebSocket, dispatch, handleNewMessage])
 
   // 🔄 SINCRONIZAÇÃO: API → Redux (substitui hidratação)
   useEffect(() => {
@@ -371,15 +422,17 @@ export function useMonitoringWithWebSocket(
   }, [apiError, dispatch])
 
   // 🔄 WEBSOCKET CONNECTION MANAGEMENT (mantido)
+  // ✅ CORREÇÃO: Remover chats das dependências
   useEffect(() => {
-    if (!enableWebSocket || !chats.length) return
+    if (!enableWebSocket) return // ← Simplificar condição
 
     const checkConnection = () => {
       const connected = isEchoConnected()
 
       dispatch(setWebSocketConnected(connected))
 
-      if (connected) {
+      if (connected && chatsRef.current.length > 0) {
+        // ← Usar ref aqui
         console.log('🔌 WebSocket conectado, configurando canais...')
         connectToProjectChannels()
         connectToProtocolChannels()
@@ -390,7 +443,9 @@ export function useMonitoringWithWebSocket(
     const interval = setInterval(checkConnection, 5000)
 
     return () => clearInterval(interval)
-  }, [chats, enableWebSocket, dispatch, connectToProjectChannels, connectToProtocolChannels])
+  }, [enableWebSocket, dispatch, connectToProjectChannels, connectToProtocolChannels])
+
+  //  ^^^^^ ← SEM "chats"!
 
   // 🎛️ AÇÕES (com Redux)
   const refetch = useCallback(async () => {
@@ -470,7 +525,7 @@ export function useMonitoringWithWebSocket(
     selectedChat, // ← Vem do Redux via seletor
     isWebSocketConnected,
     connectedChannels,
-    updateChatOrder // ← Agora usa Redux
+    updateChatOrder
   }
 }
 

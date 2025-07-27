@@ -42,7 +42,7 @@ const getStatusColor = (status: string, callOperator: boolean): string => {
 
 const getStatusProtocol = (status: string, callOperator: boolean) => {
   if (callOperator) {
-    return <Chip label='Chamada do Operador' color='error' variant='outlined' className='mr-2' />
+    return <Chip label='Atenção' color='error' variant='outlined' className='mr-2' />
   }
 
   const config = {
@@ -81,7 +81,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       isDragging = false,
       onChatDoubleClick,
       isSelected = false,
-      isWebSocketConnected = false,
       isInModal = false
     } = props
 
@@ -139,7 +138,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     // 📊 EXTRAIR DADOS (com valores padrão para evitar erros)
     const identifier = chatData?.identifier || protocol.slice(-6)
     const status = chatData?.status || 'active'
-    const historyError = chatData?.historyError
+
     const historyLoading = chatData?.historyLoading || false
     const lastMessage = chatData?.lastMessage
     const created_at = chatData?.created_at || new Date().toISOString()
@@ -147,8 +146,10 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     const messageCount = chatData?.messageCount || 0
     const assistant = chatData?.assistant
 
+    const callOperator = useMemo(() => chatData.question_operator === 1, [chatData])
+
     // 🔧 VALORES CALCULADOS MEMOIZADOS (SEMPRE EXECUTADOS)
-    const callOperator = useMemo(() => !!historyError, [historyError])
+    // const callOperator = useMemo(() => !!historyError, [historyError])
 
     const progressTime = useMemo(() => calculateProgressTime(created_at, updated_at), [created_at, updated_at])
 
@@ -182,7 +183,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       () => ({
         position: 'relative',
         minHeight: '200px',
-        maxHeight: '300px',
+        maxHeight: '200px',
         overflowY: 'auto',
         backgroundImage: `${
           modeTheme === 'light'
@@ -275,30 +276,11 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
         <CardHeader
           title={
             <Box display='flex' alignItems='center' gap={1}>
-              <Typography variant='h4' sx={{ color: statusColor }}>
+              <Typography variant='h5' sx={{ color: statusColor }}>
                 # {identifier}
               </Typography>
 
               {/* 🆕 INDICADORES DE STATUS */}
-              {isWebSocketConnected && (
-                <Chip
-                  size='small'
-                  label='●'
-                  color='success'
-                  sx={{ minWidth: 'unset', px: 0.5, fontSize: '0.7rem' }}
-                  title='Tempo real ativo'
-                />
-              )}
-
-              {isInModal && (
-                <Chip
-                  size='small'
-                  label='👁️'
-                  color='primary'
-                  sx={{ minWidth: 'unset', px: 0.5, fontSize: '0.7rem' }}
-                  title='Aberto no modal'
-                />
-              )}
             </Box>
           }
           subheader={
@@ -346,7 +328,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
             <CardContent className='cursor-pointer' ref={scrollContainerRef} sx={chatContentStyles}>
               <Box sx={{ position: 'relative', zIndex: 1 }}>
                 <Box className='flex flex-row'>
-                  {!historyLoading && !callOperator && (
+                  {!historyLoading && (
                     <Box className='flex flex-row'>
                       <ChatLog
                         chatData={chatData}
@@ -361,14 +343,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
                     <Box display='flex' justifyContent='center' alignItems='center' minHeight='100px'>
                       <Typography variant='body2' color='text.secondary'>
                         Carregando mensagens...
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {callOperator && (
-                    <Box display='flex' justifyContent='center' alignItems='center' minHeight='100px'>
-                      <Typography variant='body2' color='error'>
-                        ⚠️ Operador solicitado
                       </Typography>
                     </Box>
                   )}

@@ -102,6 +102,20 @@ export const monitoringSlice = createSlice({
       console.log('✅ Chat atualizado:', protocol, updates)
     },
 
+    updatedQuestionOperator: (state, action: PayloadAction<{ protocol: string; question_operator: 0 | 1 }>) => {
+      const { protocol, question_operator } = action.payload
+      const chat = state.chatsByProtocol[protocol]
+
+      if (!chat) {
+        console.warn('⚠️ Chat não encontrado para atualização de operador:', protocol)
+
+        return
+      }
+
+      chat.question_operator = question_operator
+      chat.updated_at = new Date().toISOString()
+    },
+
     // 🔥 REDUCER 4: Adicionar mensagem a UM chat (WebSocket: message.created)
     addMessageToChat: (
       state,
@@ -251,7 +265,8 @@ export const {
   addConnectedChannel,
   removeConnectedChannel,
   clearConnectedChannels,
-  clearAllChats
+  clearAllChats,
+  updatedQuestionOperator
 } = monitoringSlice.actions
 
 // 🎯 SELETORES BÁSICOS (vamos expandir na Etapa 2)
@@ -260,5 +275,9 @@ export const selectChatOrder = (state: any) => state.monitoring.chatOrder
 export const selectMonitoringLoading = (state: any) => state.monitoring.isLoading
 export const selectMonitoringError = (state: any) => state.monitoring.error
 export const selectSelectedProtocol = (state: any) => state.monitoring.selectedProtocol
+
+export const selectCallOperator = (state: any) => {
+  state.monitoring.selectedProtocol
+}
 
 export default monitoringSlice.reducer

@@ -61,7 +61,7 @@ const MonitoringPageOptimized = () => {
     isRefreshing,
     error,
     refetch,
-    refreshSpecificChat,
+
     selectChat,
     updateChatOrder,
     isWebSocketConnected,
@@ -135,18 +135,6 @@ const MonitoringPageOptimized = () => {
       setSelectedProtocolForDialog(null)
     }, 300)
   }, [])
-
-  const handleRefreshSpecificChat = useCallback(
-    async (protocol: string) => {
-      try {
-        console.log(`🔄 Refresh específico: ${protocol}`)
-        await refreshSpecificChat(protocol)
-      } catch (error) {
-        console.error('💥 Erro no refresh específico:', error)
-      }
-    },
-    [refreshSpecificChat]
-  )
 
   // 🔄 CALLBACKS DE DRAG & DROP
   const handleDragEnd = useCallback(
@@ -225,6 +213,7 @@ const MonitoringPageOptimized = () => {
         isWebSocketConnected,
         isInModal: isCardInModal(protocol)
       }),
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       [protocol, isWebSocketConnected] // ← Só dependências estáveis
     )
 
@@ -404,17 +393,6 @@ const MonitoringPageOptimized = () => {
           open={dialogOpen}
           onClose={handleCloseDialog}
           chatData={selectedChatForDialog} // 🔥 Dados em tempo real
-          // 🔧 Removidos props que ainda não existem no modal:
-          // protocol={selectedProtocolForDialog!}
-          // isWebSocketConnected={isWebSocketConnected}
-          // connectedChannels={connectedChannels}
-          // onRefreshChat={() => handleRefreshSpecificChat(selectedProtocolForDialog!)}
-          // onSendMessage={(content: string) => {
-          //   console.log('📤 Enviando mensagem:', content)
-          // }}
-          // onDataChange={(updatedChat) => {
-          //   console.log('🔄 Dados do modal atualizados:', updatedChat)
-          // }}
         />
       )}
 
