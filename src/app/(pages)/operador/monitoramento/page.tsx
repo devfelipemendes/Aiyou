@@ -1,13 +1,13 @@
-// app/(pages)/operador/monitoramento/page.tsx - INTEGRAÇÃO NOVA
+// app/(pages)/operador/monitoramento/page.tsx - IMPLEMENTAÇÃO COMPLETA OTIMIZADA
 'use client'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 
-import { Box as BoxIcon, RefreshCw } from 'lucide-react'
+import { Box as BoxIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { Button, Typography, Paper, Box, Alert, CircularProgress, Chip } from '@mui/material'
 
 import Grid from '@mui/material/Grid2'
 
-// DnD Kit imports (mantidos)
+// DnD Kit imports
 import {
   DndContext,
   closestCenter,
@@ -25,15 +25,14 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-import { useAppSelector } from '@/redux-store'
+// import { useAppSelector } from '@/redux-store'
 
-// 🔥 NOVO: Usar nosso hook integrado
-// import { useMonitoringDataWithRefresh } from '@/hooks/useMonitoringData'
+// 🔥 HOOK OTIMIZADO
+import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSocket'
 
-import CardMonitor from '@/components/card_monitormanto/CardMonitor'
-import { useMockMonitoringData } from '@/hooks/useMockMonitoringData'
+// 🔥 COMPONENTES OTIMIZADOS
+import CardMonitor from '@/components/card_monitormanto/CardMonitor' // Agora é o otimizado
 import ChatMonitoringModal from '@/components/dialogs/chat'
-import { useMonitoringDataWithRefresh } from '@/hooks/useMonitoringData'
 
 // Tipos (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -50,52 +49,28 @@ interface ChatFilters {
   cardsPerRow: number
 }
 
-// 🔥 FUNÇÃO PARA CONVERTER DADOS PRO FORMATO DO CARDMONITOR
-const formatChatForCardMonitor = (chat: any, history: any) => {
-  return {
-    protocol: chat.protocol,
-    assistant: chat.assistant,
-    source: chat.source,
-    identifier: chat.identifier,
-    status: chat.status || 'active',
-    created_at: chat.created_at,
-    updated_at: chat.updated_at,
-
-    // Dados do histórico
-    history: history?.history || [],
-    historyLoading: false,
-    historyError: null,
-    messageCount: history?.history?.length || 0,
-    lastMessage: history?.history?.[history.history.length - 1] || null,
-
-    // Campos extras
-    assistant_name: history?.assistant_name || chat.assistant?.name || 'Sistema',
-    operator_name: history?.operator_name || null
-  }
-}
-
-const MonitoringPage = () => {
-  // 🔥 NOVO: Usar nosso hook integrado
+const MonitoringPageOptimized = () => {
+  // 🔥 HOOK PRINCIPAL
   const {
-    activeChats,
-    clientHistories,
-    isFullyLoaded,
-    hasErrors,
-    activeChatsError,
-    historiesError,
-    historiesStats,
-    refetchAll,
-    getHistoryByProtocol,
-    getHistoriesByClient,
-    isRefreshing
-  } = useMonitoringDataWithRefresh()
+    chats, // 📋 Dados já enriquecidos e atualizados pelo WebSocket
+    stats,
+    isLoading,
+    isRefreshing,
+    error,
+    refetch,
+    refreshSpecificChat,
+    selectChat,
+    updateChatOrder,
+    isWebSocketConnected,
+    connectedChannels
+  } = useMonitoringChatWithWebSocket()
 
-  const user = useAppSelector((state: any) => state.authReducer?.user)
+  // const user = useAppSelector((state: any) => state.authReducer?.user)
 
-  // Estados (mantidos)
+  // 🎯 ESTADOS LOCAIS
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [selectedChatForDialog, setSelectedChatForDialog] = useState<any>(null)
+  const [selectedProtocolForDialog, setSelectedProtocolForDialog] = useState<string | null>(null)
 
   const [filters, setFilters] = useState<ChatFilters>({
     orderBy: 'created_at',
@@ -107,87 +82,123 @@ const MonitoringPage = () => {
     cardsPerRow: 4
   })
 
-  // 🔥 NOVO: Combinar chats ativos com seus históricos
-  const enrichedChats = useMemo(() => {
-    console.log('🔄 Enriquecendo chats com históricos...')
+  // 🔥 CHAT SINCRONIZADO PARA MODAL (tempo real)
+  const selectedChatForDialog = useMemo(() => {
+    if (!selectedProtocolForDialog) return null
 
-    const result = activeChats.map(chat => {
-      const history = getHistoryByProtocol(chat.protocol)
-      const enriched = formatChatForCardMonitor(chat, history)
+    const chat = chats.find(c => c.protocol === selectedProtocolForDialog)
 
-      console.log(`✅ Chat ${chat.protocol} enriquecido:`, {
-        protocol: enriched.protocol,
-        source: enriched.source,
-        messages: enriched.messageCount,
-        hasError: !!enriched.historyError
-      })
+    if (!chat) {
+      console.warn('⚠️ Chat não encontrado para protocolo:', selectedProtocolForDialog)
 
-      return enriched
+      return null
+    }
+
+    console.log(`🔄 Chat ${selectedProtocolForDialog} sincronizado:`, {
+      messageCount: chat.messageCount,
+      lastUpdate: chat.updated_at,
+      hasHistory: chat.history.length > 0
     })
 
-    console.log(`📊 Total de ${result.length} chats enriquecidos`)
+    return chat
+  }, [chats, selectedProtocolForDialog])
 
-    return result
-  }, [activeChats, getHistoryByProtocol])
-
-  // Callbacks (mantidos)
-  const handleCardClick = useCallback((clientId: string) => {
-    setSelectedCardId(clientId)
-  }, [])
+  // 🎛️ CALLBACKS ESTÁVEIS (performance critical)
+  const handleCardClick = useCallback(
+    (protocol: string) => {
+      setSelectedCardId(protocol)
+      selectChat(protocol)
+    },
+    [selectChat]
+  )
 
   const handleCardDoubleClick = useCallback(
     (protocol: string) => {
-      console.log('🖱️ Card duplo clique:', protocol)
-      const chat = enrichedChats.find(c => c.protocol === protocol)
-
-      if (chat) {
-        setSelectedChatForDialog(chat)
-        setDialogOpen(true)
-        console.log('📱 Abrindo dialog para:', protocol)
-      }
+      console.log('🖱️ Abrindo modal para protocolo:', protocol)
+      setSelectedProtocolForDialog(protocol)
+      setDialogOpen(true)
+      setSelectedCardId(protocol)
+      selectChat(protocol)
     },
-    [enrichedChats]
+    [selectChat]
   )
 
   const handleCloseDialog = useCallback(() => {
-    console.log('❌ Fechando dialog')
+    console.log('❌ Fechando modal')
     setDialogOpen(false)
-    setSelectedChatForDialog(null)
+    setTimeout(() => {
+      setSelectedProtocolForDialog(null)
+    }, 300)
   }, [])
 
-  const handleCardHover = useCallback((clientId: string, isHovered: boolean) => {
-    console.log('Card hover:', clientId, isHovered)
-  }, [])
-
-  const isCardSelected = useCallback((clientId: string) => selectedCardId === clientId, [selectedCardId])
-
-  // DnD (mantido)
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  const handleRefreshSpecificChat = useCallback(
+    async (protocol: string) => {
+      try {
+        console.log(`🔄 Refresh específico: ${protocol}`)
+        await refreshSpecificChat(protocol)
+      } catch (error) {
+        console.error('💥 Erro no refresh específico:', error)
+      }
+    },
+    [refreshSpecificChat]
   )
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    console.log('Drag end:', event)
-  }, [])
+  // 🔄 CALLBACKS DE DRAG & DROP
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event
 
+      if (over && active.id !== over.id) {
+        const oldIndex = chats.findIndex(chat => chat.protocol === active.id)
+        const newIndex = chats.findIndex(chat => chat.protocol === over.id)
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          console.log(`🔄 Movendo chat: ${oldIndex} → ${newIndex}`)
+          updateChatOrder(oldIndex, newIndex)
+        }
+      }
+    },
+    [chats, updateChatOrder]
+  )
+
+  // 🔄 CALLBACKS DE FILTROS
   const handleFilterChange = useCallback((key: keyof ChatFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }, [])
 
-  // 🔥 USAR REFETCH DO MOCK
-  const handleRefreshDataMock = useCallback(() => {
-    console.log('🔄 Iniciando refresh manual...')
-    refetchAll()
-  }, [refetchAll])
-
-  // 🔥 NOVO: Usar refetchAll do hook
   const handleRefreshData = useCallback(() => {
-    refetchAll()
-  }, [refetchAll])
+    console.log('🔄 Refresh manual iniciado')
+    refetch()
+  }, [refetch])
 
-  // DraggableCard (adaptado)
-  const DraggableCard = ({ clientId, client }: { clientId: string; client: any }) => {
+  // 🔧 FUNÇÕES HELPER MEMOIZADAS
+  const isCardSelected = useCallback(
+    (protocol: string) => {
+      return selectedCardId === protocol
+    },
+    [selectedCardId]
+  )
+
+  const isCardInModal = useCallback(
+    (protocol: string) => {
+      return selectedProtocolForDialog === protocol
+    },
+    [selectedProtocolForDialog]
+  )
+
+  const getGridSize = useCallback(() => {
+    switch (filters.cardsPerRow) {
+      case 3:
+        return { xs: 12, sm: 6, md: 4 }
+      case 4:
+        return { xs: 12, sm: 6, md: 4, lg: 3 }
+      default:
+        return { xs: 12, sm: 6, md: 4, lg: 3 }
+    }
+  }, [filters.cardsPerRow])
+
+  // 🎨 COMPONENTE: Card Draggable OTIMIZADO (separado para evitar problemas com hooks)
+  const DraggableCardOptimized = ({ clientId, client }: { clientId: string; client: any }) => {
     const {
       attributes,
       listeners,
@@ -197,30 +208,50 @@ const MonitoringPage = () => {
       isDragging: isCurrentlyDragging
     } = useSortable({ id: clientId })
 
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isCurrentlyDragging ? 0.5 : 1,
-      cursor: isCurrentlyDragging ? 'grabbing' : 'grab'
-    }
+    const style = useMemo(
+      () => ({
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isCurrentlyDragging ? 0.5 : 1,
+        cursor: isCurrentlyDragging ? 'grabbing' : 'grab'
+      }),
+      [transform, transition, isCurrentlyDragging]
+    )
 
     return (
       <div ref={setNodeRef} style={style}>
         <CardMonitor
+          chatData={client}
           dragListeners={listeners}
           dragAttributes={attributes}
           isDragging={isCurrentlyDragging}
-          chatData={client} // 🔥 NOVO: Dados enriquecidos com histórico
           onChatSelect={handleCardClick}
-          isSelected={isCardSelected(clientId)}
           onChatDoubleClick={handleCardDoubleClick}
+          isSelected={isCardSelected(clientId)}
+          // 🔥 NOVOS PROPS OTIMIZADOS
+          isWebSocketConnected={isWebSocketConnected}
+          isInModal={isCardInModal(clientId)}
         />
       </div>
     )
   }
 
-  // 🔥 ESTADOS DE LOADING E ERROR
-  if (!isFullyLoaded) {
+  // 🔧 DnD SENSORS
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  // 🔄 VERIFICAR SE CHAT AINDA EXISTE QUANDO MODAL ESTÁ ABERTO
+  useEffect(() => {
+    if (dialogOpen && selectedProtocolForDialog && !selectedChatForDialog) {
+      console.warn('⚠️ Chat removido enquanto modal estava aberto, fechando...')
+      handleCloseDialog()
+    }
+  }, [dialogOpen, selectedProtocolForDialog, selectedChatForDialog, handleCloseDialog])
+
+  // 🚨 ESTADOS DE LOADING E ERROR
+  if (isLoading) {
     return (
       <Box display='flex' justifyContent='center' alignItems='center' minHeight='400px'>
         <CircularProgress />
@@ -231,15 +262,14 @@ const MonitoringPage = () => {
     )
   }
 
-  if (hasErrors) {
+  if (error) {
     return (
       <Box p={3}>
         <Alert severity='error' sx={{ mb: 2 }}>
           <Typography variant='h6'>Erro ao carregar dados</Typography>
-          {activeChatsError && <Typography>Chats: {activeChatsError}</Typography>}
-          {historiesError && <Typography>Históricos: {historiesError}</Typography>}
+          <Typography>{error}</Typography>
         </Alert>
-        <Button variant='contained' onClick={handleRefreshDataMock} startIcon={<RefreshCw />}>
+        <Button variant='contained' onClick={handleRefreshData} startIcon={<RefreshCw />}>
           Tentar novamente
         </Button>
       </Box>
@@ -248,40 +278,103 @@ const MonitoringPage = () => {
 
   return (
     <Box>
-      {/* Header com estatísticas */}
+      {/* 🔥 HEADER OTIMIZADO COM STATUS WEBSOCKET */}
       <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-        <Box display='flex' justifyContent='space-between' alignItems='center'>
-          <Typography variant='h5'>Monitoramento de Chats ({enrichedChats.length})</Typography>
-          <Button variant='outlined' onClick={handleRefreshDataMock} startIcon={<RefreshCw />}>
-            Atualizar
-          </Button>
-        </Box>
+        <Grid container spacing={2} alignItems='center'>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Box display='flex' flexDirection='column' gap={1}>
+              <Typography variant='h5'>Monitoramento de Chats ({stats.total})</Typography>
 
-        <Box display='flex' gap={2} mt={2}>
-          <Chip label={`${enrichedChats.filter(c => c.status === 'active').length} Ativos`} color='primary' />
-          <Chip label={`${enrichedChats.reduce((sum, c) => sum + c.messageCount, 0)} Mensagens`} color='secondary' />
-        </Box>
+              {/* 📊 ESTATÍSTICAS EM TEMPO REAL */}
+              <Box display='flex' gap={1} flexWrap='wrap'>
+                <Chip label={`${stats.total} Total`} color='primary' size='small' />
+                <Chip label={`${stats.totalMessages} Mensagens`} color='secondary' size='small' />
+                <Chip label={`${stats.successCount} Sucesso`} color='success' size='small' />
+                {stats.errorCount > 0 && <Chip label={`${stats.errorCount} Erros`} color='error' size='small' />}
+              </Box>
+
+              {/* 🔌 STATUS WEBSOCKET */}
+              <Box display='flex' alignItems='center' gap={1}>
+                {isWebSocketConnected ? (
+                  <Chip
+                    icon={<Wifi size={16} />}
+                    label={`WebSocket Ativo (${connectedChannels.length} canais)`}
+                    color='success'
+                    size='small'
+                  />
+                ) : (
+                  <Chip icon={<WifiOff size={16} />} label='WebSocket Desconectado' color='error' size='small' />
+                )}
+              </Box>
+            </Box>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Box display='flex' gap={1} justifyContent='flex-end' flexWrap='wrap'>
+              {/* 🔄 BOTÃO REFRESH */}
+              <Button
+                variant='outlined'
+                onClick={handleRefreshData}
+                startIcon={<RefreshCw />}
+                disabled={isRefreshing}
+                size='small'
+              >
+                {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+              </Button>
+
+              {/* 🔧 FILTROS */}
+              <Button
+                variant={filters.orderBy === 'created_at' ? 'contained' : 'outlined'}
+                size='small'
+                onClick={() =>
+                  handleFilterChange('orderBy', filters.orderBy === 'created_at' ? 'priority' : 'created_at')
+                }
+              >
+                {filters.orderBy === 'created_at' ? 'Por Data' : 'Por Prioridade'}
+              </Button>
+
+              <Button
+                variant={filters.showClosed ? 'contained' : 'outlined'}
+                size='small'
+                onClick={() => handleFilterChange('showClosed', !filters.showClosed)}
+              >
+                {filters.showClosed ? 'Ocultar Fechados' : 'Mostrar Fechados'}
+              </Button>
+
+              <Button
+                variant='outlined'
+                size='small'
+                onClick={() => handleFilterChange('cardsPerRow', filters.cardsPerRow === 4 ? 3 : 4)}
+              >
+                {filters.cardsPerRow === 4 ? '3 por linha' : '4 por linha'}
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
       </Paper>
 
-      {/* Grid com Cards */}
+      {/* 🔥 GRID OTIMIZADO COM CARDS */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={enrichedChats.map(c => c.protocol)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={chats.map(chat => chat.protocol)} strategy={verticalListSortingStrategy}>
           <Grid container spacing={3}>
-            {enrichedChats.map(chat => (
-              <Grid key={chat.protocol} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <DraggableCard clientId={chat.protocol} client={chat} />
+            {chats.map(chat => (
+              <Grid size={getGridSize()} key={chat.protocol}>
+                <DraggableCardOptimized clientId={chat.protocol} client={chat} />
               </Grid>
             ))}
           </Grid>
         </SortableContext>
       </DndContext>
 
-      {/* Mensagem quando não há chats */}
-      {enrichedChats.length === 0 && (
+      {/* 🔥 MENSAGEM QUANDO NÃO HÁ CHATS */}
+      {chats.length === 0 && !isLoading && (
         <Box display='flex' flexDirection='column' alignItems='center' py={8}>
           <BoxIcon size={64} color='#ccc' />
           <Typography variant='h6' color='text.secondary' mt={2}>
             Nenhum chat ativo encontrado
+          </Typography>
+          <Typography variant='body2' color='text.secondary' mt={1}>
+            {isWebSocketConnected ? 'Aguardando novos chats...' : 'Conectando ao WebSocket...'}
           </Typography>
           <Button variant='outlined' onClick={handleRefreshData} sx={{ mt: 2 }}>
             Atualizar dados
@@ -289,17 +382,50 @@ const MonitoringPage = () => {
         </Box>
       )}
 
-      {/* 🔥 DIALOG PARA CHAT DETALHADO */}
+      {/* 🔥 MODAL EM TEMPO REAL */}
       {dialogOpen && selectedChatForDialog && (
         <ChatMonitoringModal
           open={dialogOpen}
           onClose={handleCloseDialog}
-          chatData={selectedChatForDialog}
-          clientHistories={getHistoriesByClient(selectedChatForDialog.identifier)}
+          chatData={selectedChatForDialog} // 🔥 Dados em tempo real
+          // 🔧 Removidos props que ainda não existem no modal:
+          // protocol={selectedProtocolForDialog!}
+          // isWebSocketConnected={isWebSocketConnected}
+          // connectedChannels={connectedChannels}
+          // onRefreshChat={() => handleRefreshSpecificChat(selectedProtocolForDialog!)}
+          // onSendMessage={(content: string) => {
+          //   console.log('📤 Enviando mensagem:', content)
+          // }}
+          // onDataChange={(updatedChat) => {
+          //   console.log('🔄 Dados do modal atualizados:', updatedChat)
+          // }}
         />
+      )}
+
+      {/* 🔥 DEBUG INFO (desenvolvimento) */}
+      {process.env.NODE_ENV === 'development' && (
+        <Paper elevation={1} sx={{ p: 2, mt: 3, backgroundColor: '#f5f5f5' }}>
+          <Typography variant='h6' gutterBottom>
+            🚀 Performance Debug
+          </Typography>
+          <Typography variant='body2'>
+            <strong>Chats:</strong> {chats.length} |<strong> WebSocket:</strong>{' '}
+            {isWebSocketConnected ? '✅ Conectado' : '❌ Desconectado'} |<strong> Canais:</strong>{' '}
+            {connectedChannels.length} |<strong> Média msgs/chat:</strong> {stats.averageMessagesPerChat}
+          </Typography>
+          {stats.mostActiveChat && (
+            <Typography variant='body2'>
+              <strong>Chat mais ativo:</strong> {stats.mostActiveChat.protocol}({stats.mostActiveChat.messageCount}{' '}
+              mensagens)
+            </Typography>
+          )}
+          <Typography variant='caption' color='text.secondary' display='block' mt={1}>
+            💡 Abra o console para ver logs de re-renders evitados
+          </Typography>
+        </Paper>
       )}
     </Box>
   )
 }
 
-export default MonitoringPage
+export default MonitoringPageOptimized

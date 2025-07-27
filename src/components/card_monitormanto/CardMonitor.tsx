@@ -1,25 +1,44 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, memo, useCallback, useMemo } from 'react'
 
-import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
+import { Card, CardContent, CardHeader, Chip, Typography, Box, Button } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+import { Refresh } from '@mui/icons-material'
 
 import ChatLog from '../chatLog/chatLog'
 import CustomIconButton from '@core/components/mui/IconButton'
 
-import type { ChatMonitorProps } from '@/types/newChatypes'
-import type { ChatWithHistory } from '@/api/endpoints/chat/history'
+// 🔧 TIPOS SIMPLIFICADOS
+interface CardData {
+  protocol: string
+  source: string
+  identifier: string
+  status: string
+  messageCount: number
+  lastMessage: any
+  history: any[]
+  assistant: any
+  created_at: string
+  updated_at: string
+  historyError?: any
+  historyLoading?: boolean
+}
 
-interface ChatMonitorAdaptedProps {
-  chatData: ChatWithHistory
+interface ChatMonitorOptimizedProps {
+  chatData: CardData
   isDragging?: boolean
   dragListeners?: any
   dragAttributes?: any
   onChatSelect?: (protocol: string) => void
   onChatDoubleClick?: (protocol: string) => void
   isSelected?: boolean
+
+  // 🆕 NOVOS PROPS PARA OTIMIZAÇÃO
+  isWebSocketConnected?: boolean
+  isInModal?: boolean
 }
 
-const getStatusColor = (status: ChatMonitorProps['statusChat'], callOperator: boolean): string => {
+// 🔧 FUNÇÕES HELPER MOVIDAS PARA FORA (não recriam a cada render)
+const getStatusColor = (status: string, callOperator: boolean): string => {
   if (callOperator) return 'error.main'
 
   switch (status) {
@@ -36,9 +55,9 @@ const getStatusColor = (status: ChatMonitorProps['statusChat'], callOperator: bo
   }
 }
 
-const getStatusProtocol = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
+const getStatusProtocol = (status: string, callOperator: boolean) => {
   if (callOperator) {
-    return <Chip label='Chamada do Operador' color='error' variant='tonal' className='mr-2' />
+    return <Chip label='Chamada do Operador' color='error' variant='outlined' className='mr-2' />
   }
 
   const config = {
@@ -48,19 +67,7 @@ const getStatusProtocol = (status: ChatMonitorProps['statusChat'], callOperator:
     unresolved: { label: 'Não resolvido', color: 'warning' }
   }[status] ?? { label: 'Ativo', color: 'success' }
 
-  return <Chip label={config.label} color={config.color as any} variant='tonal' sx={config.sx} className='mr-2' />
-}
-
-const getCardShadowByStatus = (status: ChatMonitorProps['statusChat'], isDragging: boolean) => {
-  const defaultShadow = { boxShadow: isDragging ? 8 : 4 }
-
-  const shadows: Record<string, { boxShadow: string }> = {
-    unresolved: { boxShadow: '0px 0px 15px var(--mui-palette-warning-main)' },
-    resolved: { boxShadow: '0px 0px 15px var(--mui-palette-success-main)' },
-    inactive: { boxShadow: '0px 0px 15px #353535' }
-  }
-
-  return shadows[status] ?? defaultShadow
+  return <Chip label={config.label} color={config.color as any} variant='outlined' sx={config.sx} className='mr-2' />
 }
 
 const calculateProgressTime = (createdAt: string, updatedAt: string) => {
@@ -78,181 +85,333 @@ const calculateProgressTime = (createdAt: string, updatedAt: string) => {
   return `${minutes}m`
 }
 
-export default function CardMonitor({
-  chatData,
-  dragListeners,
-  dragAttributes,
-  onChatSelect,
-  isDragging = false,
-  onChatDoubleClick
-}: ChatMonitorAdaptedProps) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const theme = useTheme()
-  const modeTheme = theme.palette.mode
+// 🔥 COMPONENTE OTIMIZADO COM MEMO
+const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
+  ({
+    chatData,
+    dragListeners,
+    dragAttributes,
+    onChatSelect,
+    isDragging = false,
+    onChatDoubleClick,
+    isSelected = false,
+    isWebSocketConnected = false,
+    isInModal = false
+  }) => {
+    // 🔧 REFS
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+    const clickTimeout = useRef<NodeJS.Timeout | null>(null)
+    const clickCount = useRef(0)
 
-  const { protocol, assistant, identifier, status, historyError, historyLoading, lastMessage, created_at, updated_at } =
-    chatData
+    // 🎨 THEME
+    const theme = useTheme()
+    const modeTheme = theme.palette.mode
 
-  const callOperator = !!historyError
+    // 📊 DADOS EXTRAÍDOS (memoizados se necessário)
+    const {
+      protocol,
+      assistant,
+      identifier,
+      status,
+      historyError,
+      historyLoading,
+      lastMessage,
+      created_at,
+      updated_at,
+      messageCount
+    } = chatData
 
-  // const clientProtocolName = assistant?.name || `Chat ${protocol.slice(-6)}`
-  const progressTime = calculateProgressTime(created_at, updated_at)
-  const attendant = assistant?.name || 'Sistema'
+    // 🔧 VALORES CALCULADOS MEMOIZADOS
+    const callOperator = useMemo(() => !!historyError, [historyError])
 
-  const clickTimeout = useRef<NodeJS.Timeout | null>(null)
-  const clickCount = useRef(0)
+    const progressTime = useMemo(() => calculateProgressTime(created_at, updated_at), [created_at, updated_at])
 
-  const handleCardClick = () => {
-    clickCount.current += 1
-    if (clickTimeout.current) clearTimeout(clickTimeout.current)
+    const attendant = useMemo(() => assistant?.name || 'Sistema', [assistant?.name])
 
-    clickTimeout.current = setTimeout(() => {
-      if (clickCount.current === 2 && onChatSelect) {
-        onChatSelect(protocol)
-      }
+    const statusColor = useMemo(() => getStatusColor(status, callOperator), [status, callOperator])
 
-      clickCount.current = 0
-    }, 250)
-  }
-
-  // 🔥 ADICIONAR ESTA FUNÇÃO
-  const handleCardDoubleClick = () => {
-    if (onChatDoubleClick) {
-      onChatDoubleClick(protocol)
-    }
-  }
-
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
-    }
-  }, [chatData])
-
-  return (
-    <Card
-      onClick={handleCardClick}
-      onDoubleClick={handleCardDoubleClick}
-      sx={{
+    // 🎨 ESTILOS MEMOIZADOS
+    const cardStyles = useMemo(() => {
+      return {
         cursor: isDragging ? 'grabbing' : 'pointer',
         transform: isDragging ? 'rotate(5deg)' : 'none',
         transition: 'all 0.2s ease',
         boxShadow: callOperator
           ? '0 0 12px var(--mui-palette-error-main)'
-          : getCardShadowByStatus(status, isDragging).boxShadow,
+          : isDragging
+            ? '0 4px 20px rgba(0,0,0,0.3)'
+            : '0 2px 8px rgba(0,0,0,0.1)',
         animation: callOperator ? 'pulseShadow 2s cubic-bezier(0.66, 0, 0, 1) infinite' : 'none',
-        '@keyframes pulseShadow': {
-          '0%': {
-            boxShadow: '0 0 6px var(--mui-palette-error-main)'
-          },
-          '50%': {
-            boxShadow: '0 0 20px var(--mui-palette-error-main)'
-          },
-          '100%': {
-            boxShadow: '0 0 6px var(--mui-palette-error-main)'
-          }
-        }
-      }}
-    >
-      <CardHeader
-        title={
-          <Typography variant='h4' sx={{ color: getStatusColor(status, callOperator) }}>
-            # {identifier}
-          </Typography>
-        }
-        subheader={
-          <Box>
-            <Typography variant='body2' color='text.secondary'>
-              Protocolo: {protocol}
-            </Typography>
-            {lastMessage && (
-              <Typography variant='caption' color='text.secondary'>
-                Última mensagem: {new Date(lastMessage.created_at).toLocaleString()}
-              </Typography>
-            )}
-          </Box>
-        }
-        action={
-          <Box>
-            {getStatusProtocol(status, callOperator)}
-            <CustomIconButton
-              color='primary'
-              variant='outlined'
-              {...dragListeners}
-              {...dragAttributes}
-              sx={{
-                cursor: isDragging ? 'grabbing' : 'grab',
-                '&:hover': {
-                  transform: 'scale(1.05)',
-                  transition: 'transform 0.2s ease'
-                }
-              }}
-              title='Clique e arraste para reordenar'
-            >
-              <i className='ri-drag-move-2-fill' />
-            </CustomIconButton>
-          </Box>
-        }
-      />
-      <CardContent>
-        <Card>
-          <CardContent
-            className='cursor-pointer'
-            ref={scrollContainerRef}
-            sx={{
-              position: 'relative',
-              minHeight: '200px',
-              maxHeight: '300px',
-              overflowY: 'auto',
-              backgroundImage: `${
-                modeTheme === 'light'
-                  ? 'linear-gradient(rgba(241, 241, 241, 0.95), rgba(255,255,255,0.95))'
-                  : 'linear-gradient( rgba(28, 24, 48, 0.95), rgba(40,36,61,0.95))'
-              }, url("/images/identidadeVisual/bgChat.png")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              overflowX: 'hidden',
-              width: '100%',
-              scrollBehavior: 'smooth',
-              cursor: 'default',
-              '&::-webkit-scrollbar': { width: '6px' },
-              '&::-webkit-scrollbar-track': { background: 'transparent' },
-              '&::-webkit-scrollbar-thumb': {
-                background: theme.palette.divider,
-                borderRadius: '3px',
-                '&:hover': {
-                  background: theme.palette.text.secondary
-                }
-              }
-            }}
-          >
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Box className='flex flex-row'>
-                {!historyLoading && !callOperator && (
-                  <Box className='flex flex-row'>
-                    {/* ✅ USANDO CHATLOG ADAPTADO */}
-                    <ChatLog
-                      chatData={chatData}
-                      isBelowLgScreen={false}
-                      isBelowMdScreen={false}
-                      isBelowSmScreen={false}
-                    />
-                  </Box>
-                )}
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
 
-        <Box className='flex flex-row justify-between mt-5'>
-          <Typography variant='subtitle2' color='textDisabled'>
-            Em andamento há: {progressTime}
-          </Typography>
-          <Typography variant='subtitle2' color='textDisabled'>
-            Sendo atendido por: {attendant}
-          </Typography>
-        </Box>
-      </CardContent>
-    </Card>
-  )
-}
+        // 🆕 DESTAQUE SE ESTIVER NO MODAL
+        border: isInModal ? '2px solid #1976d2' : '1px solid transparent',
+
+        '@keyframes pulseShadow': {
+          '0%': { boxShadow: '0 0 6px var(--mui-palette-error-main)' },
+          '50%': { boxShadow: '0 0 20px var(--mui-palette-error-main)' },
+          '100%': { boxShadow: '0 0 6px var(--mui-palette-error-main)' }
+        }
+      }
+    }, [callOperator, isDragging, isInModal])
+
+    const chatContentStyles = useMemo(
+      () => ({
+        position: 'relative',
+        minHeight: '200px',
+        maxHeight: '300px',
+        overflowY: 'auto',
+        backgroundImage: `${
+          modeTheme === 'light'
+            ? 'linear-gradient(rgba(241, 241, 241, 0.95), rgba(255,255,255,0.95))'
+            : 'linear-gradient( rgba(28, 24, 48, 0.95), rgba(40,36,61,0.95))'
+        }, url("/images/identidadeVisual/bgChat.png")`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        overflowX: 'hidden',
+        width: '100%',
+        scrollBehavior: 'smooth',
+        cursor: 'default',
+        '&::-webkit-scrollbar': { width: '6px' },
+        '&::-webkit-scrollbar-track': { background: 'transparent' },
+        '&::-webkit-scrollbar-thumb': {
+          background: theme.palette.divider,
+          borderRadius: '3px',
+          '&:hover': { background: theme.palette.text.secondary }
+        }
+      }),
+      [modeTheme, theme.palette.divider, theme.palette.text.secondary]
+    )
+
+    // 🎛️ CALLBACKS OTIMIZADOS
+    const handleCardClick = useCallback(() => {
+      clickCount.current += 1
+      if (clickTimeout.current) clearTimeout(clickTimeout.current)
+
+      clickTimeout.current = setTimeout(() => {
+        if (clickCount.current === 1 && onChatSelect) {
+          onChatSelect(protocol)
+        }
+
+        clickCount.current = 0
+      }, 250)
+    }, [onChatSelect, protocol])
+
+    const handleCardDoubleClick = useCallback(() => {
+      // 🔧 LIMPAR TIMEOUT DO CLIQUE SIMPLES
+      if (clickTimeout.current) {
+        clearTimeout(clickTimeout.current)
+        clickCount.current = 0
+      }
+
+      if (onChatDoubleClick) {
+        onChatDoubleClick(protocol)
+      }
+    }, [onChatDoubleClick, protocol])
+
+    // 🔄 AUTO SCROLL (otimizado com useCallback)
+    const scrollToBottom = useCallback(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+      }
+    }, [])
+
+    // 🔄 EFEITO DE SCROLL (só roda quando messageCount muda)
+    useEffect(() => {
+      scrollToBottom()
+    }, [messageCount, scrollToBottom])
+
+    // 📊 DEBUG RE-RENDER (remover em produção)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔄 CardMonitor ${protocol} re-renderizou`, {
+        messageCount,
+        lastUpdate: updated_at,
+        isSelected,
+        isInModal
+      })
+    }
+
+    return (
+      <Card onClick={handleCardClick} onDoubleClick={handleCardDoubleClick} sx={cardStyles}>
+        <CardHeader
+          title={
+            <Box display='flex' alignItems='center' gap={1}>
+              <Typography variant='h4' sx={{ color: statusColor }}>
+                # {identifier}
+              </Typography>
+
+              {/* 🆕 INDICADORES DE STATUS */}
+              {isWebSocketConnected && (
+                <Chip
+                  size='small'
+                  label='●'
+                  color='success'
+                  sx={{ minWidth: 'unset', px: 0.5, fontSize: '0.7rem' }}
+                  title='Tempo real ativo'
+                />
+              )}
+
+              {isInModal && (
+                <Chip
+                  size='small'
+                  label='👁️'
+                  color='primary'
+                  sx={{ minWidth: 'unset', px: 0.5, fontSize: '0.7rem' }}
+                  title='Aberto no modal'
+                />
+              )}
+            </Box>
+          }
+          subheader={
+            <Box>
+              <Typography variant='body2' color='text.secondary'>
+                Protocolo: {protocol}
+              </Typography>
+
+              {/* 🆕 CONTADOR DE MENSAGENS EM TEMPO REAL */}
+              <Typography variant='caption' color='text.secondary'>
+                {messageCount || 0} mensagem{messageCount !== 1 ? 's' : ''}
+              </Typography>
+
+              {lastMessage && (
+                <Typography variant='caption' color='text.secondary' display='block'>
+                  Última: {new Date(lastMessage.created_at).toLocaleString()}
+                </Typography>
+              )}
+            </Box>
+          }
+          action={
+            <Box>
+              {getStatusProtocol(status, callOperator)}
+              <CustomIconButton
+                color='primary'
+                variant='outlined'
+                {...dragListeners}
+                {...dragAttributes}
+                sx={{
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    transition: 'transform 0.2s ease'
+                  }
+                }}
+                title='Clique e arraste para reordenar'
+              >
+                <i className='ri-drag-move-2-fill' />
+              </CustomIconButton>
+            </Box>
+          }
+        />
+
+        <CardContent>
+          <Card>
+            <CardContent className='cursor-pointer' ref={scrollContainerRef} sx={chatContentStyles}>
+              <Box sx={{ position: 'relative', zIndex: 1 }}>
+                <Box className='flex flex-row'>
+                  {!historyLoading && !callOperator && (
+                    <Box className='flex flex-row'>
+                      {/* ✅ CHATLOG EXISTENTE - Dados já atualizados pelo WebSocket */}
+                      <ChatLog
+                        chatData={chatData}
+                        isBelowLgScreen={false}
+                        isBelowMdScreen={false}
+                        isBelowSmScreen={false}
+                      />
+                    </Box>
+                  )}
+
+                  {/* 🆕 LOADING STATE */}
+                  {historyLoading && (
+                    <Box display='flex' justifyContent='center' alignItems='center' minHeight='100px'>
+                      <Typography variant='body2' color='text.secondary'>
+                        Carregando mensagens...
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* 🆕 ERROR STATE */}
+                  {callOperator && (
+                    <Box display='flex' justifyContent='center' alignItems='center' minHeight='100px'>
+                      <Typography variant='body2' color='error'>
+                        ⚠️ Operador solicitado
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          <Box className='flex flex-row justify-between mt-5'>
+            <Typography variant='subtitle2' color='textDisabled'>
+              Em andamento há: {progressTime}
+            </Typography>
+            <Typography variant='subtitle2' color='textDisabled'>
+              Sendo atendido por: {attendant}
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    )
+  },
+  (prevProps, nextProps) => {
+    // 🔥 COMPARAÇÃO CUSTOMIZADA - Performance Critical
+
+    // 1. 📊 Dados principais do chat mudaram?
+    const prevData = prevProps.chatData
+    const nextData = nextProps.chatData
+
+    if (
+      prevData.protocol !== nextData.protocol ||
+      prevData.messageCount !== nextData.messageCount ||
+      prevData.status !== nextData.status ||
+      prevData.updated_at !== nextData.updated_at ||
+      prevData.historyLoading !== nextData.historyLoading ||
+      prevData.historyError !== nextData.historyError
+    ) {
+      return false // Re-renderizar
+    }
+
+    // 2. 📝 Última mensagem mudou?
+    const prevLastMsg = prevData.lastMessage
+    const nextLastMsg = nextData.lastMessage
+
+    if (prevLastMsg?.id !== nextLastMsg?.id) {
+      return false // Re-renderizar
+    }
+
+    // 3. 🎨 Props visuais mudaram?
+    if (
+      prevProps.isDragging !== nextProps.isDragging ||
+      prevProps.isSelected !== nextProps.isSelected ||
+      prevProps.isInModal !== nextProps.isInModal ||
+      prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
+    ) {
+      return false // Re-renderizar
+    }
+
+    // 4. 🎛️ Callbacks mudaram? (não deveria acontecer se bem implementado)
+    if (
+      prevProps.onChatSelect !== nextProps.onChatSelect ||
+      prevProps.onChatDoubleClick !== nextProps.onChatDoubleClick
+    ) {
+      return false // Re-renderizar
+    }
+
+    // 5. 🔧 Props de drag mudaram?
+    if (prevProps.dragListeners !== nextProps.dragListeners || prevProps.dragAttributes !== nextProps.dragAttributes) {
+      return false // Re-renderizar
+    }
+
+    // ✅ Nenhuma mudança relevante detectada
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Card ${nextData.protocol} evitou re-render desnecessário`)
+    }
+
+    return true // NÃO re-renderizar
+  }
+)
+
+CardMonitorOptimized.displayName = 'CardMonitorOptimized'
+
+export default CardMonitorOptimized

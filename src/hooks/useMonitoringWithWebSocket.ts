@@ -1,4 +1,4 @@
-// src/hooks/useMonitoringWithWebSocket.ts
+// src/hooks/useMonitoringWithWebSocket.ts - VERSÃO CORRIGIDA
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 
 import { useAppDispatch, useAppSelector } from '@/redux-store'
@@ -7,7 +7,7 @@ import {
   useRefreshChatHistoryMutation,
   type ChatWithHistory,
   type ChatWithHistoryListResponse,
-  type ChatHistoryMessage // 🔥 IMPORT CORRETO
+  type ChatHistoryMessage
 } from '@/api/endpoints/chat/history'
 
 import { clearAllChats, selectSelectedChat, selectIsLoading, selectError } from '@/redux-store/slices/chat'
@@ -15,14 +15,14 @@ import { clearAllChats, selectSelectedChat, selectIsLoading, selectError } from 
 // 🔥 WEBSOCKET IMPORTS
 import { getEcho, isEchoConnected } from '@/redux-store/websocket/echo'
 
-// 🎯 TIPOS PARA EVENTOS WEBSOCKET (CORRIGIDOS)
+// 🎯 TIPOS PARA EVENTOS WEBSOCKET
 interface ProtocolEvent {
   protocol: string
   client_id: string
   assistant_id: string
   source: string
   identifier: string
-  operator: 0 | 1 // 🔥 CORRIGIDO: deve ser 0 ou 1
+  operator: 0 | 1
   status: string
   created_at: string
   updated_at: string
@@ -33,18 +33,11 @@ interface MessageEvent {
   protocol: string
   content: string
   role: 'user' | 'assistant' | 'operator'
-  operator: number | null // 🔥 CORRIGIDO: operator nas mensagens é string ou null
+  operator: number | null
   created_at: string
 }
 
 interface UseMonitoringWithWebSocketOptions {
-  autoRefresh?: boolean
-  refreshInterval?: number
-  enableFilters?: boolean
-  defaultSource?: string
-  defaultStatus?: string
-  sortBy?: 'lastMessage' | 'messageCount' | 'protocol' | 'assistant'
-  sortOrder?: 'asc' | 'desc'
   enableWebSocket?: boolean
   onLoadComplete?: (data: ChatWithHistoryListResponse) => void
   onError?: (error: any) => void
@@ -53,7 +46,6 @@ interface UseMonitoringWithWebSocketOptions {
 
 interface UseMonitoringWithWebSocketReturn {
   chats: ChatWithHistory[]
-  filteredChats: ChatWithHistory[]
   stats: {
     total: number
     totalMessages: number
@@ -69,36 +61,17 @@ interface UseMonitoringWithWebSocketReturn {
   refetch: () => void
   refreshSpecificChat: (protocol: string) => Promise<void>
   clearAllData: () => void
-  searchTerm: string
-  setSearchTerm: (term: string) => void
-  sourceFilter: string
-  setSourceFilter: (source: string) => void
-  statusFilter: string
-  setStatusFilter: (status: string) => void
   selectChat: (protocol: string) => void
   selectedChat: ChatWithHistory | null
-
-  // 🔥 NOVOS RETORNOS WEBSOCKET
   isWebSocketConnected: boolean
   connectedChannels: string[]
+  updateChatOrder: (oldIndex: number, newIndex: number) => void
 }
 
 export function useMonitoringWithWebSocket(
   options: UseMonitoringWithWebSocketOptions = {}
 ): UseMonitoringWithWebSocketReturn {
-  const {
-    autoRefresh = false,
-    refreshInterval = 30000,
-    enableFilters = true,
-    defaultSource = 'all',
-    defaultStatus = 'all',
-    sortBy = 'lastMessage',
-    sortOrder = 'desc',
-    enableWebSocket = true,
-    onLoadComplete,
-    onError,
-    onChatSelect
-  } = options
+  const { enableWebSocket = true, onLoadComplete, onError, onChatSelect } = options
 
   const dispatch = useAppDispatch()
 
@@ -109,7 +82,6 @@ export function useMonitoringWithWebSocket(
     isLoading: apiLoading,
     refetch: apiRefetch
   } = useGetAllChatsWithHistoryQuery(undefined, {
-    pollingInterval: autoRefresh ? refreshInterval : 0,
     refetchOnMountOrArgChange: true,
     refetchOnFocus: false,
     refetchOnReconnect: true
@@ -123,75 +95,28 @@ export function useMonitoringWithWebSocket(
   const reduxError = useAppSelector(selectError)
 
   // 🎯 ESTADOS LOCAIS
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sourceFilter, setSourceFilter] = useState(defaultSource)
-  const [statusFilter, setStatusFilter] = useState(defaultStatus)
   const [isRefreshing, setIsRefreshing] = useState(false)
-
-  // 🔥 NOVOS ESTADOS WEBSOCKET
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false)
   const [connectedChannels, setConnectedChannels] = useState<string[]>([])
   const [localChats, setLocalChats] = useState<ChatWithHistory[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
 
   // 🔧 REFS PARA CONTROLE DE CONEXÕES
   const channelsRef = useRef<Set<string>>(new Set())
   const clientsRef = useRef<Set<string>>(new Set())
 
-  // 📋 DADOS PROCESSADOS
+  // 📋 DADOS FINAIS (HÍBRIDO: API + WEBSOCKET)
   const chats = useMemo(() => {
-    if (enableWebSocket && localChats.length > 0) {
-      return localChats
+    if (!isHydrated || !enableWebSocket) {
+      return data?.chats || []
     }
 
-    return data?.chats || []
-  }, [data?.chats, localChats, enableWebSocket])
+    return localChats
+  }, [data?.chats, localChats, enableWebSocket, isHydrated])
 
   const isLoading = apiLoading || reduxIsLoading
   const error = apiError ? (apiError as any)?.message || 'Erro ao carregar chats' : reduxError
   const selectedChat = reduxSelectedChat
-
-  // 🔍 CHATS FILTRADOS
-  const filteredChats = useMemo(() => {
-    if (!enableFilters) return chats
-
-    return chats
-      .filter((chat: ChatWithHistory) => {
-        const matchesSearch =
-          !searchTerm ||
-          chat.assistant?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          chat.identifier.includes(searchTerm) ||
-          chat.protocol.includes(searchTerm) ||
-          (chat.history && chat.history.some(msg => msg.content.toLowerCase().includes(searchTerm.toLowerCase())))
-
-        const matchesSource = sourceFilter === 'all' || chat.source === sourceFilter
-        const matchesStatus = statusFilter === 'all' || chat.status === statusFilter
-
-        return matchesSearch && matchesSource && matchesStatus
-      })
-      .sort((a: ChatWithHistory, b: ChatWithHistory) => {
-        let compareValue = 0
-
-        switch (sortBy) {
-          case 'lastMessage':
-            const aTime = a.lastMessage ? new Date(a.lastMessage.created_at).getTime() : 0
-            const bTime = b.lastMessage ? new Date(b.lastMessage.created_at).getTime() : 0
-
-            compareValue = bTime - aTime
-            break
-          case 'messageCount':
-            compareValue = (b.messageCount || 0) - (a.messageCount || 0)
-            break
-          case 'protocol':
-            compareValue = a.protocol.localeCompare(b.protocol)
-            break
-          case 'assistant':
-            compareValue = (a.assistant?.name || '').localeCompare(b.assistant?.name || '')
-            break
-        }
-
-        return sortOrder === 'desc' ? compareValue : -compareValue
-      })
-  }, [chats, searchTerm, sourceFilter, statusFilter, sortBy, sortOrder, enableFilters])
 
   // 📊 ESTATÍSTICAS CALCULADAS
   const stats = useMemo(() => {
@@ -223,7 +148,7 @@ export function useMonitoringWithWebSocket(
   }, [chats])
 
   // 🔥 HELPER: CRIAR MENSAGEM NO FORMATO CORRETO
-  const createChatHistoryMessage = (messageEvent: MessageEvent): ChatHistoryMessage => {
+  const createChatHistoryMessage = useCallback((messageEvent: MessageEvent): ChatHistoryMessage => {
     return {
       id: messageEvent.id,
       content: messageEvent.content,
@@ -231,7 +156,242 @@ export function useMonitoringWithWebSocket(
       operator: messageEvent.operator,
       created_at: messageEvent.created_at
     }
-  }
+  }, [])
+
+  // 🔧 VALIDAÇÃO COM API
+  const validateWithAPI = useCallback(
+    async (protocol: string) => {
+      try {
+        console.log('🔍 Validando protocolo com API:', protocol)
+        await refreshChatHistory(protocol).unwrap()
+        console.log('✅ Protocolo validado com sucesso')
+      } catch (error) {
+        console.error('💥 Erro ao validar protocolo:', error)
+        setTimeout(() => apiRefetch(), 1000)
+      }
+    },
+    [refreshChatHistory, apiRefetch]
+  )
+
+  // 🔥 HANDLER CORRIGIDO: Nova mensagem com tratamento para protocolos órfãos
+  const handleNewMessage = useCallback(
+    (messageEvent: MessageEvent) => {
+      console.log('💬 Nova mensagem recebida:', messageEvent.protocol)
+
+      setLocalChats(prevChats => {
+        // 🔍 ENCONTRAR CHAT
+        const chatIndex = prevChats.findIndex(chat => chat.protocol === messageEvent.protocol)
+
+        if (chatIndex === -1) {
+          console.warn('⚠️ Chat não encontrado para mensagem:', messageEvent.protocol)
+          console.log(
+            '🔍 Protocolos existentes:',
+            prevChats.map(c => c.protocol)
+          )
+
+          // 🆕 CRIAR CHAT TEMPORÁRIO para protocolo órfão
+          console.log('🆕 Criando chat temporário para protocolo órfão:', messageEvent.protocol)
+
+          const newMessage = createChatHistoryMessage(messageEvent)
+
+          const orphanChat: ChatWithHistory = {
+            protocol: messageEvent.protocol,
+            assistant: { name: 'Assistente AI' },
+            source: 'whatsapp' as any, // Default
+            identifier: messageEvent.protocol.slice(-6),
+            status: 'active' as any,
+            history: [newMessage],
+            historyLoading: false,
+            historyError: null,
+            messageCount: 1,
+            lastMessage: newMessage,
+            project_id: 'unknown',
+            operator: 0,
+            question_operator: 0,
+            updated_at: messageEvent.created_at,
+            created_at: messageEvent.created_at
+          }
+
+          // 🔄 FAZER REFETCH PARA SINCRONIZAR (async)
+          setTimeout(() => {
+            console.log('🔄 Fazendo refetch devido a protocolo órfão')
+            apiRefetch()
+          }, 2000)
+
+          return [orphanChat, ...prevChats]
+        }
+
+        const newMessage = createChatHistoryMessage(messageEvent)
+
+        // ✅ VERIFICAR DUPLICATA
+        const currentChat = prevChats[chatIndex]
+        const messageExists = currentChat.history.some(msg => msg.id === newMessage.id)
+
+        if (messageExists) {
+          console.warn('⚠️ Mensagem duplicada ignorada:', newMessage.id)
+
+          return prevChats // Retorna sem modificar
+        }
+
+        // 🎯 CRIAR NOVO ARRAY COM CHAT ATUALIZADO
+        const newChats = [...prevChats]
+
+        newChats[chatIndex] = {
+          ...currentChat,
+          history: [...currentChat.history, newMessage],
+          messageCount: (currentChat.messageCount || 0) + 1,
+          lastMessage: newMessage,
+          updated_at: messageEvent.created_at
+        }
+
+        console.log(`✅ Chat ${messageEvent.protocol} atualizado:`, {
+          totalMensagens: newChats[chatIndex].messageCount,
+          ultimaMensagem: newMessage.content.substring(0, 30) + '...'
+        })
+
+        return newChats
+      })
+    },
+    [createChatHistoryMessage, apiRefetch]
+  )
+
+  // 🔥 HANDLER CORRIGIDO: Novo protocolo
+  const handleProtocolCreated = useCallback(
+    (protocolEvent: ProtocolEvent) => {
+      console.log('📋 Novo protocolo criado:', protocolEvent.protocol)
+
+      setLocalChats(prevChats => {
+        // ✅ VERIFICAR DUPLICATA
+        const exists = prevChats.some(chat => chat.protocol === protocolEvent.protocol)
+
+        if (exists) {
+          console.warn('⚠️ Protocolo já existe:', protocolEvent.protocol)
+
+          return prevChats
+        }
+
+        const newChat: ChatWithHistory = {
+          protocol: protocolEvent.protocol,
+          assistant: { name: 'Assistente AI' },
+          source: protocolEvent.source as any,
+          identifier: protocolEvent.identifier,
+          status: protocolEvent.status as any,
+          history: [],
+          historyLoading: false,
+          historyError: null,
+          messageCount: 0,
+          lastMessage: undefined,
+          project_id: protocolEvent.client_id,
+          operator: protocolEvent.operator,
+          question_operator: 0,
+          updated_at: protocolEvent.updated_at,
+          created_at: protocolEvent.created_at
+        }
+
+        console.log(`✅ Novo chat adicionado: ${protocolEvent.protocol}`)
+
+        // 🎯 VALIDAR COM API (async)
+        setTimeout(() => validateWithAPI(protocolEvent.protocol), 1000)
+
+        return [newChat, ...prevChats]
+      })
+    },
+    [validateWithAPI]
+  )
+
+  // 🔥 HANDLER CORRIGIDO: Protocolo atualizado com tratamento para órfãos
+  const handleProtocolUpdated = useCallback(
+    (protocolEvent: ProtocolEvent) => {
+      console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
+
+      setLocalChats(prevChats => {
+        const chatIndex = prevChats.findIndex(chat => chat.protocol === protocolEvent.protocol)
+
+        if (chatIndex === -1) {
+          console.warn('⚠️ Chat não encontrado para atualização:', protocolEvent.protocol)
+          console.log(
+            '🔍 Protocolos existentes:',
+            prevChats.map(c => c.protocol)
+          )
+
+          // 🆕 CRIAR CHAT se não existe (protocolo órfão)
+          console.log('🆕 Criando chat para protocolo órfão em atualização:', protocolEvent.protocol)
+
+          const orphanChat: ChatWithHistory = {
+            protocol: protocolEvent.protocol,
+            assistant: { name: 'Assistente AI' },
+            source: protocolEvent.source as any,
+            identifier: protocolEvent.identifier,
+            status: protocolEvent.status as any,
+            history: [],
+            historyLoading: false,
+            historyError: null,
+            messageCount: 0,
+            lastMessage: undefined,
+            project_id: protocolEvent.client_id,
+            operator: protocolEvent.operator,
+            question_operator: 0,
+            updated_at: protocolEvent.updated_at,
+            created_at: protocolEvent.created_at
+          }
+
+          // 🔄 FAZER REFETCH PARA SINCRONIZAR (async)
+          setTimeout(() => {
+            console.log('🔄 Fazendo refetch devido a protocolo órfão em atualização')
+            apiRefetch()
+          }, 2000)
+
+          return [orphanChat, ...prevChats]
+        }
+
+        const currentChat = prevChats[chatIndex]
+
+        // 🎯 VERIFICAR SE ALGO MUDOU
+        const needsUpdate =
+          currentChat.status !== protocolEvent.status ||
+          currentChat.operator !== protocolEvent.operator ||
+          currentChat.updated_at !== protocolEvent.updated_at
+
+        if (!needsUpdate) {
+          return prevChats // Sem mudanças
+        }
+
+        // 🎯 CRIAR NOVO ARRAY COM CHAT ATUALIZADO
+        const newChats = [...prevChats]
+
+        newChats[chatIndex] = {
+          ...currentChat,
+          status: protocolEvent.status as any,
+          operator: protocolEvent.operator,
+          updated_at: protocolEvent.updated_at
+        }
+
+        console.log(`✅ Chat ${protocolEvent.protocol} atualizado`)
+
+        return newChats
+      })
+    },
+    [apiRefetch]
+  )
+
+  // 🔥 HANDLER CORRIGIDO: Protocolo removido
+  const handleProtocolDeleted = useCallback((deleteEvent: { protocol: string }) => {
+    console.log('🗑️ Removendo protocolo:', deleteEvent.protocol)
+
+    setLocalChats(prevChats => {
+      const newChats = prevChats.filter(chat => chat.protocol !== deleteEvent.protocol)
+
+      if (newChats.length === prevChats.length) {
+        console.warn('⚠️ Protocolo não encontrado para remoção:', deleteEvent.protocol)
+
+        return prevChats
+      }
+
+      console.log(`✅ Chat ${deleteEvent.protocol} removido`)
+
+      return newChats
+    })
+  }, [])
 
   // 🔥 WEBSOCKET - CONECTAR AOS CANAIS DE PROJETO
   const connectToProjectChannels = useCallback(() => {
@@ -240,87 +400,38 @@ export function useMonitoringWithWebSocket(
     try {
       const echo = getEcho()
 
-      if (!echo || !isEchoConnected()) {
-        console.warn('⚠️ WebSocket não conectado para monitoramento')
-
-        return
-      }
+      if (!echo || !isEchoConnected()) return
 
       const clientIds = [...new Set(chats.map(chat => chat.project_id).filter(Boolean))]
 
-      console.log('🔌 Conectando aos canais de projeto:', clientIds)
+      console.log('🏢 Conectando aos canais de projeto:', clientIds)
 
       clientIds.forEach(clientId => {
-        if (clientsRef.current.has(clientId)) {
-          console.log('📡 Canal de projeto já conectado:', clientId)
-
-          return
-        }
+        if (clientsRef.current.has(clientId)) return
 
         const channelName = `project.${clientId}`
-
-        console.log('🔌 Conectando ao canal:', channelName)
 
         try {
           const channel = echo.private(channelName)
 
           channel
-            .listen('.protocol.created', (e: ProtocolEvent) => {
-              console.log('📋 Novo protocolo criado:', e)
-
-              setLocalChats(prev => {
-                const newChat: ChatWithHistory = {
-                  protocol: e.protocol,
-                  assistant: { name: 'Assistente AI' },
-                  source: e.source as any,
-                  identifier: e.identifier,
-                  status: e.status as any,
-                  history: [],
-                  historyLoading: false,
-                  historyError: null,
-                  messageCount: 0,
-                  project_id: e.client_id,
-                  operator: e.operator, // 🔥 AGORA É 0 | 1
-                  question_operator: 0,
-                  updated_at: e.updated_at,
-                  created_at: e.created_at
-                }
-
-                const exists = prev.some(chat => chat.protocol === e.protocol)
-
-                if (exists) return prev
-
-                return [newChat, ...prev]
-              })
-            })
-            .listen('.protocol.updated', (e: ProtocolEvent) => {
-              console.log('📋 Protocolo atualizado:', e)
-
-              setLocalChats(prev =>
-                prev.map(chat =>
-                  chat.protocol === e.protocol ? { ...chat, status: e.status as any, updated_at: e.updated_at } : chat
-                )
-              )
-            })
-            .listen('.protocol.deleted', (e: { protocol: string }) => {
-              console.log('🗑️ Protocolo removido:', e)
-
-              setLocalChats(prev => prev.filter(chat => chat.protocol !== e.protocol))
-            })
+            .listen('.protocol.created', handleProtocolCreated)
+            .listen('.protocol.updated', handleProtocolUpdated)
+            .listen('.protocol.deleted', handleProtocolDeleted)
 
           clientsRef.current.add(clientId)
           setConnectedChannels(prev => [...prev, channelName])
-          console.log(`✅ Conectado ao canal de projeto: ${channelName}`)
-        } catch (channelError) {
-          console.error(`💥 Erro ao conectar ao canal ${channelName}:`, channelError)
+          console.log(`✅ Canal de projeto conectado: ${channelName}`)
+        } catch (error) {
+          console.error(`💥 Erro ao conectar ao canal ${channelName}:`, error)
         }
       })
     } catch (error) {
-      console.error('💥 Erro ao conectar aos canais de projeto:', error)
+      console.error('💥 Erro geral nos canais de projeto:', error)
     }
-  }, [chats, enableWebSocket])
+  }, [chats, enableWebSocket, handleProtocolCreated, handleProtocolUpdated, handleProtocolDeleted])
 
-  // 🔥 WEBSOCKET - CONECTAR AOS CANAIS DE PROTOCOLO (MENSAGENS)
+  // 🔥 WEBSOCKET - CONECTAR AOS CANAIS DE PROTOCOLO (com verificação robusta)
   const connectToProtocolChannels = useCallback(() => {
     if (!enableWebSocket) return
 
@@ -329,99 +440,57 @@ export function useMonitoringWithWebSocket(
 
       if (!echo || !isEchoConnected()) return
 
+      console.log('💬 Conectando aos canais de protocolo...')
+      console.log(
+        '📋 Chats disponíveis:',
+        chats.map(c => ({ protocol: c.protocol, source: c.source }))
+      )
+
       chats.forEach(chat => {
         const channelName = `protocol.${chat.protocol}`
 
-        if (channelsRef.current.has(channelName)) return
+        if (channelsRef.current.has(channelName)) {
+          console.log('📡 Canal de protocolo já conectado:', channelName)
 
-        console.log('🔌 Conectando ao canal de protocolo:', channelName)
+          return
+        }
 
         try {
           const channel = echo.private(channelName)
 
           channel
-            .listen('.question.created', (e: MessageEvent) => {
-              console.log('❓ Nova pergunta:', e)
-
-              setLocalChats(prev =>
-                prev.map(chat => {
-                  if (chat.protocol === e.protocol) {
-                    const newMessage = createChatHistoryMessage(e) // 🔥 USAR HELPER
-
-                    return {
-                      ...chat,
-                      history: [...chat.history, newMessage],
-                      messageCount: (chat.messageCount || 0) + 1,
-                      lastMessage: newMessage
-                    }
-                  }
-
-                  return chat
-                })
-              )
-            })
-            .listen('.reply.created', (e: MessageEvent) => {
-              console.log('💬 Nova resposta:', e)
-
-              setLocalChats(prev =>
-                prev.map(chat => {
-                  if (chat.protocol === e.protocol) {
-                    const newMessage = createChatHistoryMessage(e) // 🔥 USAR HELPER
-
-                    return {
-                      ...chat,
-                      history: [...chat.history, newMessage],
-                      messageCount: (chat.messageCount || 0) + 1,
-                      lastMessage: newMessage
-                    }
-                  }
-
-                  return chat
-                })
-              )
-            })
-            .listen('.operator.reply.created', (e: MessageEvent) => {
-              console.log('👨‍💼 Resposta do operador:', e)
-
-              setLocalChats(prev =>
-                prev.map(chat => {
-                  if (chat.protocol === e.protocol) {
-                    const newMessage = createChatHistoryMessage(e) // 🔥 USAR HELPER
-
-                    return {
-                      ...chat,
-                      history: [...chat.history, newMessage],
-                      messageCount: (chat.messageCount || 0) + 1,
-                      lastMessage: newMessage
-                    }
-                  }
-
-                  return chat
-                })
-              )
-            })
+            .listen('.question.created', handleNewMessage)
+            .listen('.reply.created', handleNewMessage)
+            .listen('.operator.reply.created', handleNewMessage)
 
           channelsRef.current.add(channelName)
           setConnectedChannels(prev => [...prev, channelName])
-          console.log(`✅ Conectado ao canal de protocolo: ${channelName}`)
-        } catch (channelError) {
-          console.error(`💥 Erro ao conectar ao canal ${channelName}:`, channelError)
+          console.log(`✅ Canal de protocolo conectado: ${channelName}`)
+        } catch (error) {
+          console.error(`💥 Erro ao conectar ao canal ${channelName}:`, error)
         }
       })
+
+      console.log('📊 Status dos canais de protocolo:', {
+        totalChats: chats.length,
+        canaisConectados: channelsRef.current.size,
+        ultimaConexao: Array.from(channelsRef.current).slice(-3)
+      })
     } catch (error) {
-      console.error('💥 Erro ao conectar aos canais de protocolo:', error)
+      console.error('💥 Erro geral nos canais de protocolo:', error)
     }
-  }, [chats, enableWebSocket])
+  }, [chats, enableWebSocket, handleNewMessage])
 
-  // 🔄 EFEITO: INICIALIZAR DADOS LOCAIS QUANDO API CARREGA
+  // 🔄 HIDRATAR: Sincronizar dados da API com estado local
   useEffect(() => {
-    if (data?.chats && enableWebSocket) {
-      console.log('🔄 Inicializando cache local com dados da API')
+    if (data?.chats && enableWebSocket && !isHydrated) {
+      console.log('🔄 Hidratando estado local com dados da API')
       setLocalChats(data.chats)
+      setIsHydrated(true)
     }
-  }, [data?.chats, enableWebSocket])
+  }, [data?.chats, enableWebSocket, isHydrated])
 
-  // 🔄 EFEITO: CONECTAR WEBSOCKET APÓS PRIMEIRA CARGA
+  // 🔄 CONECTAR WEBSOCKET APÓS PRIMEIRA CARGA (com limpeza de canais órfãos)
   useEffect(() => {
     if (!enableWebSocket || !chats.length) return
 
@@ -432,6 +501,35 @@ export function useMonitoringWithWebSocket(
 
       if (connected) {
         console.log('🔌 WebSocket conectado, configurando canais...')
+
+        // 🧹 LIMPAR CANAIS ÓRFÃOS (protocolos que não existem mais)
+        const existingProtocols = new Set(chats.map(chat => chat.protocol))
+
+        const connectedProtocolChannels = Array.from(channelsRef.current).filter(channel =>
+          channel.startsWith('protocol.')
+        )
+
+        connectedProtocolChannels.forEach(channelName => {
+          const protocol = channelName.replace('protocol.', '')
+
+          if (!existingProtocols.has(protocol)) {
+            console.log('🧹 Removendo canal órfão:', channelName)
+            channelsRef.current.delete(channelName)
+            setConnectedChannels(prev => prev.filter(ch => ch !== channelName))
+
+            // Tentar desconectar do canal
+            try {
+              const echo = getEcho()
+
+              if (echo) {
+                echo.leave(channelName)
+              }
+            } catch (error) {
+              console.warn('⚠️ Erro ao desconectar canal órfão:', error)
+            }
+          }
+        })
+
         connectToProjectChannels()
         connectToProtocolChannels()
       }
@@ -478,6 +576,30 @@ export function useMonitoringWithWebSocket(
     [chats, onChatSelect]
   )
 
+  // 🔥 DRAG AND DROP CORRIGIDO (SEM IMMER)
+  const updateChatOrder = useCallback((oldIndex: number, newIndex: number) => {
+    if (oldIndex === newIndex) return
+
+    setLocalChats(prevChats => {
+      // ✅ VERIFICAR ÍNDICES VÁLIDOS
+      if (oldIndex < 0 || oldIndex >= prevChats.length || newIndex < 0 || newIndex >= prevChats.length) {
+        console.warn('⚠️ Índices inválidos para reordenação:', { oldIndex, newIndex, length: prevChats.length })
+
+        return prevChats
+      }
+
+      // 🔄 REORDENAR COM SPREAD OPERATOR (SIMPLES E FUNCIONAL)
+      const newChats = [...prevChats]
+      const [movedItem] = newChats.splice(oldIndex, 1)
+
+      newChats.splice(newIndex, 0, movedItem)
+
+      console.log(`🔄 Chat reordenado: ${oldIndex} → ${newIndex}`)
+
+      return newChats
+    })
+  }, [])
+
   // 🎯 CALLBACKS
   useEffect(() => {
     if (data && onLoadComplete) {
@@ -493,7 +615,6 @@ export function useMonitoringWithWebSocket(
 
   return {
     chats,
-    filteredChats,
     stats,
     isLoading,
     isRefreshing,
@@ -501,32 +622,28 @@ export function useMonitoringWithWebSocket(
     refetch,
     refreshSpecificChat,
     clearAllData: () => dispatch(clearAllChats()),
-    searchTerm,
-    setSearchTerm,
-    sourceFilter,
-    setSourceFilter,
-    statusFilter,
-    setStatusFilter,
     selectChat,
     selectedChat,
     isWebSocketConnected,
-    connectedChannels
+    connectedChannels,
+    updateChatOrder
   }
 }
 
-// 🎯 HOOK ESPECIALIZADO PARA MONITORAMENTO COM WEBSOCKET
+// 🎯 HOOK ESPECIALIZADO (com debug melhorado)
 export function useMonitoringChatWithWebSocket() {
   return useMonitoringWithWebSocket({
-    autoRefresh: false,
-    enableFilters: true,
     enableWebSocket: true,
-    sortBy: 'lastMessage',
-    sortOrder: 'desc',
     onLoadComplete: data => {
-      console.log('🔄 Dados carregados + WebSocket ativo:', {
+      console.log('🔄 Dados carregados + WebSocket ativo (CORRIGIDO):', {
         totalChats: data.totalChats,
-        totalMessages: data.totalMessages
+        totalMessages: data.totalMessages,
+        protocolos: data.chats?.map(c => c.protocol) || [],
+        status: '✅ Funcional + Tratamento de Órfãos'
       })
+    },
+    onError: error => {
+      console.error('💥 Erro no hook de monitoramento:', error)
     }
   })
 }
