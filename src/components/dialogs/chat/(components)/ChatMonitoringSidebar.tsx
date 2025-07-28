@@ -124,7 +124,7 @@ const ChatMonitoringSidebar = ({
     success: null
   })
 
-  const [userSidebar, setUserSidebar] = useState(false)
+  // const [userSidebar, setUserSidebar] = useState(false)
   const [searchValue, setSearchValue] = useState<string | null>(null)
   const [filteredProtocols, setFilteredProtocols] = useState<any[]>([])
   const [filterStatus, setFilterStatus] = useState<'all' | 'recent' | 'resolved' | 'unresolved'>('all')
@@ -140,7 +140,10 @@ const ChatMonitoringSidebar = ({
     setActionState(prev => ({ ...prev, loading: 'assume_chat', error: null }))
 
     try {
-      await onAssumeChat()
+      if (onAssumeChat) {
+        await onAssumeChat()
+      }
+
       setActionState(prev => ({ ...prev, loading: null, success: 'assume_chat' }))
       setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
     } catch (error) {
@@ -156,7 +159,10 @@ const ChatMonitoringSidebar = ({
     setActionState(prev => ({ ...prev, loading: 'transfer_operator', error: null }))
 
     try {
-      await onTransferOperator()
+      if (onTransferOperator) {
+        await onTransferOperator()
+      }
+
       setActionState(prev => ({ ...prev, loading: null, success: 'transfer_operator' }))
       setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
     } catch (error) {
@@ -172,7 +178,10 @@ const ChatMonitoringSidebar = ({
     setActionState(prev => ({ ...prev, loading: 'add_comment', error: null }))
 
     try {
-      await onAddComment()
+      if (onAddComment) {
+        await onAddComment()
+      }
+
       setActionState(prev => ({ ...prev, loading: null, success: 'add_comment' }))
       setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
     } catch (error) {
@@ -188,7 +197,10 @@ const ChatMonitoringSidebar = ({
     setActionState(prev => ({ ...prev, loading: 'end_chat', error: null }))
 
     try {
-      await onEndChat()
+      if (onEndChat) {
+        await onEndChat()
+      }
+
       setActionState(prev => ({ ...prev, loading: null, success: 'end_chat' }))
     } catch (error) {
       setActionState(prev => ({
@@ -324,7 +336,7 @@ const ChatMonitoringSidebar = ({
 
   if (!chatData) return null
 
-  const clientStatus = chatData.status === 'active' ? 'Ativo' : 'Inativo'
+  // const clientStatus = chatData.status === 'active' ? 'Ativo' : 'Inativo'
 
   return (
     <Box>

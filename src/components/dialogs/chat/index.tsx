@@ -13,7 +13,6 @@ import {
   Paper,
   Button,
   useTheme,
-  Badge,
   useMediaQuery,
   type Theme
 } from '@mui/material'
@@ -27,7 +26,8 @@ import ChatLog from '@/components/chatLog/chatLog'
 
 // Types - vamos usar os mesmos tipos que você já tem
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
-import type { ChatMonitorProps } from '@/types/newChatypes'
+
+// import type { ChatMonitorProps } from '@/types/newChatypes'
 
 // import type { ProtocolHistoryItem } from '@/api/endpoints/chat/protocolHistory'
 import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
@@ -231,58 +231,58 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
   const clientName = chatData.assistant?.name || `Cliente ${chatData.protocol}`
   const clientChannel = chatData.source || 'WhatsApp'
 
-  const getStatusColors = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
-    if (callOperator) {
-      return {
-        backgroundColor: '#f44336', // Vermelho para chamada de operador
-        color: '#ffffff'
-      }
-    }
+  // const getStatusColors = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
+  //   if (callOperator) {
+  //     return {
+  //       backgroundColor: '#f44336', // Vermelho para chamada de operador
+  //       color: '#ffffff'
+  //     }
+  //   }
 
-    const colorConfig = {
-      active: { backgroundColor: '#44b700', color: '#ffffff' }, // Verde para ativo
-      inactive: { backgroundColor: '#797979', color: '#ffffff' }, // Cinza para inativo
-      resolved: { backgroundColor: '#2e7d32', color: '#ffffff' }, // Verde escuro para resolvido
-      unresolved: { backgroundColor: '#ed6c02', color: '#ffffff' } // Laranja para não resolvido
-    }
+  //   const colorConfig = {
+  //     active: { backgroundColor: '#44b700', color: '#ffffff' }, // Verde para ativo
+  //     inactive: { backgroundColor: '#797979', color: '#ffffff' }, // Cinza para inativo
+  //     resolved: { backgroundColor: '#2e7d32', color: '#ffffff' }, // Verde escuro para resolvido
+  //     unresolved: { backgroundColor: '#ed6c02', color: '#ffffff' } // Laranja para não resolvido
+  //   }
 
-    return colorConfig[status] ?? colorConfig.active
-  }
+  //   return colorConfig[status] ?? colorConfig.active
+  // }
 
-  const StyledBadge = styled(Badge, {
-    shouldForwardProp: prop => !['status', 'callOperator'].includes(prop as string)
-  })<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({ theme, status, callOperator }) => {
-    const colors = getStatusColors(status, callOperator)
+  // const StyledBadge = styled(Badge, {
+  //   shouldForwardProp: prop => !['status', 'callOperator'].includes(prop as string)
+  // })<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({ theme, status, callOperator }) => {
+  //   const colors = getStatusColors(status, callOperator)
 
-    return {
-      '& .MuiBadge-badge': {
-        backgroundColor: colors.backgroundColor,
-        color: colors.color,
-        boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-        '&::after': {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          borderRadius: '50%',
-          animation: 'ripple 1.2s infinite ease-in-out',
-          border: '1px solid currentColor',
-          content: '""'
-        }
-      },
-      '@keyframes ripple': {
-        '0%': {
-          transform: 'scale(.8)',
-          opacity: 1
-        },
-        '100%': {
-          transform: 'scale(2.4)',
-          opacity: 0
-        }
-      }
-    }
-  })
+  //   return {
+  //     '& .MuiBadge-badge': {
+  //       backgroundColor: colors.backgroundColor,
+  //       color: colors.color,
+  //       boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+  //       '&::after': {
+  //         position: 'absolute',
+  //         top: 0,
+  //         left: 0,
+  //         width: '100%',
+  //         height: '100%',
+  //         borderRadius: '50%',
+  //         animation: 'ripple 1.2s infinite ease-in-out',
+  //         border: '1px solid currentColor',
+  //         content: '""'
+  //       }
+  //     },
+  //     '@keyframes ripple': {
+  //       '0%': {
+  //         transform: 'scale(.8)',
+  //         opacity: 1
+  //       },
+  //       '100%': {
+  //         transform: 'scale(2.4)',
+  //         opacity: 0
+  //       }
+  //     }
+  //   }
+  // })
 
   return (
     <LargeMonitoringDialog open={open} onClose={onClose}>

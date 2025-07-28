@@ -72,7 +72,9 @@ export const store = configureStore({
         ],
         ignoredPaths: ['register', 'websocket.connection', 'websocket.channels', 'activeChatsReducer.connectedChannels']
       }
-    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware)
+    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware),
+
+  devTools: process.env.NODE_ENV !== 'production'
 })
 
 // Hooks para padronização do uso do Redux

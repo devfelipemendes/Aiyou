@@ -50,6 +50,7 @@ interface ProtocolEvent {
   protocol: string
   client_id: string
   assistant_id: string
+  question_operator?: 0 | 1
   source: string
   identifier: string
   operator: 0 | 1
@@ -82,11 +83,12 @@ interface UseMonitoringWithWebSocketReturn {
     successCount: number
     errorCount: number
     averageMessagesPerChat: number
-    mostActiveChat?: ChatWithHistory
-    latestActivity?: string
+    mostActiveChat?: ChatWithHistory | undefined
+    latestActivity?: string | undefined
   }
   isLoading: boolean
   isRefreshing: boolean
+
   error: string | null
   refetch: () => void
   refreshSpecificChat: (protocol: string) => Promise<void>
@@ -120,7 +122,16 @@ export function useMonitoringWithWebSocket(
 
   // 🔥 REDUX SELECTORS (substitui useState)
   const chats = useAppSelector(selectOrderedChats)
-  const stats = useAppSelector(selectMonitoringStats)
+
+  // Ensure stats fields are undefined instead of null for compatibility
+  const rawStats = useAppSelector(selectMonitoringStats)
+
+  const stats = {
+    ...rawStats,
+    mostActiveChat: rawStats.mostActiveChat === null ? undefined : rawStats.mostActiveChat,
+    latestActivity: rawStats.latestActivity === null ? undefined : rawStats.latestActivity
+  }
+
   const selectedChat = useAppSelector(selectSelectedChat)
 
   const {
@@ -184,6 +195,13 @@ export function useMonitoringWithWebSocket(
 
       console.log('🔍 Conteúdo da mensagem recebida:', messageEvent)
 
+      if (messageEvent.operator === 1) {
+        console.log('🚨🚨🚨 OPERADOR CHAMADO NA QUESTION!')
+        console.log('operator:', messageEvent.operator)
+        console.log('Protocol:', messageEvent.protocol)
+        console.log('Role:', messageEvent.role)
+      }
+
       if (typeof messageEvent.question_operator !== 'undefined') {
         dispatch(
           updatedQuestionOperator({
@@ -195,6 +213,15 @@ export function useMonitoringWithWebSocket(
 
       // 🔍 Se chat não existe, criar temporário
       const chatExists = chats.some(chat => chat.protocol === messageEvent.protocol)
+
+      if (messageEvent.operator === 1) {
+        dispatch(
+          updatedQuestionOperator({
+            protocol: messageEvent.protocol,
+            question_operator: 1
+          })
+        )
+      }
 
       if (!chatExists) {
         console.warn('⚠️ Chat não encontrado, criando temporário:', messageEvent.protocol)
@@ -286,6 +313,28 @@ export function useMonitoringWithWebSocket(
   const handleProtocolUpdated = useCallback(
     (protocolEvent: ProtocolEvent) => {
       console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
+
+      console.log('🔍 Dados completos do protocolo:', protocolEvent)
+
+      if (protocolEvent.question_operator !== undefined) {
+        console.log('🚨🚨🚨 QUESTION_OPERATOR NO PROTOCOLO!')
+        console.log('Valor:', protocolEvent.question_operator)
+      }
+
+      if (protocolEvent.question_operator === 1) {
+        console.log('🚨🚨🚨 QUESTION_OPERATOR NO PROTOCOLO!')
+        console.log('question_operator:', protocolEvent.question_operator)
+        console.log('Protocol:', protocolEvent.protocol)
+      }
+
+      if (protocolEvent.question_operator !== undefined) {
+        dispatch(
+          updatedQuestionOperator({
+            protocol: protocolEvent.protocol,
+            question_operator: protocolEvent.question_operator
+          })
+        )
+      }
 
       // ✅ DISPATCH REDUX - atualiza só o chat específico
       dispatch(
@@ -514,7 +563,7 @@ export function useMonitoringWithWebSocket(
 
   return {
     chats, // ← Vem do Redux via seletor
-    stats, // ← Calculado via seletor memoizado
+    stats,
     isLoading,
     isRefreshing,
     error,

@@ -146,7 +146,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     const messageCount = chatData?.messageCount || 0
     const assistant = chatData?.assistant
 
-    const callOperator = useMemo(() => chatData.question_operator === 1, [chatData])
+    const callOperator = useMemo(() => chatData.question_operator === 1 || chatData.operator === 1, [chatData])
 
     // 🔧 VALORES CALCULADOS MEMOIZADOS (SEMPRE EXECUTADOS)
     // const callOperator = useMemo(() => !!historyError, [historyError])
