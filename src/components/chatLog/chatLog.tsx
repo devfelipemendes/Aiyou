@@ -24,6 +24,9 @@ interface AdaptedChatLogProps {
   isBelowLgScreen: boolean
   isBelowMdScreen: boolean
   isBelowSmScreen: boolean
+  showOperatorTriggers?: boolean // ← NOVO
+  operatorTriggerMessages?: string[] // ← NOVO: IDs das mensagens
+  onInstructAssistant?: (messageId: string, messageContent: string) => void
 }
 
 interface AdaptedMsgGroup {
@@ -31,6 +34,7 @@ interface AdaptedMsgGroup {
   senderRole: 'user' | 'assistant' | 'operator'
   senderName: string
   messages: Array<{
+    messageId: string
     time: number
     message: string
     msgStatus?: {
@@ -64,7 +68,8 @@ const formatChatHistory = (history: ChatHistoryMessage[]): AdaptedMsgGroup[] => 
           isSent: true,
           isDelivered: true,
           isSeen: true
-        }
+        },
+        messageId: ''
       })
     } else {
       // Nova pessoa falando
@@ -76,6 +81,7 @@ const formatChatHistory = (history: ChatHistoryMessage[]): AdaptedMsgGroup[] => 
         senderName: message.role === 'user' ? 'Cliente' : 'Assistente',
         messages: [
           {
+            messageId: message.id, // ← NOVO: preservar ID original
             time: new Date(message.created_at).getTime(),
             message: message.content,
             msgStatus: {
@@ -167,7 +173,15 @@ const ScrollWrapper = ({
 }
 
 // ===== COMPONENTE PRINCIPAL =====
-const ChatLog = ({ chatData, isBelowLgScreen, isBelowMdScreen, isBelowSmScreen }: AdaptedChatLogProps) => {
+const ChatLog = ({
+  chatData,
+  isBelowLgScreen,
+  isBelowMdScreen,
+  isBelowSmScreen,
+  showOperatorTriggers = false,
+  operatorTriggerMessages = [],
+  onInstructAssistant
+}: AdaptedChatLogProps) => {
   const scrollRef = useRef(null)
 
   const formattedMessages = formatChatHistory(chatData.history)
