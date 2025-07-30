@@ -1,5 +1,8 @@
+// src/api/endpoints/chat/protocolHistory.ts - ADICIONANDO getAllHistoryByProtocol
+
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
+// Tipos existentes (mantidos)
 export interface ProtocolHistoryMessage {
   id: string
   content: string
@@ -39,7 +42,6 @@ export interface ProcessedProtocolHistoryResponse {
   }
 }
 
-// 🔥 CORRIGIDO: Tipo que bate com o retorno real
 export interface MultipleProtocolHistoryResponse {
   data: Record<string, ProtocolHistoryItem>
   stats: {
@@ -49,8 +51,22 @@ export interface MultipleProtocolHistoryResponse {
   }
 }
 
+// 🆕 NOVO TIPO: Para compatibilidade com ChatWithHistory
+export interface AllProtocolHistoryResponse {
+  protocols: ProcessedProtocolHistoryItem[]
+  protocolsMap: Record<string, ProcessedProtocolHistoryItem>
+  stats: {
+    totalProtocols: number
+    totalMessages: number
+    activeProtocols: number
+    oldestProtocol?: string
+    newestProtocol?: string
+  }
+}
+
 export const protocolHistoryApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
+    // Endpoints existentes (mantidos)
     getProtocolHistory: builder.query<ProcessedProtocolHistoryResponse, string>({
       query: protocol => ({
         url: `/chat/${protocol}/history/protocol`,
@@ -79,12 +95,10 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
 
         const stats = {
           totalProtocols: sortedProtocols.length,
-          totalMessages: sortedProtocols.reduce((acc, protocol) => acc + protocol.messageCount, 0), // 🔥 CORRIGIDO: Removido !
+          totalMessages: sortedProtocols.reduce((acc, protocol) => acc + protocol.messageCount, 0),
           oldestProtocol: sortedProtocols[sortedProtocols.length - 1]?.protocol,
           newestProtocol: sortedProtocols[0]?.protocol
         }
-
-        console.log('Estatísticas processadas:', stats)
 
         return {
           data: sortedProtocols,
@@ -124,9 +138,7 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
         try {
           console.log(`🚀 Buscando históricos de ${protocols.length} protocolos...`)
 
-          // 🔥 CORRIGIDO: Remover variável não utilizada
           const promises = protocols.map(async protocolId => {
-            // ← Renomeado para evitar confusão
             const result = await baseQuery({
               url: `/chat/${protocolId}/history/protocol`,
               method: 'GET'
@@ -147,9 +159,7 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
           const results = await Promise.all(promises)
           const consolidatedData: Record<string, ProtocolHistoryItem> = {}
 
-          // 🔥 CORRIGIDO: Usar protocolId corretamente
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          results.forEach(({ protocolId, data }) => {
+          results.forEach(({ data }) => {
             if (data) {
               Object.assign(consolidatedData, data)
             }
@@ -183,9 +193,8 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🔥 CORRIGIDO: Usar apenas tags válidas do sistema RTK
       providesTags: result => [
-        { type: 'ProtocolHistory', id: 'LIST' }, // ← Tag válida
+        { type: 'ProtocolHistory', id: 'LIST' },
         ...(result?.data
           ? Object.keys(result.data).map(protocol => ({
               type: 'ProtocolHistory' as const,
@@ -195,8 +204,179 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
       ],
 
       keepUnusedDataFor: 300
+    }),
+
+    // 🆕 NOVO ENDPOINT: Buscar TODOS os históricos de protocolos ativos
+    getAllHistoryByProtocol: builder.query<AllProtocolHistoryResponse, void>({
+      queryFn: async (arg, api, extraOptions, baseQuery) => {
+        try {
+          console.log('🚀 Buscando TODOS os históricos de protocolos ativos...')
+
+          // 📋 PASSO 1: Buscar chats ativos para extrair protocolos
+          console.log('📋 Passo 1: Buscando chats ativos...')
+
+          const chatsResult = await baseQuery({
+            url: '/chat',
+            method: 'GET'
+          })
+
+          if (chatsResult.error) {
+            return { error: { status: chatsResult.error.status, data: chatsResult.error.data } }
+          }
+
+          const chatsData = (chatsResult.data as any)?.data || []
+          const activeChats = chatsData.filter((chat: any) => chat.status === 'active')
+          const activeProtocols = activeChats.map((chat: any) => chat.protocol)
+
+          console.log(`✅ ${activeProtocols.length} protocolos ativos encontrados:`, activeProtocols)
+
+          if (activeProtocols.length === 0) {
+            return {
+              data: {
+                protocols: [],
+                protocolsMap: {},
+                stats: {
+                  totalProtocols: 0,
+                  totalMessages: 0,
+                  activeProtocols: 0
+                }
+              }
+            }
+          }
+
+          // 📨 PASSO 2: Buscar histórico de cada protocolo em PARALELO
+          console.log('📨 Passo 2: Buscando históricos em paralelo...')
+
+          const historyPromises = activeProtocols.map(async (protocol: string) => {
+            try {
+              console.log(`  → Buscando histórico do protocolo: ${protocol}`)
+
+              const historyResult = await baseQuery({
+                url: `/chat/${protocol}/history/protocol`,
+                method: 'GET'
+              })
+
+              if (historyResult.error) {
+                console.warn(`  ⚠️ Erro no protocolo ${protocol}:`, historyResult.error)
+
+                return { protocol, data: null, error: historyResult.error }
+              }
+
+              const protocolHistoryData = historyResult.data as ProtocolHistoryApiResponse
+
+              // Pegar dados do protocolo específico
+              const protocolData = protocolHistoryData.data[protocol] || Object.values(protocolHistoryData.data)[0]
+
+              if (!protocolData) {
+                console.warn(`  ⚠️ Dados não encontrados para protocolo: ${protocol}`)
+
+                return { protocol, data: null, error: 'Dados não encontrados' }
+              }
+
+              // Processar dados
+              const sortedHistory = protocolData.history.sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              )
+
+              const processedData: ProcessedProtocolHistoryItem = {
+                ...protocolData,
+                protocol,
+                history: sortedHistory,
+                messageCount: sortedHistory.length,
+                lastActivity: sortedHistory[sortedHistory.length - 1]?.created_at || '',
+                createdAt: sortedHistory[0]?.created_at || ''
+              }
+
+              console.log(`  ✅ Protocolo ${protocol}: ${processedData.messageCount} mensagens`)
+
+              return { protocol, data: processedData, error: null }
+            } catch (error) {
+              console.error(`  💥 Erro ao processar protocolo ${protocol}:`, error)
+
+              return {
+                protocol,
+                data: null,
+                error: error instanceof Error ? error.message : 'Erro desconhecido'
+              }
+            }
+          })
+
+          // 🔄 AGUARDAR TODAS AS PROMISES
+          const results = await Promise.allSettled(historyPromises)
+
+          const protocolsResult: ProcessedProtocolHistoryItem[] = []
+          const protocolsMap: Record<string, ProcessedProtocolHistoryItem> = {}
+          let totalMessages = 0
+
+          results.forEach(result => {
+            if (result.status === 'fulfilled') {
+              const { protocol, data, error } = result.value
+
+              if (data) {
+                protocolsResult.push(data)
+                protocolsMap[protocol] = data
+                totalMessages += data.messageCount
+              } else {
+                console.warn(`⚠️ Protocolo ${protocol} sem dados:`, error)
+              }
+            } else {
+              console.error(`💥 Promise rejeitada para protocolo:`, result.reason)
+            }
+          })
+
+          // Ordenar por data de criação (mais recente primeiro)
+          const sortedProtocols = protocolsResult.sort(
+            (a: ProcessedProtocolHistoryItem, b: ProcessedProtocolHistoryItem) =>
+              new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          )
+
+          const stats = {
+            totalProtocols: protocolsResult.length,
+            totalMessages,
+            activeProtocols: protocolsResult.length,
+            oldestProtocol: sortedProtocols[sortedProtocols.length - 1]?.protocol,
+            newestProtocol: sortedProtocols[0]?.protocol
+          }
+
+          console.log('✅ Busca de históricos concluída:', stats)
+
+          return {
+            data: {
+              protocols: sortedProtocols,
+              protocolsMap,
+              stats
+            }
+          }
+        } catch (error) {
+          console.error('💥 Erro geral na busca de históricos:', error)
+
+          return {
+            error: {
+              status: 500,
+              data: {
+                message: error instanceof Error ? error.message : 'Erro desconhecido na busca de históricos'
+              }
+            }
+          }
+        }
+      },
+
+      providesTags: result => [
+        { type: 'ProtocolHistory', id: 'ALL_ACTIVE' },
+        { type: 'ProtocolHistory', id: 'LIST' },
+        ...(result?.protocols || []).map(protocolItem => ({
+          type: 'ProtocolHistory' as const,
+          id: protocolItem.protocol
+        }))
+      ],
+
+      keepUnusedDataFor: 300 // 5 minutos - dados podem mudar frequentemente
     })
   })
 })
 
-export const { useGetProtocolHistoryQuery, useGetMultipleProtocolHistoriesQuery } = protocolHistoryApi
+export const {
+  useGetProtocolHistoryQuery,
+  useGetMultipleProtocolHistoriesQuery,
+  useGetAllHistoryByProtocolQuery // 🆕 NOVO HOOK
+} = protocolHistoryApi
