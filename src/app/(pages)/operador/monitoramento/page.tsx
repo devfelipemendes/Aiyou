@@ -36,6 +36,7 @@ import ChatMonitoringModal from '@/components/dialogs/chat'
 
 import { useAppSelector } from '@/redux-store'
 import { selectChatOrder } from '@/redux-store/slices/monitoring'
+import { useGetAllHistoryByProtocolQuery } from '@/api/endpoints/chat/protocolHistory'
 
 // Tipos (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
@@ -72,6 +73,8 @@ const MonitoringPageOptimized = () => {
 
   // const user = useAppSelector((state: any) => state.authReducer?.user)
 
+  const { data: protocolHistoryData, isLoading: isLoadingProtocolData } = useGetAllHistoryByProtocolQuery()
+
   // 🎯 ESTADOS LOCAIS
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -107,6 +110,28 @@ const MonitoringPageOptimized = () => {
 
     return chat
   }, [chats, selectedProtocolForDialog])
+
+  const modalData = useMemo(() => {
+    if (!selectedChatForDialog || !protocolHistoryData?.protocolsMap) return null
+
+    // Converter protocolsMap para formato que o modal espera
+    const clientHistories: Record<string, any> = {}
+
+    Object.entries(protocolHistoryData.protocolsMap).forEach(([protocol, protocolData]) => {
+      clientHistories[protocol] = {
+        identifier: protocolData.identifier,
+        source: protocolData.source,
+        assistant_name: protocolData.assistant_name,
+        operator_name: protocolData.operator_name,
+        history: protocolData.history
+      }
+    })
+
+    return {
+      chatData: selectedChatForDialog,
+      clientHistories
+    }
+  }, [selectedChatForDialog, protocolHistoryData])
 
   // 🎛️ CALLBACKS ESTÁVEIS (performance critical)
   const handleCardClick = useCallback(
@@ -387,12 +412,13 @@ const MonitoringPageOptimized = () => {
           </Box>
         )}
 
-      {/* 🔥 MODAL EM TEMPO REAL */}
-      {dialogOpen && selectedChatForDialog && (
+      {/* 🆕 MODAL COM DADOS DE PROTOCOLO */}
+      {dialogOpen && modalData && (
         <ChatMonitoringModal
           open={dialogOpen}
           onClose={handleCloseDialog}
-          chatData={selectedChatForDialog} // 🔥 Dados em tempo real
+          chatData={modalData.chatData}
+          clientHistories={modalData.clientHistories} // 🔥 Dados formatados para o sidebar
         />
       )}
 
@@ -400,21 +426,17 @@ const MonitoringPageOptimized = () => {
       {process.env.NODE_ENV === 'development' && (
         <Paper elevation={1} sx={{ p: 2, mt: 3, backgroundColor: '#f5f5f5' }}>
           <Typography variant='h6' gutterBottom>
-            🚀 Performance Debug
+            🚀 Performance Debug - Dados de Protocolo
           </Typography>
           <Typography variant='body2'>
-            <strong>Chats:</strong> {chats.length} |<strong> WebSocket:</strong>{' '}
-            {isWebSocketConnected ? '✅ Conectado' : '❌ Desconectado'} |<strong> Canais:</strong>{' '}
-            {connectedChannels.length} |<strong> Média msgs/chat:</strong> {stats.averageMessagesPerChat}
+            <strong>Chats Convertidos:</strong> {chats.length} |<strong>Protocolos Brutos:</strong>{' '}
+            {protocolHistoryData?.stats.totalProtocols || 0} |<strong>WebSocket:</strong>{' '}
+            {isWebSocketConnected ? '✅ Conectado' : '❌ Desconectado'} |<strong>Canais:</strong>{' '}
+            {connectedChannels.length}
           </Typography>
-          {stats.mostActiveChat && (
-            <Typography variant='body2'>
-              <strong>Chat mais ativo:</strong> {stats.mostActiveChat.protocol}({stats.mostActiveChat.messageCount}{' '}
-              mensagens)
-            </Typography>
-          )}
-          <Typography variant='caption' color='text.secondary' display='block' mt={1}>
-            💡 Abra o console para ver logs de re-renders evitados
+          <Typography variant='body2' mt={1}>
+            <strong>Mensagens:</strong> {stats.totalMessages} |<strong>Sucessos:</strong> {stats.successCount} |
+            <strong>Erros:</strong> {stats.errorCount}
           </Typography>
         </Paper>
       )}
