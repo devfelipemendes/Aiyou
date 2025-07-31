@@ -51,8 +51,8 @@ export function adaptProtocolToChat(protocolItem: ProcessedProtocolHistoryItem):
 
     // 🏢 DADOS DE PROJETO (inferir ou usar padrões)
     project_id: 'unknown', // TODO: Precisamos pegar isso de outro lugar
-    operator: 0, // TODO: Inferir do contexto
-    question_operator: 0, // TODO: Inferir do contexto
+    operator: false, // TODO: Inferir do contexto
+    question_operator: false, // TODO: Inferir do contexto
 
     // 📅 TIMESTAMPS
     updated_at: protocolItem.lastActivity,

@@ -5,7 +5,7 @@ export interface ChatHistoryMessage {
   id: string
   content: string
   role: 'assistant' | 'user' | 'operator'
-  operator: number | null
+  operator: boolean | null
   created_at: string
 }
 
@@ -27,8 +27,8 @@ export interface ChatWithHistory {
   lastMessage?: ChatHistoryMessage
   messageCount: number
   project_id: string
-  operator: 0 | 1
-  question_operator: 0 | 1
+  operator: boolean
+  question_operator: boolean
   updated_at: string
   created_at: string
 }

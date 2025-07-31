@@ -3,7 +3,7 @@ import React, { useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
-import { useAppSelector, store } from '@/redux-store'
+import { useAppSelector } from '@/redux-store'
 import { selectChatByProtocol } from '@/redux-store/selectors/monitoring'
 
 import ChatLog from '../chatLog/chatLog'
@@ -146,7 +146,19 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     const messageCount = chatData?.messageCount || 0
     const assistant = chatData?.assistant
 
-    const callOperator = useMemo(() => chatData.question_operator === 1 || chatData.operator === 1, [chatData])
+    const callOperator = useMemo(() => {
+      const isCallOperator = chatData.question_operator
+
+      // 🔍 DEBUG: Log específico para question_operator
+      console.log(`🚨 CARD ${protocol} - CallOperator Debug:`, {
+        question_operator: chatData.question_operator,
+        isCallOperator,
+        chatDataTimestamp: chatData.updated_at,
+        fullChatData: chatData
+      })
+
+      return isCallOperator
+    }, [chatData])
 
     // 🔧 VALORES CALCULADOS MEMOIZADOS (SEMPRE EXECUTADOS)
     // const callOperator = useMemo(() => !!historyError, [historyError])
@@ -362,51 +374,51 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
         </CardContent>
       </Card>
     )
-  },
+  }
 
   // ✅ MEMO COMPARADOR CORRIGIDO
-  (prevProps, nextProps) => {
-    // 1. Protocolo mudou? (nunca deveria mudar)
-    if (prevProps.protocol !== nextProps.protocol) {
-      console.log(`🔄 MEMO ${nextProps.protocol} - Protocolo mudou`)
+  // (prevProps, nextProps) => {
+  //   // 1. Protocolo mudou? (nunca deveria mudar)
+  //   if (prevProps.protocol !== nextProps.protocol) {
+  //     console.log(`🔄 MEMO ${nextProps.protocol} - Protocolo mudou`)
 
-      return false
-    }
+  //     return false
+  //   }
 
-    // 2. Estados visuais mudaram?
-    if (
-      prevProps.isSelected !== nextProps.isSelected ||
-      prevProps.isInModal !== nextProps.isInModal ||
-      prevProps.isDragging !== nextProps.isDragging ||
-      prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
-    ) {
-      console.log(`🔄 MEMO ${nextProps.protocol} - Estados visuais mudaram`)
+  //   // 2. Estados visuais mudaram?
+  //   if (
+  //     prevProps.isSelected !== nextProps.isSelected ||
+  //     prevProps.isInModal !== nextProps.isInModal ||
+  //     prevProps.isDragging !== nextProps.isDragging ||
+  //     prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
+  //   ) {
+  //     console.log(`🔄 MEMO ${nextProps.protocol} - Estados visuais mudaram`)
 
-      return false
-    }
+  //     return false
+  //   }
 
-    // 3. 🔥 DADOS DO CHAT mudaram? (usando store diretamente)
-    try {
-      const currentState = store.getState()
-      const prevChatData = selectChatByProtocol(currentState, prevProps.protocol)
-      const nextChatData = selectChatByProtocol(currentState, nextProps.protocol)
+  //   // 3. 🔥 DADOS DO CHAT mudaram? (usando store diretamente)
+  //   try {
+  //     const currentState = store.getState()
+  //     const prevChatData = selectChatByProtocol(currentState, prevProps.protocol)
+  //     const nextChatData = selectChatByProtocol(currentState, nextProps.protocol)
 
-      if (prevChatData !== nextChatData) {
-        console.log(`🔄 MEMO ${nextProps.protocol} - ChatData mudou`)
+  //     if (prevChatData !== nextChatData) {
+  //       console.log(`🔄 MEMO ${nextProps.protocol} - ChatData mudou`)
 
-        return false
-      }
-    } catch (error) {
-      console.warn(`⚠️ MEMO ${nextProps.protocol} - Erro ao comparar chat data:`, error)
+  //       return false
+  //     }
+  //   } catch (error) {
+  //     console.warn(`⚠️ MEMO ${nextProps.protocol} - Erro ao comparar chat data:`, error)
 
-      return false // Re-renderizar por segurança
-    }
+  //     return false // Re-renderizar por segurança
+  //   }
 
-    // ✅ Todos os dados importantes são iguais - bloquear re-render
-    console.log(`✅ MEMO ${nextProps.protocol} - Bloqueou re-render`)
+  //   // ✅ Todos os dados importantes são iguais - bloquear re-render
+  //   console.log(`✅ MEMO ${nextProps.protocol} - Bloqueou re-render`)
 
-    return true
-  }
+  //   return true
+  // }
 )
 
 CardMonitorOptimized.displayName = 'CardMonitorOptimized'

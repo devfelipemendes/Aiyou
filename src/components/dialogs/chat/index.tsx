@@ -1,10 +1,7 @@
-// src/components/dialogs/chat-monitoring/ChatMonitoringModal.tsx
 'use client'
 
-// React Imports
 import { useState, useCallback, useEffect, useMemo } from 'react'
 
-// MUI Imports
 import {
   Dialog,
   DialogContent,
@@ -18,18 +15,12 @@ import {
 } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
-// Icon Imports
 import { MessageSquare } from 'lucide-react'
 
-// Component Imports
 import ChatLog from '@/components/chatLog/chatLog'
 
-// Types - vamos usar os mesmos tipos que você já tem
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 
-// import type { ChatMonitorProps } from '@/types/newChatypes'
-
-// import type { ProtocolHistoryItem } from '@/api/endpoints/chat/protocolHistory'
 import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
@@ -62,10 +53,8 @@ const ModalDialogContent = styled(DialogContent)(() => ({
   height: '100%',
   display: 'flex',
   overflow: 'hidden',
-  flexDirection: 'row' // Layout horizontal: sidebar + chat
+  flexDirection: 'row'
 }))
-
-// ===== COMPONENTE PRINCIPAL =====
 
 interface ChatMonitoringModalProps {
   open: boolean
@@ -79,13 +68,64 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
   const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  const lastUserMessage = useMemo(() => {
+    if (!displayChatData?.history || displayChatData.history.length === 0) {
+      return null
+    }
+
+    const userMessages = displayChatData.history.filter(msg => msg.role === 'user')
+
+    if (userMessages.length === 0) {
+      return null
+    }
+
+    const lastMessage = userMessages[userMessages.length - 1]
+
+    console.log('🔍 Última mensagem do cliente:', {
+      id: lastMessage.id,
+      content: lastMessage.content?.slice(0, 50) + '...',
+      operator: lastMessage.operator,
+      needsOperator: lastMessage.operator === true
+    })
+
+    return lastMessage
+  }, [displayChatData?.history])
+
+  const needsOperatorInstruction = useMemo(() => {
+    const needsInstruction = lastUserMessage?.operator === true
+
+    if (needsInstruction) {
+      console.log('🚨 ATENÇÃO: Mensagem precisa de instrução do operador!', {
+        messageId: lastUserMessage.id,
+        content: lastUserMessage.content?.slice(0, 100)
+      })
+    }
+
+    return needsInstruction
+  }, [lastUserMessage])
+
+  const handleInstructAssistant = useCallback(async (messageId: string, instruction: string) => {
+    console.log('🔥 INSTRUINDO ASSISTENTE:', {
+      messageId,
+      instruction,
+      timestamp: new Date().toISOString()
+    })
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      console.log('✅ Instrução enviada com sucesso!')
+    } catch (error) {
+      console.error('💥 Erro ao instruir assistente:', error)
+    }
+  }, [])
+
   const theme = useTheme()
   const modeTheme = theme.palette.mode
   const isBelowLgScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('lg'))
   const isBelowMdScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('md'))
   const isBelowSmScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'))
 
-  // 🔥 NOVO: Hook para histórico
   const historyData = useMemo(() => {
     if (!clientHistories || Object.keys(clientHistories).length === 0) {
       return {
@@ -99,9 +139,8 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       }
     }
 
-    // Converter Record<string, ProtocolHistoryItem> para array
     const protocolsArray = Object.entries(clientHistories).map(([protocol, data]) => ({
-      protocol, // 🔥 ADICIONAR: protocolo como propriedade
+      protocol,
       identifier: data.identifier,
       source: data.source,
       assistant_name: data.assistant_name,
@@ -109,7 +148,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       history: data.history,
       messageCount: data.history?.length || 0,
       lastActivity: data.history?.[data.history.length - 1]?.created_at || '',
-      createdAt: data.history?.[0]?.created_at || '' // 🔥 ADICIONAR: createdAt
+      createdAt: data.history?.[0]?.created_at || ''
     }))
 
     return {
@@ -128,13 +167,10 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
 
   const refreshHistory = () => {
     console.log('🔄 Refresh via prop clientHistories')
-
-    // Aqui poderia chamar refetchAll() do hook pai se necessário
   }
 
   const convertProtocolToDisplay = useCallback(
     (protocolData: any): ChatWithHistory => {
-      // 🔥 MUDANÇA: any em vez de ProtocolHistoryItem
       console.log('🔄 Convertendo protocolo:', protocolData)
 
       const historyMessages = protocolData.history || []
@@ -148,7 +184,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       }))
 
       const result: ChatWithHistory = {
-        protocol: protocolData.protocol, // 🔥 OK: agora existe
+        protocol: protocolData.protocol,
         assistant: chatData?.assistant || { name: 'Assistente' },
         source: chatData?.source || 'whatsapp',
         identifier: chatData?.identifier || `cliente_${protocolData.protocol?.slice(-4)}`,
@@ -159,10 +195,10 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
         lastMessage: convertedHistory.length > 0 ? convertedHistory[convertedHistory.length - 1] : undefined,
         messageCount: convertedHistory.length,
         project_id: chatData?.project_id || '',
-        operator: chatData?.operator || 0,
-        question_operator: chatData?.question_operator || 0,
+        operator: chatData?.operator || false,
+        question_operator: chatData?.question_operator || false,
         updated_at: chatData?.updated_at || new Date().toISOString(),
-        created_at: protocolData.createdAt || new Date().toISOString() // 🔥 OK: agora existe
+        created_at: protocolData.createdAt || new Date().toISOString()
       }
 
       return result
@@ -177,7 +213,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       try {
         setSelectedProtocol(protocol)
 
-        // 🔥 NOVO: Buscar dados do protocolo correto
         let selectedData = protocolData
 
         if (!selectedData && clientHistories[protocol]) {
@@ -201,8 +236,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
     [clientHistories, convertProtocolToDisplay]
   )
 
-  // ========== 5. ATUALIZAR EFEITO PARA RESETAR SELEÇÃO QUANDO MODAL ABRE ==========
-  // ✅ ADICIONAR este useEffect para sincronizar com chatData inicial:
   useEffect(() => {
     if (open && chatData) {
       setSelectedProtocol(chatData.protocol)
@@ -210,85 +243,20 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
     }
   }, [open, chatData])
 
-  // Estados internos do modal
-
-  // Estado para controle das ações
-
-  // ===== HANDLERS DAS AÇÕES (aqui é onde a mágica acontece!) =====
-
   const handleSidebarClose = useCallback(() => {
     if (isBelowMdScreen) {
       setSidebarOpen(false)
     }
   }, [isBelowMdScreen])
 
-  // Helper para verificar se uma ação está carregando
-
-  // Se não tiver dados, não renderiza
   if (!chatData) return null
 
-  // Dados básicos do cliente
   const clientName = chatData.assistant?.name || `Cliente ${chatData.protocol}`
   const clientChannel = chatData.source || 'WhatsApp'
 
-  // const getStatusColors = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
-  //   if (callOperator) {
-  //     return {
-  //       backgroundColor: '#f44336', // Vermelho para chamada de operador
-  //       color: '#ffffff'
-  //     }
-  //   }
-
-  //   const colorConfig = {
-  //     active: { backgroundColor: '#44b700', color: '#ffffff' }, // Verde para ativo
-  //     inactive: { backgroundColor: '#797979', color: '#ffffff' }, // Cinza para inativo
-  //     resolved: { backgroundColor: '#2e7d32', color: '#ffffff' }, // Verde escuro para resolvido
-  //     unresolved: { backgroundColor: '#ed6c02', color: '#ffffff' } // Laranja para não resolvido
-  //   }
-
-  //   return colorConfig[status] ?? colorConfig.active
-  // }
-
-  // const StyledBadge = styled(Badge, {
-  //   shouldForwardProp: prop => !['status', 'callOperator'].includes(prop as string)
-  // })<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({ theme, status, callOperator }) => {
-  //   const colors = getStatusColors(status, callOperator)
-
-  //   return {
-  //     '& .MuiBadge-badge': {
-  //       backgroundColor: colors.backgroundColor,
-  //       color: colors.color,
-  //       boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-  //       '&::after': {
-  //         position: 'absolute',
-  //         top: 0,
-  //         left: 0,
-  //         width: '100%',
-  //         height: '100%',
-  //         borderRadius: '50%',
-  //         animation: 'ripple 1.2s infinite ease-in-out',
-  //         border: '1px solid currentColor',
-  //         content: '""'
-  //       }
-  //     },
-  //     '@keyframes ripple': {
-  //       '0%': {
-  //         transform: 'scale(.8)',
-  //         opacity: 1
-  //       },
-  //       '100%': {
-  //         transform: 'scale(2.4)',
-  //         opacity: 0
-  //       }
-  //     }
-  //   }
-  // })
-
   return (
     <LargeMonitoringDialog open={open} onClose={onClose}>
-      {/* CONTEÚDO PRINCIPAL */}
       <ModalDialogContent>
-        {/* SIDEBAR ESQUERDA */}
         <ChatMonitoringSidebar
           open={sidebarOpen}
           onClose={handleSidebarClose}
@@ -304,20 +272,17 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
           isBelowSmScreen={isBelowSmScreen}
         />
 
-        {/* ✅ ÁREA PRINCIPAL - CHAT COM CHATLOG INTEGRADO */}
         <Box flex={1} display='flex' flexDirection='column'>
-          {/* ChatLog - Conversa em tempo real */}
           <Box
             flex={1}
             sx={{
-              overflow: 'hidden', // ✅ Container não tem scroll
+              overflow: 'hidden',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              minHeight: 0 // ✅ Importante para flex shrinking
+              minHeight: 0
             }}
           >
-            {/* Header da conversa */}
             <Paper
               elevation={0}
               sx={{
@@ -335,12 +300,11 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
               </Typography>
             </Paper>
 
-            {/* Área do ChatLog - Container com scroll próprio */}
             <Box
               sx={{
                 flex: 1,
                 position: 'relative',
-                overflowY: 'auto', // ✅ Scroll vertical
+                overflowY: 'auto',
                 overflowX: 'hidden',
                 backgroundImage: `${
                   modeTheme === 'light'
@@ -352,7 +316,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
                 backgroundRepeat: 'no-repeat',
                 scrollBehavior: 'smooth',
 
-                // ✅ Scrollbar customizada
                 '&::-webkit-scrollbar': {
                   width: '6px'
                 },
@@ -368,7 +331,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
                 }
               }}
               ref={element => {
-                // ✅ Auto-scroll para o final quando o conteúdo muda
                 if (element && chatData?.history?.length) {
                   requestAnimationFrame(() => {
                     ;(element as HTMLDivElement).scrollTop = (element as HTMLDivElement).scrollHeight
@@ -380,14 +342,26 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
                 <Box
                   sx={{
                     padding: 2,
-                    minHeight: '100%' // ✅ Garante que o conteúdo sempre tenha altura mínima
+                    minHeight: '100%'
                   }}
                 >
+                  {needsOperatorInstruction && (
+                    <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1, mb: 1 }}>
+                      <Typography variant='body2' color='warning.dark'>
+                        🚨 Mensagem ID: {lastUserMessage?.id} precisa de instrução do operador
+                      </Typography>
+                      <Typography variant='caption'>Conteúdo: {lastUserMessage?.content?.slice(0, 100)}...</Typography>
+                    </Box>
+                  )}
                   <ChatLog
                     chatData={displayChatData || chatData}
-                    isBelowLgScreen={true} // ✅ Usa scroll nativo
-                    isBelowMdScreen={false}
-                    isBelowSmScreen={false}
+                    isBelowLgScreen={isBelowLgScreen}
+                    isBelowMdScreen={isBelowMdScreen}
+                    isBelowSmScreen={isBelowSmScreen}
+                    showOperatorTriggers={needsOperatorInstruction}
+                    operatorTriggerMessages={lastUserMessage?.id ? [lastUserMessage.id] : []}
+                    onInstructAssistant={handleInstructAssistant}
+                    isShowDetailsChatLog={true}
                   />
                 </Box>
               ) : (
@@ -411,7 +385,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
             </Box>
           </Box>
 
-          {/* Input de mensagem (rodapé) */}
           <Paper
             elevation={1}
             sx={{
@@ -427,7 +400,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
                   Como a Aivou deveria responder isso pra deixar o cliente mais seguro e satisfeito? Escreva aqui sua
                   sugestão.
                 </Typography>
-                {/* TODO: Implementar TextField */}
+
                 <Paper variant='outlined' sx={{ p: 1.5, minHeight: 60 }}>
                   <Typography variant='body2' color='text.disabled'>
                     Digite uma mensagem aqui!

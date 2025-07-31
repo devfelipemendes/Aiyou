@@ -102,7 +102,7 @@ export const monitoringSlice = createSlice({
       console.log('✅ Chat atualizado:', protocol, updates)
     },
 
-    updatedQuestionOperator: (state, action: PayloadAction<{ protocol: string; question_operator: 0 | 1 }>) => {
+    updatedQuestionOperator: (state, action: PayloadAction<{ protocol: string; question_operator: boolean }>) => {
       const { protocol, question_operator } = action.payload
       const chat = state.chatsByProtocol[protocol]
 

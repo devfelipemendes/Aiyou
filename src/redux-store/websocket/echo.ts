@@ -43,18 +43,18 @@ const getReverbConfig = () => {
     port = isSecure ? '443' : '80'
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'https://dev.aiyou.com.br/v1'
-  const reverbUrl = process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'https://dev.reverb.aiyou.com.br/v1'
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'https://staging.api.aiyou.com.br/v1'
+  const reverbUrl = process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'staging.reverb.aiyou.com.br'
 
-  const reverbHostname = extractHostname(reverbUrl) || 'dev.aiyou.com.br'
+  const reverbHostname = extractHostname(reverbUrl) || 'staging.api.aiyou.com.br'
 
   const config = {
-    appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'jjpnmycugrpdugowbnhd',
+    appKey: process.env.NEXT_PUBLIC_REVERB_APP_KEY,
     wsHost: reverbHostname,
     port: parseInt(port),
     scheme: process.env.NEXT_PUBLIC_REVERB_SCHEME || 'https',
     apiUrl: apiBaseUrl,
-    baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'https://dev.reverb.aiyou.com.br/v1',
+    baseUrl: process.env.NEXT_PUBLIC_API_AIYOU_BASE_URL || 'staging.reverb.aiyou.com.br/v1',
     authEndpoint: `${apiBaseUrl}/broadcasting/auth`,
 
     // 🔧 URLs para debug

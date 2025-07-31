@@ -19,7 +19,7 @@ interface ActiveChatsState {
   stats: {
     total: number
     bySource: Record<string, number>
-    operatorMode: 0 | 1
+    operatorMode: boolean
     aiMode: number
   }
 }
@@ -40,7 +40,7 @@ const initialState: ActiveChatsState = {
   stats: {
     total: 0,
     bySource: {},
-    operatorMode: 0,
+    operatorMode: false,
     aiMode: 0
   }
 }
@@ -69,7 +69,7 @@ const activeChatsSlice = createSlice({
       // 🔧 CALCULAR: Estatísticas
       state.stats.total = chats.length
       state.stats.bySource = {}
-      state.stats.operatorMode = 0
+      state.stats.operatorMode = false
       state.stats.aiMode = 0
 
       chats.forEach(chat => {
@@ -77,8 +77,8 @@ const activeChatsSlice = createSlice({
         state.stats.bySource[chat.source] = (state.stats.bySource[chat.source] || 0) + 1
 
         // Contar por modo
-        if (chat.operator === 1) {
-          state.stats.operatorMode++
+        if (chat.operator) {
+          state.stats.operatorMode
         } else {
           state.stats.aiMode++
         }
@@ -100,8 +100,8 @@ const activeChatsSlice = createSlice({
         state.stats.total++
         state.stats.bySource[newChat.source] = (state.stats.bySource[newChat.source] || 0) + 1
 
-        if (newChat.operator === 1) {
-          state.stats.operatorMode++
+        if (newChat.operator) {
+          state.stats.operatorMode
         } else {
           state.stats.aiMode++
         }
@@ -136,8 +136,8 @@ const activeChatsSlice = createSlice({
         state.stats.bySource[chat.source] = (state.stats.bySource[chat.source] || 0) - 1
       }
 
-      if (chat.operator === 1) {
-        state.stats.operatorMode--
+      if (chat.operator) {
+        state.stats.operatorMode
       } else {
         state.stats.aiMode--
       }

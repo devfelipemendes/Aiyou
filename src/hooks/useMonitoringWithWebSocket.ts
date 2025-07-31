@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useMemo, useState } from 'react'
+import { useEffect, useCallback, useRef, useMemo } from 'react'
 
 import { useAppDispatch, useAppSelector, store } from '@/redux-store'
 
@@ -34,11 +34,7 @@ import {
 } from '@/redux-store/selectors/monitoring'
 
 // RTK Query (mantido)
-import {
-  useGetAllHistoryByProtocolQuery,
-  type AllProtocolHistoryResponse,
-  type ProcessedProtocolHistoryItem
-} from '@/api/endpoints/chat/protocolHistory'
+import { useGetAllHistoryByProtocolQuery, type AllProtocolHistoryResponse } from '@/api/endpoints/chat/protocolHistory'
 
 import {
   useRefreshChatHistoryMutation,
@@ -58,7 +54,7 @@ interface ProtocolEvent {
   assistant_id: string
   source: string
   identifier: string
-  operator: 0 | 1
+  operator: boolean
   status: string
   created_at: string
   updated_at: string
@@ -212,7 +208,7 @@ export function useMonitoringWithWebSocket(
 
       // Processar igual ao adapter existente
       const sortedHistory = protocolData.history.sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        (a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       )
 
       const processedProtocolItem = {
@@ -239,7 +235,7 @@ export function useMonitoringWithWebSocket(
 
   // 🔥 HANDLER: Nova mensagem (REDUX VERSION)
   const handleNewMessage = useCallback(
-    (messageEvent: MessageEvent & { question_operator?: 0 | 1 }) => {
+    (messageEvent: MessageEvent & { question_operator?: boolean }) => {
       console.log('🚨🚨🚨 handleNewMessage CHAMADO!')
       console.log('🔍 Dados da mensagem:', messageEvent)
       console.log('💬 Nova mensagem recebida:', messageEvent.protocol)
@@ -284,8 +280,8 @@ export function useMonitoringWithWebSocket(
           messageCount: 1,
           lastMessage: newMessage,
           project_id: 'unknown',
-          operator: 0,
-          question_operator: 0,
+          operator: false,
+          question_operator: false,
           updated_at: messageEvent.created_at,
           created_at: messageEvent.created_at
         }
@@ -367,7 +363,7 @@ export function useMonitoringWithWebSocket(
           lastMessage: undefined,
           project_id: protocolEvent.client_id,
           operator: protocolEvent.operator,
-          question_operator: 0,
+          question_operator: false,
           updated_at: protocolEvent.updated_at,
           created_at: protocolEvent.created_at
         }
@@ -514,17 +510,17 @@ export function useMonitoringWithWebSocket(
           const channel = echo.private(channelName) // ✅ USAR echo ao invés de window.Echo
 
           channel
-            .listen('.question.created', event => {
+            .listen('.question.created', (event: any) => {
               console.log('🚨 LISTENER .question.created DISPARADO!')
               console.log('🚨 Evento recebido:', event)
               handleNewMessage(event)
             })
-            .listen('.reply.created', event => {
+            .listen('.reply.created', (event: any) => {
               console.log('🚨 LISTENER .reply.created DISPARADO!')
               console.log('🚨 Evento recebido:', event)
               handleNewMessage(event)
             })
-            .listen('.operator.reply.created', event => {
+            .listen('.operator.reply.created', (event: any) => {
               console.log('🚨 LISTENER .operator.reply.created DISPARADO!')
               console.log('🚨 Evento recebido:', event)
               handleNewMessage(event)

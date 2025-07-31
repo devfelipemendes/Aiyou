@@ -32,11 +32,11 @@ import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSock
 
 // 🔥 COMPONENTES OTIMIZADOS
 import CardMonitorOptimized from '@/components/card_monitormanto/CardMonitor' // Agora é o otimizado
-import ChatMonitoringModal from '@/components/dialogs/chat'
 
 import { useAppSelector } from '@/redux-store'
 import { selectChatOrder } from '@/redux-store/slices/monitoring'
 import { useGetAllHistoryByProtocolQuery } from '@/api/endpoints/chat/protocolHistory'
+import ChatMonitoringModal from '@/components/dialogs/chat'
 
 // Tipos (mantidos)
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
