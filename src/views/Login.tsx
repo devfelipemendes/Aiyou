@@ -13,7 +13,7 @@ import TextField from '@mui/material/TextField'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import Checkbox from '@mui/material/Checkbox'
-import Button from '@mui/material/Button'
+
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
 import { Controller, useForm } from 'react-hook-form'
@@ -27,6 +27,10 @@ import * as v from 'valibot'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
 import Cookies from 'js-cookie'
+
+import { Box } from '@mui/material'
+
+import { styled, keyframes } from '@mui/material/styles'
 
 import { useWebSocket } from '@/hooks/useWebSocket'
 
@@ -42,6 +46,23 @@ import themeConfig from '@/configs/themeConfig'
 // Hook Imports
 import { useSettings } from '@core/hooks/useSettings'
 import { usePostLoginMutation } from '@/api/endpoints/authUser/login'
+import SimpleLoadingButton from '@/components/ButtonLoading/ButtonLoading'
+
+const shimmerAnimation = keyframes`
+  0% { 
+    background-position: -300px 0;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% { 
+    background-position: calc(300px + 100%) 0;
+    opacity: 0.8;
+  }
+`
+
+// ✅ NOVA: Animação de pulse para background
 
 const loginSchema = v.object({
   email: v.pipe(v.string('Email é obrigatório'), v.nonEmpty('Email é obrigatório'), v.email('Email inválido')),
@@ -56,11 +77,13 @@ const loginSchema = v.object({
 type LoginFormData = v.InferInput<typeof loginSchema>
 
 const LoginV2 = ({ mode }: { mode: Mode }) => {
+  const [isLoading, setIsLoading] = useState(false)
+
   console.log(mode)
 
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
-  const [postLogin, { isLoading }] = usePostLoginMutation()
+  const [postLogin] = usePostLoginMutation()
   const navigation = useRouter()
 
   // Hooks
@@ -86,6 +109,8 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
 
   const onSubmit = async (data: { email: string; password: string }) => {
     console.log('Dados do formulário:', data)
+
+    setIsLoading(true)
 
     try {
       const response = await postLogin({
@@ -119,6 +144,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
     } catch (err: any) {
       toast.error(`Erro ao fazer login: ${err.data?.message || 'Erro desconhecido'}`)
       console.error('💥 Erro no login:', err)
+      setIsLoading(false)
     }
   }
 
@@ -213,9 +239,86 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
                 Esqueceu sua senha?
               </Typography>
             </div>
-            <Button fullWidth variant='contained' type='submit' disabled={isSubmitting || isLoading}>
-              Entrar
-            </Button>
+            <SimpleLoadingButton
+              fullWidth
+              variant='contained'
+              type='submit'
+              loading={isLoading}
+              loadingText='Entrando na sua conta...'
+              sx={{
+                borderRadius: '12px',
+                padding: '14px 24px',
+                textTransform: 'none',
+                fontSize: '16px',
+                fontWeight: 600,
+
+                // ✅ GRADIENTE PRINCIPAL com transição
+                background: 'linear-gradient(135deg, #028175 0%, #76b901 100%)',
+                backgroundSize: '200% 200%',
+                backgroundPosition: '0% 0%',
+
+                // ✅ TRANSIÇÕES ESPECÍFICAS para diferentes propriedades
+                transition: [
+                  'background-position 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  'box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  'filter 0.3s ease-in-out'
+                ].join(', '),
+
+                // ✅ HOVER com transição suave de posição do gradiente
+                '&:hover:not(:disabled)': {
+                  backgroundPosition: '100% 100%',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 12px 28px rgba(2, 129, 117, 0.3)',
+                  filter: 'brightness(1.05)'
+                },
+
+                // ✅ ACTIVE state
+                '&:active': {
+                  transform: 'translateY(0)',
+                  filter: 'brightness(0.95)'
+                },
+
+                // ✅ LOADING state com background diferente
+                '&:disabled': {
+                  background: 'linear-gradient(135deg, #028175 0%, #02fc6a 100%)',
+                  backgroundSize: '300% 300%',
+                  backgroundPosition: '0% 0%',
+
+                  // ✅ Animação suave do gradiente durante loading
+                  animation: `${shimmerAnimation} 3s infinite ease-in-out`
+                },
+
+                // ✅ FOCUS state
+                '&:focus-visible': {
+                  outline: '2px solid #76b901',
+                  outlineOffset: '2px'
+                }
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+
+                  // ✅ Transição suave para o conteúdo interno
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <i
+                  className='ri-login-circle-line'
+                  style={{
+                    fontSize: '20px',
+
+                    // ✅ Ícone com transição suave
+                    transition: 'transform 0.2s ease'
+                  }}
+                />
+                Fazer Login
+              </Box>
+            </SimpleLoadingButton>
+
             <div className='flex justify-center items-center flex-wrap gap-2'>
               <Typography>Novo na AiYou?</Typography>
               <Typography
