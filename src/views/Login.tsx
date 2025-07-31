@@ -30,7 +30,7 @@ import Cookies from 'js-cookie'
 
 import { Box } from '@mui/material'
 
-import { styled, keyframes } from '@mui/material/styles'
+import { keyframes } from '@mui/material/styles'
 
 import { useWebSocket } from '@/hooks/useWebSocket'
 
@@ -123,7 +123,6 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
         const { token, user, clients } = response.data
         const userId = user.id.toString()
 
-        // 💾 Salvar dados no localStorage
         localStorage.setItem('token', token)
         Cookies.set('token', token)
         localStorage.setItem('userId', userId)
@@ -131,12 +130,10 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
 
         console.log('🔌 Iniciando conexão WebSocket após login...')
 
-        // 🔧 Conectar WebSocket com dados dos clients
         connectWebSocket(token, userId, clients || [])
 
         console.log('✅ Login realizado com sucesso')
 
-        // Aguardar um pouco para WebSocket conectar
         setTimeout(() => {
           navigation.push('/painel')
         }, 1500)
