@@ -91,8 +91,7 @@ const SendMsgForm = ({ isBelowSmScreen, messageInputRef, placeholder, isInstruct
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [openEmojiPicker, setOpenEmojiPicker] = useState(false)
 
-  const [operatorIntervention, { isLoading: isOperatorLoading, error: operatorError }] =
-    useOperatorInterventionMutation()
+  const [operatorIntervention, { isLoading: isOperatorLoading }] = useOperatorInterventionMutation()
 
   // Refs
   const anchorRef = useRef<HTMLButtonElement>(null)

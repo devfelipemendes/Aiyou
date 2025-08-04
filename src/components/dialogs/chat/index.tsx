@@ -2,17 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 
-import {
-  Dialog,
-  DialogContent,
-  Typography,
-  Box,
-  Paper,
-  Button,
-  useTheme,
-  useMediaQuery,
-  type Theme
-} from '@mui/material'
+import { Dialog, DialogContent, Typography, Box, Paper, useTheme, useMediaQuery, type Theme } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
 import { MessageSquare } from 'lucide-react'
@@ -22,6 +12,7 @@ import ChatLog from '@/components/chatLog/chatLog'
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 
 import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
+import SendMsgForm from '@/components/SendMessageFormChat'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -376,34 +367,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
               )}
             </Box>
           </Box>
-
-          <Paper
-            elevation={1}
-            sx={{
-              p: 2,
-              borderRadius: 0,
-              borderTop: 1,
-              borderColor: 'divider'
-            }}
-          >
-            <Box display='flex' gap={1} alignItems='center'>
-              <Box flex={1}>
-                <Typography variant='body2' color='text.secondary' mb={1}>
-                  Como a Aivou deveria responder isso pra deixar o cliente mais seguro e satisfeito? Escreva aqui sua
-                  sugestão.
-                </Typography>
-
-                <Paper variant='outlined' sx={{ p: 1.5, minHeight: 60 }}>
-                  <Typography variant='body2' color='text.disabled'>
-                    Digite uma mensagem aqui!
-                  </Typography>
-                </Paper>
-              </Box>
-              <Button variant='contained' color='primary'>
-                Instruir Assistente ➜
-              </Button>
-            </Box>
-          </Paper>
+          <SendMsgForm isBelowSmScreen={false} messageInputRef={undefined} placeholder={'Digite uma mensagem aqui!'} />
         </Box>
       </ModalDialogContent>
     </LargeMonitoringDialog>
