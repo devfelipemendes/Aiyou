@@ -242,8 +242,9 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
 
   if (!chatData) return null
 
-  const clientName = chatData.assistant?.name || `Cliente ${chatData.protocol}`
+  const clientName = chatData.identifier || `Cliente ${chatData.protocol}`
   const clientChannel = chatData.source || 'WhatsApp'
+  const protocolNumber = chatData.protocol
 
   return (
     <LargeMonitoringDialog open={open} onClose={onClose}>
@@ -284,10 +285,10 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
               }}
             >
               <Typography variant='subtitle1' fontWeight='medium'>
-                💬 Conversa com {clientName}
+                Em contato com: {clientName}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                {chatData.history?.length || 0} mensagens • Canal: {clientChannel}
+                Canal: {clientChannel} • Protocolo: {protocolNumber}
               </Typography>
             </Paper>
 
