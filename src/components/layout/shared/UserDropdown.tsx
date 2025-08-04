@@ -8,6 +8,8 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 // MUI Imports
+import { Cookie } from 'next/font/google'
+
 import { styled } from '@mui/material/styles'
 import Badge from '@mui/material/Badge'
 import Avatar from '@mui/material/Avatar'
@@ -22,6 +24,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 
 // Hook Imports
+import Cookies from 'js-cookie'
+
 import { useSettings } from '@core/hooks/useSettings'
 
 // Styled component for badge content
@@ -63,7 +67,9 @@ const UserDropdown = () => {
   }
 
   const handleUserLogout = async () => {
-    // Redirect to login page
+    localStorage.removeItem('token')
+    Cookies.remove('token')
+
     router.push('/login')
   }
 

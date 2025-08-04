@@ -146,19 +146,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
     const messageCount = chatData?.messageCount || 0
     const assistant = chatData?.assistant
 
-    const callOperator = useMemo(() => {
-      const isCallOperator = chatData.question_operator
-
-      // 🔍 DEBUG: Log específico para question_operator
-      console.log(`🚨 CARD ${protocol} - CallOperator Debug:`, {
-        question_operator: chatData.question_operator,
-        isCallOperator,
-        chatDataTimestamp: chatData.updated_at,
-        fullChatData: chatData
-      })
-
-      return isCallOperator
-    }, [chatData])
+    const callOperator = chatData.question_operator === true
 
     // 🔧 VALORES CALCULADOS MEMOIZADOS (SEMPRE EXECUTADOS)
     // const callOperator = useMemo(() => !!historyError, [historyError])

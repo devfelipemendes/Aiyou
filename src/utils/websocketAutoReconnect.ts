@@ -1,7 +1,7 @@
 // src/utils/websocketAutoReconnect.ts
 import { toast } from 'react-toastify'
 
-import { getEcho, isEchoConnected, disconnectEcho } from '@/redux-store/websocket/echo'
+import { getEcho, disconnectEcho } from '@/redux-store/websocket/echo'
 
 interface AutoReconnectConfig {
   checkInterval: number
@@ -166,8 +166,6 @@ class WebSocketAutoReconnect {
 
       // 🚨 PASSO 3: Reconectar forçando nova instância
       console.log('🔄 Criando nova conexão...')
-
-      const newEcho = getEcho() // Isso deve criar nova instância
 
       // 🚨 PASSO 4: Aguardar tempo suficiente para conexão real
       console.log('⏳ Aguardando conexão estabilizar...')

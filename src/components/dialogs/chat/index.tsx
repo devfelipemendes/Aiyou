@@ -345,14 +345,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
                     minHeight: '100%'
                   }}
                 >
-                  {needsOperatorInstruction && (
-                    <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1, mb: 1 }}>
-                      <Typography variant='body2' color='warning.dark'>
-                        🚨 Mensagem ID: {lastUserMessage?.id} precisa de instrução do operador
-                      </Typography>
-                      <Typography variant='caption'>Conteúdo: {lastUserMessage?.content?.slice(0, 100)}...</Typography>
-                    </Box>
-                  )}
                   <ChatLog
                     chatData={displayChatData || chatData}
                     isBelowLgScreen={isBelowLgScreen}

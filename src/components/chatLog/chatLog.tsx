@@ -8,13 +8,15 @@ import CardContent from '@mui/material/CardContent'
 import classnames from 'classnames'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
-import { Box, Button, Divider, TextField } from '@mui/material'
+import { Box, Button, Divider } from '@mui/material'
 
 import CustomAvatar from '@core/components/mui/Avatar'
 
 import { getInitials } from '@/utils/getInitials'
 
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
+import SendMsgForm from '../SendMessageFormChat'
+import { useOperatorInterventionMutation } from '@/api/endpoints/chat/instructionOperator'
 
 interface AdaptedChatLogProps {
   chatData: ChatWithHistory
@@ -190,6 +192,8 @@ const ChatLog = ({
 
   const [activeInstructionMessageId, setActiveInstructionMessageId] = useState<string | null>(null)
 
+  const [{ isLoading, error, isSuccess }] = useOperatorInterventionMutation()
+
   const handleToggleInstructionInput = (messageId: string) => {
     if (activeInstructionMessageId === messageId) {
       setActiveInstructionMessageId(null)
@@ -207,6 +211,9 @@ const ChatLog = ({
       operatorTriggerMessages.some(id => allFormattedIds.includes(id))
     )
   }
+
+  const messageInputRef = useRef<HTMLDivElement>(null)
+  const isSmallScreen = window.innerWidth < 600
 
   return (
     <ScrollWrapper isBelowLgScreen={isBelowLgScreen} scrollRef={scrollRef}>
@@ -254,7 +261,21 @@ const ChatLog = ({
 
                   return (
                     <>
-                      {showingInput && <TextField />}
+                      {showingInput && (
+                        <div className='mb-2'>
+                          <SendMsgForm
+                            dispatch={() => {
+                              alert('dispatch')
+                            }}
+                            activeUser={{ id: 'assistant', fullName: 'Assistente', avatar: null, role: 'assistant' }}
+                            isBelowSmScreen={isBelowSmScreen}
+                            messageInputRef={messageInputRef}
+                            placeholder='Digite uma instrução'
+                            isInstruction={true}
+                            questionId={msg.messageId}
+                          />
+                        </div>
+                      )}
                       <Box
                         key={msgIndex}
                         className={classnames('whitespace-pre-wrap pli-4 plb-2 shadow-xs', {
@@ -292,16 +313,17 @@ const ChatLog = ({
                               variant='contained'
                               size='small'
                               className='cursor-pointer'
-                              color='info'
+                              color={!showingInput ? 'info' : 'error'}
                               sx={{
                                 flexShrink: 0,
                                 alignSelf: 'flex-start'
                               }}
-                              onClick={() => {
-                                handleToggleInstructionInput
-                              }}
+                              onClick={() => handleToggleInstructionInput(msg.messageId)}
+                              endIcon={
+                                showingInput ? <i className='ri-close-line' /> : <i className='ri-chat-3-line' />
+                              }
                             >
-                              Instruir
+                              {showingInput ? 'Cancelar modo instrução' : 'Instruir assistente'}
                             </Button>
                           </>
                         ) : (
