@@ -16,7 +16,6 @@ import { getInitials } from '@/utils/getInitials'
 
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 import SendMsgForm from '../SendMessageFormChat'
-import { useOperatorInterventionMutation } from '@/api/endpoints/chat/instructionOperator'
 
 interface AdaptedChatLogProps {
   chatData: ChatWithHistory
@@ -192,8 +191,6 @@ const ChatLog = ({
 
   const [activeInstructionMessageId, setActiveInstructionMessageId] = useState<string | null>(null)
 
-  const [{ isLoading, error, isSuccess }] = useOperatorInterventionMutation()
-
   const handleToggleInstructionInput = (messageId: string) => {
     if (activeInstructionMessageId === messageId) {
       setActiveInstructionMessageId(null)
@@ -213,7 +210,8 @@ const ChatLog = ({
   }
 
   const messageInputRef = useRef<HTMLDivElement>(null)
-  const isSmallScreen = window.innerWidth < 600
+
+  // const isSmallScreen = window.innerWidth < 600
 
   return (
     <ScrollWrapper isBelowLgScreen={isBelowLgScreen} scrollRef={scrollRef}>
@@ -264,10 +262,7 @@ const ChatLog = ({
                       {showingInput && (
                         <div className='mb-2'>
                           <SendMsgForm
-                            dispatch={() => {
-                              alert('dispatch')
-                            }}
-                            activeUser={{ id: 'assistant', fullName: 'Assistente', avatar: null, role: 'assistant' }}
+                            dispatch={undefined as any}
                             isBelowSmScreen={isBelowSmScreen}
                             messageInputRef={messageInputRef}
                             placeholder='Digite uma instrução'

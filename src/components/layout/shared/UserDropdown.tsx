@@ -8,7 +8,6 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 // MUI Imports
-import { Cookie } from 'next/font/google'
 
 import { styled } from '@mui/material/styles'
 import Badge from '@mui/material/Badge'

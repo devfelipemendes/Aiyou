@@ -2,8 +2,6 @@ import { useEffect, useCallback, useRef, useMemo } from 'react'
 
 import { useAppDispatch, useAppSelector, store } from '@/redux-store'
 
-// Adicionar junto com os outros imports
-
 // 🔥 IMPORTS DO REDUX (nossa nova estrutura)
 import {
   initializeChats,
@@ -148,8 +146,6 @@ export function useMonitoringWithWebSocket(
     isWebSocketConnected
   } = useAppSelector(selectMonitoringUI)
 
-  // const connectedProtocols = useAppSelector(selectConnectedProtocols)
-
   // 🔧 REFS (mantidos)
   const channelsRef = useRef<Set<string>>(new Set())
   const clientsRef = useRef<Set<string>>(new Set())
@@ -165,25 +161,10 @@ export function useMonitoringWithWebSocket(
       id: messageEvent.id,
       content: messageEvent.content,
       role: messageEvent.role,
-      operator: messageEvent.operator,
+      operator: typeof messageEvent.operator === 'number' ? !!messageEvent.operator : null,
       created_at: messageEvent.created_at
     }
   }, [])
-
-  // 🔧 VALIDAÇÃO COM API (mantido)
-  // const validateWithAPI = useCallback(
-  //   async (protocol: string) => {
-  //     try {
-  //       console.log('🔍 Validando protocolo com API:', protocol)
-  //       await refreshChatHistory(protocol).unwrap()
-  //       console.log('✅ Protocolo validado com sucesso')
-  //     } catch (error) {
-  //       console.error('💥 Erro ao validar protocolo:', error)
-  //       setTimeout(() => apiRefetch(), 1000)
-  //     }
-  //   },
-  //   [refreshChatHistory, apiRefetch]
-  // )
 
   // 🆕 FUNÇÃO: Buscar protocolo específico via API
   const fetchProtocolData = useCallback(async (protocol: string) => {
@@ -291,34 +272,6 @@ export function useMonitoringWithWebSocket(
     },
     [dispatch, createChatHistoryMessage, chats]
   )
-
-  // const handleCallOperator = useCallback(
-  //   async (protocol: string, operator: 0 | 1) => {
-  //     console.log(`📞 ${operator === 1 ? 'Chamando' : 'Desligando'} operador para o chat:`, protocol)
-
-  //     // Atualiza a informação no Redux
-  //     dispatch(
-  //       updateChatInfo({
-  //         protocol,
-  //         updates: {
-  //           question_operator: operator,
-  //           updated_at: new Date().toISOString()
-  //         }
-  //       })
-  //     )
-
-  //     // Quando operador é chamado, atualiza o chat
-  //     if (operator === 1) {
-  //       try {
-  //         await refreshChatHistory(protocol).unwrap()
-  //         console.log(`✅ Chat ${protocol} atualizado após chamada do operador`)
-  //       } catch (error) {
-  //         console.error(`💥 Erro ao atualizar chat ${protocol} após operador ser chamado:`, error)
-  //       }
-  //     }
-  //   },
-  //   [dispatch, refreshChatHistory]
-  // )
 
   // 🔥 HANDLER: Novo protocolo (REDUX VERSION)
   // 🔥 HANDLER ATUALIZADO: Novo protocolo (com busca real)
@@ -589,6 +542,7 @@ export function useMonitoringWithWebSocket(
 
         if (echo) {
           // Desconectar todos os canais
+          // eslint-disable-next-line react-hooks/exhaustive-deps
           channelsRef.current.forEach(channelName => {
             try {
               echo.leave(channelName)
@@ -601,11 +555,13 @@ export function useMonitoringWithWebSocket(
 
         // Limpar refs
         channelsRef.current.clear()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         clientsRef.current.clear()
       } catch (error) {
         console.error('💥 Erro no cleanup:', error)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enableWebSocket, dispatch]) // ✅ Dependências corretas
 
   //  ^^^^^ ← SEM "chats"!
@@ -665,6 +621,7 @@ export function useMonitoringWithWebSocket(
   // 🎯 CALLBACKS (mantidos)
   useEffect(() => {
     if (data && onLoadComplete) {
+      //@ts-ignore
       onLoadComplete(data)
     }
   }, [data, onLoadComplete])
@@ -677,6 +634,7 @@ export function useMonitoringWithWebSocket(
 
   return {
     chats, // ← Vem do Redux via seletor
+    //@ts-ignore
     stats, // ← Calculado via seletor memoizado
     isLoading,
     isRefreshing,

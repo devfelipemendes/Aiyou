@@ -26,7 +26,7 @@ import CustomIconButton from '@core/components/mui/IconButton'
 import { useOperatorInterventionMutation } from '@/api/endpoints/chat/instructionOperator'
 
 type Props = {
-  dispatch: AppDispatch
+  dispatch?: AppDispatch
 
   isBelowSmScreen: boolean
   messageInputRef: RefObject<HTMLDivElement>

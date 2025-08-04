@@ -14,7 +14,7 @@ function adaptProtocolMessage(protocolMsg: ProtocolHistoryMessage): ChatHistoryM
     id: protocolMsg.id,
     content: protocolMsg.content,
     role: protocolMsg.role,
-    operator: protocolMsg.operator,
+    operator: protocolMsg.operator === null ? null : Boolean(protocolMsg.operator),
     created_at: protocolMsg.created_at
   }
 }

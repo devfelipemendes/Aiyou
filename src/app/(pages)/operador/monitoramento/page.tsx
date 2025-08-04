@@ -73,7 +73,7 @@ const MonitoringPageOptimized = () => {
 
   // const user = useAppSelector((state: any) => state.authReducer?.user)
 
-  const { data: protocolHistoryData, isLoading: isLoadingProtocolData } = useGetAllHistoryByProtocolQuery()
+  const { data: protocolHistoryData } = useGetAllHistoryByProtocolQuery()
 
   // 🎯 ESTADOS LOCAIS
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)

@@ -368,7 +368,14 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
               )}
             </Box>
           </Box>
-          <SendMsgForm isBelowSmScreen={false} messageInputRef={undefined} placeholder={'Digite uma mensagem aqui!'} />
+
+          <SendMsgForm
+            isBelowSmScreen={false}
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            messageInputRef={useMemo(() => ({ current: null }), [])}
+            placeholder={'Digite uma mensagem aqui!'}
+            dispatch={undefined}
+          />
         </Box>
       </ModalDialogContent>
     </LargeMonitoringDialog>

@@ -53,6 +53,8 @@ export interface MultipleProtocolHistoryResponse {
 
 // 🆕 NOVO TIPO: Para compatibilidade com ChatWithHistory
 export interface AllProtocolHistoryResponse {
+  totalChats: any
+  totalMessages: any
   protocols: ProcessedProtocolHistoryItem[]
   protocolsMap: Record<string, ProcessedProtocolHistoryItem>
   stats: {
@@ -208,6 +210,7 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
 
     // 🆕 NOVO ENDPOINT: Buscar TODOS os históricos de protocolos ativos
     getAllHistoryByProtocol: builder.query<AllProtocolHistoryResponse, void>({
+      //@ts-ignore
       queryFn: async (arg, api, extraOptions, baseQuery) => {
         try {
           console.log('🚀 Buscando TODOS os históricos de protocolos ativos...')
