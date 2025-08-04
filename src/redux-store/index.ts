@@ -23,6 +23,7 @@ import websocketReducer from './slices/webSocket'
 import protocolsReducer from './slices/protocols'
 import questionsReducer from './slices/questions'
 import messagesReducer from './slices/messages'
+import clientHistoriesReducer from './slices/clientHistoriesSlice'
 
 const persistConfig = {
   key: 'root',
@@ -34,13 +35,14 @@ const persistConfig = {
 const rootReducer = combineReducers({
   authReducer,
   chatReducer,
-  monitoringReducer,
+  monitoring: monitoringReducer,
   registration: register,
   websocketReducer,
   protocolsReducer,
   questionsReducer,
   messagesReducer,
-  activeChatsReducer,
+  activeChats: activeChatsReducer,
+  clientHistories: clientHistoriesReducer,
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })
@@ -63,13 +65,16 @@ export const store = configureStore({
           'websocket/disconnect',
           'websocket/joinProtocolChannel',
           'websocket/joinProjectChannel',
-
           'activeChats/markChannelConnected', // 🔥 NOVO: Ignorar Set objects
-          'activeChats/markChannelDisconnected'
+          'activeChats/markChannelDisconnected',
+          'monitoring/addConnectedChannel',
+          'monitoring/removeConnectedChannel'
         ],
         ignoredPaths: ['register', 'websocket.connection', 'websocket.channels', 'activeChatsReducer.connectedChannels']
       }
-    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware)
+    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware),
+
+  devTools: process.env.NODE_ENV !== 'production'
 })
 
 // Hooks para padronização do uso do Redux

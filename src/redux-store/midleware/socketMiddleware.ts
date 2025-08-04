@@ -6,6 +6,7 @@ import { disconnectEcho, getEcho, registerReconnectListener } from '../websocket
 import { setWebsocketError, setWebsocketStatus } from '../slices/webSocket'
 
 import { addMessageToDebugger } from '@/utils/websocketDebuggerIntegration'
+import { updateMessage } from '../slices/messages'
 
 interface WebSocketInitPayload {
   token: string
@@ -259,15 +260,22 @@ const connectToClient = async (echo: any, client: any, store: any): Promise<bool
           .listen('.question.updated', (e: any) => {
             const eventData = e.data || e
 
-            console.log('❓ Questão atualizada:', eventData)
+            console.log('❓ Pergunta atualizada:', eventData)
 
-            // 🎯 ENVIAR PARA SEU DEBUGGER
-            addMessageToDebugger(channelName, 'question.updated', eventData)
+            // 🔥 DEBUG QUESTION_OPERATOR - WEBSOCKET MANAGER
+            console.log('====================================')
+            console.log('🔍 [WEBSOCKET MANAGER] QUESTION.UPDATED!')
+            console.log('Data:', JSON.stringify(eventData, null, 2))
 
-            store.dispatch({
-              type: 'questions/updateQuestion',
-              payload: eventData
-            })
+            if (eventData.question_operator !== undefined) {
+              console.log('🚨🚨🚨 QUESTION_OPERATOR NO WEBSOCKET MANAGER!')
+              console.log('Valor:', eventData.question_operator)
+              console.log('Protocol:', eventData.protocol)
+            }
+
+            console.log('====================================')
+
+            store.dispatch(updateMessage(eventData))
           })
           .listen('.reply.created', (e: any) => {
             const eventData = e.data || e

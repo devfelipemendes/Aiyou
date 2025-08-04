@@ -6,13 +6,13 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/',
-        destination: '/painel',
+        destination: '/login',
         permanent: true,
-        locale: false,
+        locale: false
       }
     ]
   },
-  output: "standalone",
+  output: 'standalone'
 }
 
 export default nextConfig

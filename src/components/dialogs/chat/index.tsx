@@ -1,50 +1,18 @@
-// src/components/dialogs/chat-monitoring/ChatMonitoringModal.tsx
 'use client'
 
-// React Imports
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 
-// MUI Imports
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Typography,
-  Box,
-  Paper,
-  Button,
-  Chip,
-  Avatar,
-  Divider,
-  Alert,
-  CircularProgress,
-  useTheme,
-  Stack,
-  Badge
-} from '@mui/material'
+import { Dialog, DialogContent, Typography, Box, Paper, useTheme, useMediaQuery, type Theme } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
-// Icon Imports
-import { MessageSquare, Phone, User, Settings, X, UserPlus, MessageCircle, UserCheck, XCircle } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 
-// Component Imports
 import ChatLog from '@/components/chatLog/chatLog'
 
-// Types - vamos usar os mesmos tipos que você já tem
-import type { ChatWithHistory } from '@/api/endpoints/chat/history'
-import type { ChatMonitorProps } from '@/types/newChatypes'
+import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 
-// ===== TIPOS PARA AS AÇÕES =====
-type ActionType = 'assume_chat' | 'transfer_operator' | 'add_comment' | 'client_details' | 'end_chat'
-
-interface ActionState {
-  loading: ActionType | null
-  error: string | null
-  success: ActionType | null
-}
-
-// ===== COMPONENTES ESTILIZADOS (seguindo o padrão do projeto) =====
+import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
+import SendMsgForm from '@/components/SendMessageFormChat'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -76,500 +44,237 @@ const ModalDialogContent = styled(DialogContent)(() => ({
   height: '100%',
   display: 'flex',
   overflow: 'hidden',
-  flexDirection: 'row' // Layout horizontal: sidebar + chat
+  flexDirection: 'row'
 }))
-
-const ModalHeader = styled(DialogTitle)(({ theme }) => ({
-  padding: theme.spacing(1, 2),
-  borderBottom: `1px solid ${theme.palette.divider}`,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  backgroundColor: theme.palette.background.paper,
-  flexShrink: 0,
-
-  [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(0.5, 1)
-  }
-}))
-
-// ===== COMPONENTE PRINCIPAL =====
 
 interface ChatMonitoringModalProps {
   open: boolean
   onClose: () => void
   chatData: ChatWithHistory | null
+  clientHistories?: Record<string, any>
 }
 
-const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalProps) => {
-  // Estados internos do modal
+const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: ChatMonitoringModalProps) => {
+  const [selectedProtocol, setSelectedProtocol] = useState<string>(chatData?.protocol || '')
+  const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const lastUserMessage = useMemo(() => {
+    if (!displayChatData?.history || displayChatData.history.length === 0) {
+      return null
+    }
+
+    const userMessages = displayChatData.history.filter(msg => msg.role === 'user')
+
+    if (userMessages.length === 0) {
+      return null
+    }
+
+    const lastMessage = userMessages[userMessages.length - 1]
+
+    console.log('🔍 Última mensagem do cliente:', {
+      id: lastMessage.id,
+      content: lastMessage.content?.slice(0, 50) + '...',
+      operator: lastMessage.operator,
+      needsOperator: lastMessage.operator === true
+    })
+
+    return lastMessage
+  }, [displayChatData?.history])
+
+  const needsOperatorInstruction = useMemo(() => {
+    const needsInstruction = lastUserMessage?.operator === true
+
+    if (needsInstruction) {
+      console.log('🚨 ATENÇÃO: Mensagem precisa de instrução do operador!', {
+        messageId: lastUserMessage.id,
+        content: lastUserMessage.content?.slice(0, 100)
+      })
+    }
+
+    return needsInstruction
+  }, [lastUserMessage])
+
+  const handleInstructAssistant = useCallback(async (messageId: string, instruction: string) => {
+    console.log('🔥 INSTRUINDO ASSISTENTE:', {
+      messageId,
+      instruction,
+      timestamp: new Date().toISOString()
+    })
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      console.log('✅ Instrução enviada com sucesso!')
+    } catch (error) {
+      console.error('💥 Erro ao instruir assistente:', error)
+    }
+  }, [])
 
   const theme = useTheme()
   const modeTheme = theme.palette.mode
+  const isBelowLgScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('lg'))
+  const isBelowMdScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('md'))
+  const isBelowSmScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'))
 
-  // Estado para controle das ações
-  const [actionState, setActionState] = useState<ActionState>({
-    loading: null,
-    error: null,
-    success: null
-  })
-
-  // ===== HANDLERS DAS AÇÕES (aqui é onde a mágica acontece!) =====
-
-  const handleAssumeChat = useCallback(async () => {
-    if (!chatData) return
-
-    setActionState(prev => ({ ...prev, loading: 'assume_chat', error: null }))
-
-    try {
-      console.log('🔄 Assumindo chat:', chatData.protocol)
-
-      // TODO: Implementar chamada para API
-      // await assumeChatAPI(chatData.protocol)
-
-      // Simular delay da API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      // Sucesso
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        success: 'assume_chat'
-      }))
-
-      console.log('✅ Chat assumido com sucesso!')
-
-      // Limpar mensagem de sucesso após 3 segundos
-      setTimeout(() => {
-        setActionState(prev => ({ ...prev, success: null }))
-      }, 3000)
-    } catch (error) {
-      console.error('❌ Erro ao assumir chat:', error)
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        error: 'Erro ao assumir chat. Tente novamente.'
-      }))
+  const historyData = useMemo(() => {
+    if (!clientHistories || Object.keys(clientHistories).length === 0) {
+      return {
+        data: [],
+        stats: {
+          totalProtocols: 0,
+          totalMessages: 0,
+          oldestProtocol: undefined,
+          newestProtocol: undefined
+        }
+      }
     }
-  }, [chatData])
 
-  const handleTransferOperator = useCallback(async () => {
-    if (!chatData) return
-
-    setActionState(prev => ({ ...prev, loading: 'transfer_operator', error: null }))
-
-    try {
-      console.log('🔄 Transferindo para outro operador:', chatData.protocol)
-
-      // TODO: Abrir modal de seleção de operador
-      // TODO: Implementar chamada para API
-
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        success: 'transfer_operator'
-      }))
-
-      console.log('✅ Chat transferido!')
-
-      setTimeout(() => {
-        setActionState(prev => ({ ...prev, success: null }))
-      }, 3000)
-    } catch (error) {
-      console.error('❌ Erro ao transferir:', error)
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        error: 'Erro ao transferir chat.'
-      }))
-    }
-  }, [chatData])
-
-  const handleAddComment = useCallback(async () => {
-    if (!chatData) return
-
-    setActionState(prev => ({ ...prev, loading: 'add_comment', error: null }))
-
-    try {
-      console.log('🔄 Adicionando comentário:', chatData.protocol)
-
-      // TODO: Abrir modal/dialog para adicionar comentário
-      // TODO: Implementar chamada para API
-
-      await new Promise(resolve => setTimeout(resolve, 800))
-
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        success: 'add_comment'
-      }))
-
-      setTimeout(() => {
-        setActionState(prev => ({ ...prev, success: null }))
-      }, 3000)
-    } catch (error) {
-      console.error('❌ Erro ao adicionar comentário:', error)
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        error: 'Erro ao adicionar comentário.'
-      }))
-    }
-  }, [chatData])
-
-  const handleClientDetails = useCallback(() => {
-    if (!chatData) return
-
-    console.log('📋 Abrindo detalhes do cliente:', chatData.protocol)
-
-    // TODO: Navegar para página de detalhes do cliente
-    // router.push(`/operador/clientes/${chatData.protocol}`)
-
-    // Ou abrir em nova aba
-    // window.open(`/operador/clientes/${chatData.protocol}`, '_blank')
-
-    // Por enquanto, apenas feedback visual
-    setActionState(prev => ({
-      ...prev,
-      success: 'client_details'
+    const protocolsArray = Object.entries(clientHistories).map(([protocol, data]) => ({
+      protocol,
+      identifier: data.identifier,
+      source: data.source,
+      assistant_name: data.assistant_name,
+      operator_name: data.operator_name,
+      history: data.history,
+      messageCount: data.history?.length || 0,
+      lastActivity: data.history?.[data.history.length - 1]?.created_at || '',
+      createdAt: data.history?.[0]?.created_at || ''
     }))
 
-    setTimeout(() => {
-      setActionState(prev => ({ ...prev, success: null }))
-    }, 2000)
-  }, [chatData])
-
-  const handleEndChat = useCallback(async () => {
-    if (!chatData) return
-
-    setActionState(prev => ({ ...prev, loading: 'end_chat', error: null }))
-
-    try {
-      console.log('🔄 Encerrando atendimento:', chatData.protocol)
-
-      // TODO: Implementar confirmação
-      // const confirmed = await showConfirmDialog('Tem certeza que deseja encerrar?')
-      // if (!confirmed) return
-
-      // TODO: Implementar chamada para API
-      // await endChatAPI(chatData.protocol)
-
-      await new Promise(resolve => setTimeout(resolve, 1200))
-
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        success: 'end_chat'
-      }))
-
-      console.log('✅ Atendimento encerrado!')
-
-      // Fechar modal após sucesso
-      setTimeout(() => {
-        onClose()
-      }, 2000)
-    } catch (error) {
-      console.error('❌ Erro ao encerrar chat:', error)
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        error: 'Erro ao encerrar atendimento.'
-      }))
-    }
-  }, [chatData, onClose])
-
-  // Helper para verificar se uma ação está carregando
-  const isLoading = (action: ActionType) => actionState.loading === action
-  const isSuccess = (action: ActionType) => actionState.success === action
-
-  // Se não tiver dados, não renderiza
-  if (!chatData) return null
-
-  // Dados básicos do cliente
-  const clientName = chatData.assistant?.name || `Cliente ${chatData.protocol}`
-  const clientChannel = chatData.source || 'WhatsApp'
-  const clientStatus = chatData.status === 'active' ? 'Ativo' : 'Inativo'
-
-  const getStatusColors = (status: ChatMonitorProps['statusChat'], callOperator: boolean) => {
-    if (callOperator) {
-      return {
-        backgroundColor: '#f44336', // Vermelho para chamada de operador
-        color: '#ffffff'
+    return {
+      data: protocolsArray,
+      stats: {
+        totalProtocols: protocolsArray.length,
+        totalMessages: protocolsArray.reduce((sum, p) => sum + p.messageCount, 0),
+        oldestProtocol: protocolsArray[protocolsArray.length - 1]?.protocol,
+        newestProtocol: protocolsArray[0]?.protocol
       }
     }
+  }, [clientHistories])
 
-    const colorConfig = {
-      active: { backgroundColor: '#44b700', color: '#ffffff' }, // Verde para ativo
-      inactive: { backgroundColor: '#797979', color: '#ffffff' }, // Cinza para inativo
-      resolved: { backgroundColor: '#2e7d32', color: '#ffffff' }, // Verde escuro para resolvido
-      unresolved: { backgroundColor: '#ed6c02', color: '#ffffff' } // Laranja para não resolvido
-    }
+  const historyLoading = false
+  const historyError = null
 
-    return colorConfig[status] ?? colorConfig.active
+  const refreshHistory = () => {
+    console.log('🔄 Refresh via prop clientHistories')
   }
 
-  const StyledBadge = styled(Badge)<{ status: ChatMonitorProps['statusChat']; callOperator: boolean }>(({
-    theme,
-    status,
-    callOperator
-  }) => {
-    const colors = getStatusColors(status, callOperator)
+  const convertProtocolToDisplay = useCallback(
+    (protocolData: any): ChatWithHistory => {
+      console.log('🔄 Convertendo protocolo:', protocolData)
 
-    return {
-      '& .MuiBadge-badge': {
-        backgroundColor: colors.backgroundColor,
-        color: colors.color,
-        boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
-        '&::after': {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          borderRadius: '50%',
-          animation: 'ripple 1.2s infinite ease-in-out',
-          border: '1px solid currentColor',
-          content: '""'
-        }
-      },
-      '@keyframes ripple': {
-        '0%': {
-          transform: 'scale(.8)',
-          opacity: 1
-        },
-        '100%': {
-          transform: 'scale(2.4)',
-          opacity: 0
-        }
+      const historyMessages = protocolData.history || []
+
+      const convertedHistory: ChatHistoryMessage[] = historyMessages.map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        role: msg.role,
+        operator: msg.operator,
+        created_at: msg.created_at
+      }))
+
+      const result: ChatWithHistory = {
+        protocol: protocolData.protocol,
+        assistant: chatData?.assistant || { name: 'Assistente' },
+        source: chatData?.source || 'whatsapp',
+        identifier: chatData?.identifier || `cliente_${protocolData.protocol?.slice(-4)}`,
+        status: chatData?.status || 'active',
+        history: convertedHistory,
+        historyLoading: false,
+        historyError: null,
+        lastMessage: convertedHistory.length > 0 ? convertedHistory[convertedHistory.length - 1] : undefined,
+        messageCount: convertedHistory.length,
+        project_id: chatData?.project_id || '',
+        operator: chatData?.operator || false,
+        question_operator: chatData?.question_operator || false,
+        updated_at: chatData?.updated_at || new Date().toISOString(),
+        created_at: protocolData.createdAt || new Date().toISOString()
       }
+
+      return result
+    },
+    [chatData]
+  )
+
+  const handleProtocolSelect = useCallback(
+    (protocol: string, protocolData?: any) => {
+      console.log('🔄 Selecionando protocolo:', protocol)
+
+      try {
+        setSelectedProtocol(protocol)
+
+        let selectedData = protocolData
+
+        if (!selectedData && clientHistories[protocol]) {
+          selectedData = {
+            protocol,
+            ...clientHistories[protocol],
+            createdAt: clientHistories[protocol].history?.[0]?.created_at || ''
+          }
+        }
+
+        if (selectedData) {
+          const convertedChatData = convertProtocolToDisplay(selectedData)
+
+          setDisplayChatData(convertedChatData)
+          console.log('✅ Protocolo selecionado:', convertedChatData)
+        }
+      } catch (error) {
+        console.error('💥 Erro ao selecionar protocolo:', error)
+      }
+    },
+    [clientHistories, convertProtocolToDisplay]
+  )
+
+  useEffect(() => {
+    if (open && chatData) {
+      setSelectedProtocol(chatData.protocol)
+      setDisplayChatData(chatData)
     }
-  })
+  }, [open, chatData])
+
+  const handleSidebarClose = useCallback(() => {
+    if (isBelowMdScreen) {
+      setSidebarOpen(false)
+    }
+  }, [isBelowMdScreen])
+
+  if (!chatData) return null
+
+  const clientName = chatData.identifier || `Cliente ${chatData.protocol}`
+  const clientChannel = chatData.source || 'WhatsApp'
+  const protocolNumber = chatData.protocol
 
   return (
     <LargeMonitoringDialog open={open} onClose={onClose}>
-      {/* HEADER DO MODAL */}
-      <ModalHeader>
-        <Box display='flex' alignItems='center' gap={2}>
-          <Stack direction='row' spacing={2}>
-            <StyledBadge
-              status={chatData.status}
-              callOperator={chatData.operator === 1 ? true : false}
-              overlap='circular'
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              variant='dot'
-            >
-              <Avatar alt='Remy Sharp' src='/static/images/avatar/1.jpg' />
-            </StyledBadge>
-          </Stack>
-          <Box>
-            <Typography variant='h6' component='div'>
-              {clientName}
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              Canal de atendimento: {clientChannel} | Cliente antigo | (61) - 98331-4145
-            </Typography>
-          </Box>
-          <Chip label={clientStatus} color={chatData.status === 'active' ? 'success' : 'default'} size='small' />
-        </Box>
-
-        <Box display='flex' alignItems='center' gap={1}>
-          <IconButton size='small'>
-            <Phone size={20} />
-          </IconButton>
-          <IconButton size='small'>
-            <MessageSquare size={20} />
-          </IconButton>
-          <IconButton size='small'>
-            <Settings size={20} />
-          </IconButton>
-          <IconButton onClick={onClose}>
-            <X size={24} />
-          </IconButton>
-        </Box>
-      </ModalHeader>
-
-      {/* CONTEÚDO PRINCIPAL */}
       <ModalDialogContent>
-        {/* SIDEBAR ESQUERDA */}
-        <Paper
-          sx={{
-            width: 280,
-            flexShrink: 0,
-            borderRadius: 0,
-            borderRight: 1,
-            borderColor: 'divider'
-          }}
-        >
-          {/* Seção de Ações */}
-          <Box p={2}>
-            <Typography variant='subtitle2' gutterBottom color='text.secondary'>
-              Ações
-            </Typography>
+        <ChatMonitoringSidebar
+          open={sidebarOpen}
+          onClose={handleSidebarClose}
+          chatData={chatData}
+          selectedProtocol={selectedProtocol}
+          historyData={historyData}
+          historyLoading={historyLoading}
+          historyError={historyError}
+          onRefreshHistory={refreshHistory}
+          onProtocolSelect={handleProtocolSelect}
+          isBelowLgScreen={isBelowLgScreen}
+          isBelowMdScreen={isBelowMdScreen}
+          isBelowSmScreen={isBelowSmScreen}
+        />
 
-            {/* Mensagem de erro geral */}
-            {actionState.error && (
-              <Alert severity='error' sx={{ mb: 2, fontSize: '0.75rem' }}>
-                {actionState.error}
-              </Alert>
-            )}
-
-            <Box display='flex' flexDirection='column' gap={1}>
-              {/* Botão: Assumir Chat */}
-              <Button
-                variant='contained'
-                startIcon={
-                  isLoading('assume_chat') ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : isSuccess('assume_chat') ? (
-                    <UserCheck size={16} />
-                  ) : (
-                    <MessageSquare size={16} />
-                  )
-                }
-                fullWidth
-                size='small'
-                onClick={handleAssumeChat}
-                disabled={!!actionState.loading}
-                color={isSuccess('assume_chat') ? 'success' : 'primary'}
-              >
-                {isLoading('assume_chat')
-                  ? 'Assumindo...'
-                  : isSuccess('assume_chat')
-                    ? 'Chat Assumido!'
-                    : 'Assumir Chat'}
-              </Button>
-
-              {/* Botão: Transferir Operador */}
-              <Button
-                variant='outlined'
-                startIcon={
-                  isLoading('transfer_operator') ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : isSuccess('transfer_operator') ? (
-                    <UserCheck size={16} />
-                  ) : (
-                    <UserPlus size={16} />
-                  )
-                }
-                fullWidth
-                size='small'
-                onClick={handleTransferOperator}
-                disabled={!!actionState.loading}
-                color={isSuccess('transfer_operator') ? 'success' : 'primary'}
-              >
-                {isLoading('transfer_operator')
-                  ? 'Transferindo...'
-                  : isSuccess('transfer_operator')
-                    ? 'Transferido!'
-                    : 'Transferir Para Outro Operador'}
-              </Button>
-
-              {/* Botão: Adicionar Comentário */}
-              <Button
-                variant='outlined'
-                startIcon={
-                  isLoading('add_comment') ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : isSuccess('add_comment') ? (
-                    <UserCheck size={16} />
-                  ) : (
-                    <MessageCircle size={16} />
-                  )
-                }
-                fullWidth
-                size='small'
-                onClick={handleAddComment}
-                disabled={!!actionState.loading}
-                color={isSuccess('add_comment') ? 'success' : 'primary'}
-              >
-                {isLoading('add_comment')
-                  ? 'Adicionando...'
-                  : isSuccess('add_comment')
-                    ? 'Comentário Adicionado!'
-                    : 'Adicionar Comentário'}
-              </Button>
-
-              {/* Botão: Detalhes do Cliente */}
-              <Button
-                variant='outlined'
-                startIcon={isSuccess('client_details') ? <UserCheck size={16} /> : <User size={16} />}
-                fullWidth
-                size='small'
-                onClick={handleClientDetails}
-                disabled={!!actionState.loading}
-                color={isSuccess('client_details') ? 'success' : 'primary'}
-              >
-                {isSuccess('client_details') ? 'Abrindo Detalhes!' : 'Ir Para Detalhes Do Cliente'}
-              </Button>
-
-              {/* Botão: Encerrar Atendimento */}
-              <Button
-                variant='contained'
-                color='error'
-                startIcon={
-                  isLoading('end_chat') ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : isSuccess('end_chat') ? (
-                    <UserCheck size={16} />
-                  ) : (
-                    <XCircle size={16} />
-                  )
-                }
-                fullWidth
-                size='small'
-                onClick={handleEndChat}
-                disabled={!!actionState.loading}
-              >
-                {isLoading('end_chat')
-                  ? 'Encerrando...'
-                  : isSuccess('end_chat')
-                    ? 'Encerrado!'
-                    : 'Encerrar Atendimento'}
-              </Button>
-            </Box>
-          </Box>
-
-          <Divider />
-
-          {/* Seção de Status */}
-          <Box p={2}>
-            <Typography variant='subtitle2' gutterBottom color='text.secondary'>
-              Status
-            </Typography>
-            {/* TODO: Implementar radio buttons de status */}
-            <Typography variant='body2'>Status atual: {clientStatus}</Typography>
-          </Box>
-
-          <Divider />
-
-          {/* Histórico de Interações */}
-          <Box p={2}>
-            <Typography variant='subtitle2' gutterBottom color='text.secondary'>
-              Histórico de interações com este cliente:
-            </Typography>
-            {/* TODO: Implementar lista de interações anteriores */}
-            <Typography variant='body2' color='text.secondary'>
-              Histórico será implementado aqui
-            </Typography>
-          </Box>
-        </Paper>
-
-        {/* ✅ ÁREA PRINCIPAL - CHAT COM CHATLOG INTEGRADO */}
         <Box flex={1} display='flex' flexDirection='column'>
-          {/* ChatLog - Conversa em tempo real */}
           <Box
             flex={1}
             sx={{
-              overflow: 'hidden', // ✅ Container não tem scroll
+              overflow: 'hidden',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              minHeight: 0 // ✅ Importante para flex shrinking
+              minHeight: 0
             }}
           >
-            {/* Header da conversa */}
             <Paper
               elevation={0}
               sx={{
@@ -580,19 +285,18 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
               }}
             >
               <Typography variant='subtitle1' fontWeight='medium'>
-                💬 Conversa com {clientName}
+                Em contato com: {clientName}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                {chatData.history?.length || 0} mensagens • Canal: {clientChannel}
+                Canal: {clientChannel} • Protocolo: {protocolNumber}
               </Typography>
             </Paper>
 
-            {/* Área do ChatLog - Container com scroll próprio */}
             <Box
               sx={{
                 flex: 1,
                 position: 'relative',
-                overflowY: 'auto', // ✅ Scroll vertical
+                overflowY: 'auto',
                 overflowX: 'hidden',
                 backgroundImage: `${
                   modeTheme === 'light'
@@ -604,7 +308,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                 backgroundRepeat: 'no-repeat',
                 scrollBehavior: 'smooth',
 
-                // ✅ Scrollbar customizada
                 '&::-webkit-scrollbar': {
                   width: '6px'
                 },
@@ -620,7 +323,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                 }
               }}
               ref={element => {
-                // ✅ Auto-scroll para o final quando o conteúdo muda
                 if (element && chatData?.history?.length) {
                   requestAnimationFrame(() => {
                     ;(element as HTMLDivElement).scrollTop = (element as HTMLDivElement).scrollHeight
@@ -632,14 +334,18 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                 <Box
                   sx={{
                     padding: 2,
-                    minHeight: '100%' // ✅ Garante que o conteúdo sempre tenha altura mínima
+                    minHeight: '100%'
                   }}
                 >
                   <ChatLog
-                    chatData={chatData}
-                    isBelowLgScreen={true} // ✅ Usa scroll nativo
-                    isBelowMdScreen={false}
-                    isBelowSmScreen={false}
+                    chatData={displayChatData || chatData}
+                    isBelowLgScreen={isBelowLgScreen}
+                    isBelowMdScreen={isBelowMdScreen}
+                    isBelowSmScreen={isBelowSmScreen}
+                    showOperatorTriggers={needsOperatorInstruction}
+                    operatorTriggerMessages={lastUserMessage?.id ? [lastUserMessage.id] : []}
+                    onInstructAssistant={handleInstructAssistant}
+                    isShowDetailsChatLog={true}
                   />
                 </Box>
               ) : (
@@ -663,34 +369,13 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
             </Box>
           </Box>
 
-          {/* Input de mensagem (rodapé) */}
-          <Paper
-            elevation={1}
-            sx={{
-              p: 2,
-              borderRadius: 0,
-              borderTop: 1,
-              borderColor: 'divider'
-            }}
-          >
-            <Box display='flex' gap={1} alignItems='center'>
-              <Box flex={1}>
-                <Typography variant='body2' color='text.secondary' mb={1}>
-                  Como a Aivou deveria responder isso pra deixar o cliente mais seguro e satisfeito? Escreva aqui sua
-                  sugestão.
-                </Typography>
-                {/* TODO: Implementar TextField */}
-                <Paper variant='outlined' sx={{ p: 1.5, minHeight: 60 }}>
-                  <Typography variant='body2' color='text.disabled'>
-                    Digite uma mensagem aqui!
-                  </Typography>
-                </Paper>
-              </Box>
-              <Button variant='contained' color='primary'>
-                Instruir Assistente ➜
-              </Button>
-            </Box>
-          </Paper>
+          <SendMsgForm
+            isBelowSmScreen={false}
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            messageInputRef={useMemo(() => ({ current: null }), [])}
+            placeholder={'Digite uma mensagem aqui!'}
+            dispatch={undefined}
+          />
         </Box>
       </ModalDialogContent>
     </LargeMonitoringDialog>

@@ -70,6 +70,15 @@ type LoginCredentials = {
   device_name: string
 }
 
+type LoginError = {
+  message: string
+  status?: number
+  data?: {
+    errors?: Record<string, string[]>
+    message?: string
+  }
+}
+
 export const SignIn = apiSlice.injectEndpoints({
   endpoints: builder => ({
     postLogin: builder.mutation<LoginResponse, LoginCredentials>({
@@ -80,8 +89,31 @@ export const SignIn = apiSlice.injectEndpoints({
           email,
           password,
           device_name
+        },
+
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
         }
-      })
+      }),
+
+      transformResponse: (response: LoginResponse) => {
+        console.log('✅ Login successful:', response)
+
+        return response
+      },
+
+      transformErrorResponse: (response: any) => {
+        console.error('❌ Login error:', response)
+
+        return {
+          message: response?.data?.message || 'Erro no login',
+          status: response?.status,
+          data: response?.data
+        } as LoginError
+      },
+
+      invalidatesTags: ['User']
     })
   })
 })

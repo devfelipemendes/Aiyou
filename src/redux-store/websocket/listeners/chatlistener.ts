@@ -149,10 +149,25 @@ export function listenProtocolEvents(echo: Echo<any>, protocolId: string, client
 
         // Caso algum estado daquele registro na banco de uma pergunta já criada tenha mudado.
         .listen('.question.updated', (e: any) => {
-          logEventToDebugger(protocolChannelName, 'question.updated', e.data || e)
+          const eventData = e.data || e
+
+          logEventToDebugger(protocolChannelName, 'question.updated', eventData)
+
+          // 🔥 DEBUG SIMPLES - SEM FRESCURA
+          console.log('====================================')
+          console.log('🔍 QUESTION.UPDATED CAPTURADO!')
+          console.log('Data completa:', JSON.stringify(eventData, null, 2))
+
+          if (eventData.question_operator !== undefined) {
+            console.log('🚨🚨🚨 QUESTION_OPERATOR ENCONTRADO!')
+            console.log('Valor:', eventData.question_operator)
+            console.log('Protocol:', eventData.protocol)
+          }
+
+          console.log('====================================')
 
           try {
-            dispatch(updateQuestion(e.data || e))
+            dispatch(updateQuestion(eventData))
           } catch (dispatchError) {
             console.error('💥 Erro ao dispatch question.updated:', dispatchError)
           }

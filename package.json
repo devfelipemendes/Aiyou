@@ -36,6 +36,7 @@
     "cpf-cnpj-validator": "^1.0.3",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.16.0",
+    "immer": "^10.1.1",
     "install": "^0.13.0",
     "js-cookies": "^1.0.4",
     "laravel-echo": "^2.1.5",

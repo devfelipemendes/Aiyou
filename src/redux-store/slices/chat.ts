@@ -25,6 +25,8 @@ interface ActiveChat extends ChatItem {
   unseenMsgs: number
   isTyping: boolean
   lastActivity: number
+
+  isAssumed: boolean
 }
 
 // 🎯 ESTADO DO SLICE
@@ -71,6 +73,7 @@ export const chatSlice = createSlice({
         messages: [], // Inicialmente vazio, carregado depois
         unseenMsgs: 0,
         isTyping: false,
+        isAssumed: false,
         lastActivity: Date.now()
       }))
       state.isLoading = false
