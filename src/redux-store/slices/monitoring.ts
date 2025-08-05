@@ -235,6 +235,21 @@ export const monitoringSlice = createSlice({
 
       state.connectedChannels = state.connectedChannels.filter(ch => ch !== channel)
     },
+    toggleAssumeChat: (state, action: PayloadAction<string>) => {
+      const protocol = action.payload
+      const chat = state.chatsByProtocol[protocol]
+
+      if (!chat) {
+        console.warn('⚠️ Chat não encontrado para toggle assume:', protocol)
+
+        return
+      }
+
+      // Toggle do estado
+      chat.operator = !chat.operator
+
+      console.log(`${chat.operator ? '✅ Chat assumido' : '🔓 Chat liberado'}:`, protocol)
+    },
 
     clearConnectedChannels: state => {
       state.connectedChannels = []
@@ -266,6 +281,7 @@ export const {
   removeConnectedChannel,
   clearConnectedChannels,
   clearAllChats,
+  toggleAssumeChat,
   updatedQuestionOperator
 } = monitoringSlice.actions
 

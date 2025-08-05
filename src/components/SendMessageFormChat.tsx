@@ -32,7 +32,9 @@ type Props = {
   messageInputRef: RefObject<HTMLDivElement>
   placeholder: string
   isInstruction?: boolean
+  onSendMessage?: (content: string) => Promise<void>
   questionId?: string
+  disabled?: boolean
 }
 
 // Emoji Picker Component for selecting emojis
@@ -85,7 +87,15 @@ const EmojiPicker = ({
   )
 }
 
-const SendMsgForm = ({ isBelowSmScreen, messageInputRef, placeholder, isInstruction, questionId }: Props) => {
+const SendMsgForm = ({
+  isBelowSmScreen,
+  messageInputRef,
+  placeholder,
+  isInstruction,
+  questionId,
+  onSendMessage,
+  disabled
+}: Props) => {
   // States
   const [msg, setMsg] = useState('')
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
@@ -116,6 +126,15 @@ const SendMsgForm = ({ isBelowSmScreen, messageInputRef, placeholder, isInstruct
     if (msg.trim() === '') return
 
     try {
+      if (onSendMessage) {
+        console.log('Enviando mensagem via onSendMessage', msg)
+
+        await onSendMessage(msg)
+        setMsg('')
+
+        return
+      }
+
       // 🎯 SE FOR INSTRUÇÃO DO OPERADOR
       if (isInstruction && questionId) {
         console.log('📨 Enviando intervenção do operador:', { questionId, content: msg })
@@ -232,7 +251,7 @@ const SendMsgForm = ({ isBelowSmScreen, messageInputRef, placeholder, isInstruct
             color='primary'
             type='submit'
             endIcon={<i className='ri-send-plane-line' />}
-            disabled={isOperatorLoading}
+            disabled={isOperatorLoading || disabled}
           >
             Enviar
           </Button>
