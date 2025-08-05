@@ -99,8 +99,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
         console.log('✅ Mensagem do operador enviada com sucesso!')
       } catch (error) {
         console.error('❌ Erro ao enviar mensagem do operador:', error)
-
-        // TODO: Mostrar toast de erro
       }
     },
     [selectedProtocol, operatorReply]
