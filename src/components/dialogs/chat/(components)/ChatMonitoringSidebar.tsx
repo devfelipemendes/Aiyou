@@ -37,6 +37,9 @@ import { MessageSquare, UserPlus, MessageCircle, User, XCircle, UserCheck, Messa
 // Types
 import type { ChatWithHistory } from '@/api/endpoints/chat/history'
 import { ProtocolHistoryList } from './ProtocolHistoryList'
+import { useAppDispatch, useAppSelector } from '@/redux-store'
+import { useOperatorToggleMutation } from '@/api/endpoints/chat/operatorMode'
+import { toggleAssumeChat } from '@/redux-store/slices/monitoring'
 
 // Utils
 
@@ -111,7 +114,6 @@ const ChatMonitoringSidebar = ({
   isBelowLgScreen,
   isBelowMdScreen,
   isBelowSmScreen,
-  onAssumeChat,
   onTransferOperator,
   onAddComment,
   onClientDetails,
@@ -131,29 +133,61 @@ const ChatMonitoringSidebar = ({
 
   const [value, setValue] = useState<string>('controlled-checked')
 
+  const dispatch = useAppDispatch()
+
+  const monitoringChats = useAppSelector((state: any) => state.monitoring?.chatsByProtocol || {})
+
+  const [operatorToggle] = useOperatorToggleMutation()
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setValue((event.target as HTMLInputElement).value)
   }
 
+  const currentChat = useMemo(() => {
+    return monitoringChats[selectedProtocol]
+  }, [monitoringChats, selectedProtocol])
+
+  const isAssumed = currentChat?.operator || false
+
   // ===== HANDLERS DAS AÇÕES COM CONTROLE DE ESTADO =====
   const handleAssumeChat = useCallback(async () => {
+    console.log('🔍 ANTES - selectedProtocol:', selectedProtocol)
+    console.log('🔍 ANTES - isAssumed:', isAssumed)
+
+    if (!selectedProtocol) {
+      console.warn('⚠️ Nenhum protocolo selecionado')
+
+      return
+    }
+
     setActionState(prev => ({ ...prev, loading: 'assume_chat', error: null }))
 
     try {
-      if (onAssumeChat) {
-        await onAssumeChat()
-      }
+      // 1️⃣ Atualizar estado Redux (toggle)
+      dispatch(toggleAssumeChat(selectedProtocol))
+
+      // 2️⃣ Obter novo estado (após toggle)
+      const newState = !isAssumed
+
+      // 3️⃣ Chamar API para informar backend
+      await operatorToggle({
+        protocol: selectedProtocol,
+        operator: newState
+      }).unwrap()
 
       setActionState(prev => ({ ...prev, loading: null, success: 'assume_chat' }))
       setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
     } catch (error) {
+      // 🔄 Reverter estado Redux se API falhou
+      dispatch(toggleAssumeChat(selectedProtocol))
+
       setActionState(prev => ({
         ...prev,
         loading: null,
         error: 'Erro ao assumir chat. Tente novamente.'
       }))
     }
-  }, [onAssumeChat])
+  }, [selectedProtocol, isAssumed, dispatch, operatorToggle])
 
   const handleTransferOperator = useCallback(async () => {
     setActionState(prev => ({ ...prev, loading: 'transfer_operator', error: null }))
@@ -501,13 +535,20 @@ const ChatMonitoringSidebar = ({
                 size='small'
                 onClick={handleAssumeChat}
                 disabled={!!actionState.loading}
-                color={'info'}
+                color={isAssumed ? 'warning' : 'info'} // 🔥 Cor muda baseado no estado
               >
                 {isLoading('assume_chat')
-                  ? 'Assumindo...'
+                  ? isAssumed
+                    ? 'Liberando...'
+                    : 'Assumindo...'
                   : isSuccess('assume_chat')
-                    ? 'Chat Assumido!'
-                    : 'Assumir Chat'}
+                    ? isAssumed
+                      ? 'Chat Liberado!'
+                      : 'Chat Assumido!'
+                    : isAssumed
+                      ? 'Liberar Chat'
+                      : 'Assumir Chat'}{' '}
+                {/* 🔥 Texto toggle */}
               </Button>
 
               {/* Botão: Transferir Operador */}

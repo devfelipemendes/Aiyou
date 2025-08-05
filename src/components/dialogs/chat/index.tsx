@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 
 import { Dialog, DialogContent, Typography, Box, Paper, useTheme, useMediaQuery, type Theme } from '@mui/material'
 import { styled } from '@mui/material/styles'
@@ -13,6 +13,9 @@ import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/h
 
 import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
 import SendMsgForm from '@/components/SendMessageFormChat'
+import { useAppSelector } from '@/redux-store'
+
+import { useOperatorReplyMutation } from '@/api/endpoints/chat/operatorMode'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -58,6 +61,50 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
   const [selectedProtocol, setSelectedProtocol] = useState<string>(chatData?.protocol || '')
   const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const monitoringChats = useAppSelector((state: any) => state.monitoring?.chatsByProtocol || {})
+  const [operatorReply] = useOperatorReplyMutation()
+
+  const messageInputRef = useRef<HTMLDivElement>(null)
+
+  const currentChat = useMemo(() => {
+    const foundChat = monitoringChats[selectedProtocol]
+
+    // 🔍 DEBUG: Log para confirmar
+    console.log('🔍 MODAL - selectedProtocol:', selectedProtocol)
+    console.log('🔍 MODAL - foundChat:', foundChat)
+    console.log('🔍 MODAL - isAssumed:', foundChat?.operator)
+
+    return foundChat
+  }, [monitoringChats, selectedProtocol])
+
+  const isAssumed = currentChat?.operator || false
+
+  const handleOperatorMessage = useCallback(
+    async (content: string) => {
+      if (!selectedProtocol || !content.trim()) {
+        console.warn('⚠️ Protocolo ou conteúdo inválido')
+
+        return
+      }
+
+      try {
+        console.log('📨 Enviando mensagem do operador:', { selectedProtocol, content })
+
+        await operatorReply({
+          protocol: selectedProtocol,
+          content: content.trim()
+        }).unwrap()
+
+        console.log('✅ Mensagem do operador enviada com sucesso!')
+      } catch (error) {
+        console.error('❌ Erro ao enviar mensagem do operador:', error)
+
+        // TODO: Mostrar toast de erro
+      }
+    },
+    [selectedProtocol, operatorReply]
+  )
 
   const lastUserMessage = useMemo(() => {
     if (!displayChatData?.history || displayChatData.history.length === 0) {
@@ -368,14 +415,33 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
               )}
             </Box>
           </Box>
-
-          <SendMsgForm
-            isBelowSmScreen={false}
-            // eslint-disable-next-line react-hooks/rules-of-hooks
-            messageInputRef={useMemo(() => ({ current: null }), [])}
-            placeholder={'Digite uma mensagem aqui!'}
-            dispatch={undefined}
-          />
+          <Box
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: isAssumed ? 'background.paper' : 'action.disabledBackground',
+              opacity: isAssumed ? 1 : 0.6
+            }}
+          >
+            {isAssumed ? (
+              <SendMsgForm
+                isBelowSmScreen={isBelowSmScreen}
+                messageInputRef={messageInputRef}
+                placeholder='Digite sua mensagem como operador...'
+                onSendMessage={handleOperatorMessage} // 🔥 Nova prop
+                disabled={false}
+              />
+            ) : (
+              <Box p={2} textAlign='center'>
+                <Typography variant='body2' color='text.secondary'>
+                  💬 Para enviar mensagens, primeiro assuma o chat
+                </Typography>
+                <Typography variant='caption' color='text.secondary'>
+                  {'Use o botão "Assumir Chat" na barra lateral'}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </Box>
       </ModalDialogContent>
     </LargeMonitoringDialog>

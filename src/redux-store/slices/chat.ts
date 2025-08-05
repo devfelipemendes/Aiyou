@@ -163,7 +163,6 @@ export const chatSlice = createSlice({
       state.error = action.payload
     },
 
-    // 🎯 LIMPAR TODOS OS DADOS (útil para logout)
     clearAllChats: state => {
       state.activeChats = []
       state.activeProtocol = null
