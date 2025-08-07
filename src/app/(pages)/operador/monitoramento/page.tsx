@@ -18,6 +18,7 @@ import {
   type DragEndEvent
 } from '@dnd-kit/core'
 import {
+  rectSortingStrategy,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -235,19 +236,47 @@ const MonitoringPageOptimized = () => {
     (event: DragEndEvent) => {
       const { active, over } = event
 
-      if (over && active.id !== over.id) {
-        // ✅ USAR chatOrder corretamente
-        const oldIndex = chatOrder.findIndex((protocol: any) => protocol === active.id)
-        const newIndex = chatOrder.findIndex((protocol: any) => protocol === over.id)
+      if (!over || active.id === over.id) return
 
-        if (oldIndex !== -1 && newIndex !== -1) {
-          console.log(`🔄 Movendo chat: ${oldIndex} → ${newIndex}`)
-          updateChatOrder(oldIndex, newIndex)
-        }
+      console.log('🎯 Iniciando drag & drop...')
+      console.log('  Active ID:', active.id)
+      console.log('  Over ID:', over.id)
+
+      // 1. 🔍 Encontrar posições no array FILTRADO
+      const localOldIndex = filteredChats.findIndex(chat => chat.protocol === active.id)
+      const localNewIndex = filteredChats.findIndex(chat => chat.protocol === over.id)
+
+      if (localOldIndex === -1 || localNewIndex === -1) {
+        console.warn('⚠️ Índices locais não encontrados:', { localOldIndex, localNewIndex })
+
+        return
       }
+
+      // 2. 🔄 Mapear para posições GLOBAIS no chatOrder
+      const globalOldIndex = chatOrder.findIndex(protocol => protocol === active.id)
+      const globalNewIndex = chatOrder.findIndex(protocol => protocol === over.id)
+
+      if (globalOldIndex === -1 || globalNewIndex === -1) {
+        console.warn('⚠️ Índices globais não encontrados:', { globalOldIndex, globalNewIndex })
+
+        return
+      }
+
+      // 3. 📊 Debug do mapeamento
+      console.log(`🔄 Mapeamento de índices:`)
+      console.log(`  📋 Local (filtrados): ${localOldIndex} → ${localNewIndex}`)
+      console.log(`  🌍 Global (chatOrder): ${globalOldIndex} → ${globalNewIndex}`)
+      console.log(`  📝 Protocolos: ${active.id} → ${over.id}`)
+
+      // 4. ✅ USAR updateChatOrder com índices globais
+      updateChatOrder(globalOldIndex, globalNewIndex)
     },
-    [chatOrder, updateChatOrder]
+    [filteredChats, chatOrder, updateChatOrder]
   )
+
+  const filteredChatIds = useMemo(() => {
+    return filteredChats.map(chat => chat.protocol)
+  }, [filteredChats])
 
   // 🔄 CALLBACKS DE FILTROS
   const handleFilterChange = useCallback((key: keyof ChatFilters, value: any) => {
@@ -303,10 +332,10 @@ const MonitoringPageOptimized = () => {
         onChatSelect: handleCardClick,
         onChatDoubleClick: handleCardDoubleClick,
         isSelected: isCardSelected(protocol),
-        isWebSocketConnected,
+        isWebSocketConnected, // ← Valor pode ficar, só remover das deps
         isInModal: isCardInModal(protocol)
       }),
-      [protocol, isWebSocketConnected]
+      [protocol] // ← Só protocol é necessário
     )
 
     // 🔥 PROPS INSTÁVEIS
@@ -461,7 +490,7 @@ const MonitoringPageOptimized = () => {
 
       {/* 🔥 GRID COM CARDS */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={chatOrder} strategy={verticalListSortingStrategy}>
+        <SortableContext items={filteredChatIds} strategy={rectSortingStrategy}>
           <Grid container spacing={3}>
             {filteredChats.map(
               (
