@@ -234,7 +234,8 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
         operator: chatData?.operator || false,
         question_operator: chatData?.question_operator || false,
         updated_at: chatData?.updated_at || new Date().toISOString(),
-        created_at: protocolData.createdAt || new Date().toISOString()
+        created_at: protocolData.createdAt || new Date().toISOString(),
+        isAwaitingHistory: false
       }
 
       return result

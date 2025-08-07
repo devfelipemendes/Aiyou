@@ -56,7 +56,8 @@ export function adaptProtocolToChat(protocolItem: ProcessedProtocolHistoryItem):
 
     // 📅 TIMESTAMPS
     updated_at: protocolItem.lastActivity,
-    created_at: protocolItem.createdAt || protocolItem.lastActivity
+    created_at: protocolItem.createdAt || protocolItem.lastActivity,
+    isAwaitingHistory: false
   }
 }
 
