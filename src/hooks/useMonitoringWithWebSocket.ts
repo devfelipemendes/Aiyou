@@ -558,7 +558,7 @@ export function useMonitoringWithWebSocket(
           updated_at: protocolEvent.updated_at,
 
           // 🎛️ PADRÕES
-          question_operator: true
+          question_operator: false
         }
 
         // Adicionar ao Redux
