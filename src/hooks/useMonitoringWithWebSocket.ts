@@ -227,7 +227,7 @@ export function useMonitoringWithWebSocket(
           question_operator: false,
           updated_at: messageEvent.created_at,
           created_at: messageEvent.created_at,
-          isAwaitingHistory: false // ✅ ADICIONADO: propriedade obrigatória
+          isAwaitingHistory: true // ✅ ADICIONADO: propriedade obrigatória
         }
 
         dispatch(addNewChat(orphanChat))
@@ -282,6 +282,106 @@ export function useMonitoringWithWebSocket(
     })
   }, [enableWebSocket, dispatch, handleNewMessage])
 
+  // 🔥 FUNÇÃO: Buscar histórico com retry inteligente
+  const fetchHistoryForNewProtocolWithRetry = useCallback(
+    async (protocolId: string, attempt = 1, maxAttempts = 3) => {
+      try {
+        console.log(`📥 Tentativa ${attempt}/${maxAttempts} - Buscando histórico: ${protocolId}`)
+
+        // 1. Marcar no Redux como aguardando histórico
+        dispatch(markProtocolAwaitingHistory(protocolId))
+
+        // 2. Fazer requisição do histórico
+        const result = await fetchProtocolHistory(protocolId).unwrap()
+
+        if (result?.data && Array.isArray(result.data)) {
+          // 3. Encontrar dados do protocolo específico
+          const protocolData = result.data.find((item: ProcessedProtocolHistoryItem) => item.protocol === protocolId)
+
+          if (protocolData?.history && protocolData.history.length > 0) {
+            // ✅ SUCESSO: Histórico encontrado
+            console.log(`✅ Histórico encontrado para ${protocolId}: ${protocolData.history.length} mensagens`)
+
+            dispatch(
+              updateProtocolMessages({
+                protocolId,
+                messages: protocolData.history
+              })
+            )
+
+            setTimeout(() => reconnectToNewChannels(), 500)
+
+            return // Sucesso, não precisa de retry
+          }
+
+          // ⚠️ HISTÓRICO VAZIO: Decidir se deve fazer retry
+          if (attempt < maxAttempts) {
+            // 🔄 RETRY: Aguardar um pouco e tentar novamente
+            const delay = attempt === 1 ? 5000 : 10000 // 2s, depois 5s
+
+            console.log(`⏳ Histórico vazio, tentando novamente em ${delay}ms...`)
+
+            setTimeout(() => {
+              fetchHistoryForNewProtocolWithRetry(protocolId, attempt + 1, maxAttempts)
+            }, delay)
+
+            return
+          } else {
+            // 🏁 ÚLTIMA TENTATIVA: Aceitar que não tem histórico ainda
+            console.log(`💡 Protocolo ${protocolId} sem histórico inicial - aguardando WebSocket`)
+
+            dispatch(
+              updateChatInfo({
+                protocol: protocolId,
+                updates: {
+                  historyLoading: false,
+                  historyError: null,
+                  isAwaitingHistory: true // Liberar para renderização
+                }
+              })
+            )
+
+            setTimeout(() => reconnectToNewChannels(), 500)
+          }
+        }
+      } catch (error) {
+        console.error(`💥 Erro ao buscar histórico (tentativa ${attempt}):`, error)
+
+        if (attempt < maxAttempts) {
+          // Retry em caso de erro também
+          setTimeout(() => {
+            fetchHistoryForNewProtocolWithRetry(protocolId, attempt + 1, maxAttempts)
+          }, 3000)
+        } else {
+          // Erro final
+          dispatch(
+            updateChatInfo({
+              protocol: protocolId,
+              updates: {
+                historyLoading: false,
+                historyError: `Erro após ${maxAttempts} tentativas`,
+                isAwaitingHistory: true
+              }
+            })
+          )
+          setTimeout(() => reconnectToNewChannels(), 500)
+        }
+      } finally {
+        if (attempt === maxAttempts) {
+          // Só remove da lista na última tentativa
+          setProtocolsAwaitingHistory(prev => {
+            const newSet = new Set(prev)
+
+            newSet.delete(protocolId)
+
+            return newSet
+          })
+        }
+      }
+    },
+    [fetchProtocolHistory, dispatch, reconnectToNewChannels]
+  )
+
   // 🔥 FUNÇÃO: Buscar histórico para protocolo novo
   const fetchHistoryForNewProtocol = useCallback(
     async (protocolId: string) => {
@@ -310,7 +410,7 @@ export function useMonitoringWithWebSocket(
             )
             setTimeout(() => {
               reconnectToNewChannels()
-            }, 500)
+            }, 1000)
           } else {
             console.log(`⚠️ Protocolo ${protocolId} sem mensagens no histórico`)
 
@@ -321,13 +421,13 @@ export function useMonitoringWithWebSocket(
                 updates: {
                   historyLoading: false,
                   historyError: null,
-                  isAwaitingHistory: false // ← Continua aguardando primeira mensagem via WebSocket
+                  isAwaitingHistory: true // ← Continua aguardando primeira mensagem via WebSocket
                 }
               })
             )
             setTimeout(() => {
               reconnectToNewChannels()
-            }, 500)
+            }, 1000)
           }
         } else {
           console.warn(`⚠️ Resposta inválida para protocolo ${protocolId}:`, result)
@@ -339,7 +439,7 @@ export function useMonitoringWithWebSocket(
               updates: {
                 historyLoading: false,
                 historyError: 'Resposta inválida da API',
-                isAwaitingHistory: false // ← Libera para renderização mesmo sem mensagens
+                isAwaitingHistory: true // ← Libera para renderização mesmo sem mensagens
               }
             })
           )
@@ -347,7 +447,7 @@ export function useMonitoringWithWebSocket(
 
         setTimeout(() => {
           reconnectToNewChannels()
-        }, 500)
+        }, 1000)
       } catch (error) {
         console.error(`💥 Erro ao buscar histórico do protocolo ${protocolId}:`, error)
 
@@ -358,13 +458,13 @@ export function useMonitoringWithWebSocket(
             updates: {
               historyLoading: false,
               historyError: `Erro na busca: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-              isAwaitingHistory: false // ← Libera para renderização mesmo com erro
+              isAwaitingHistory: true // ← Libera para renderização mesmo com erro
             }
           })
         )
         setTimeout(() => {
           reconnectToNewChannels()
-        }, 500)
+        }, 1000)
       } finally {
         // 8. Sempre remover da lista de aguardando (sucesso ou erro)
         setProtocolsAwaitingHistory(prev => {
@@ -458,19 +558,21 @@ export function useMonitoringWithWebSocket(
           updated_at: protocolEvent.updated_at,
 
           // 🎛️ PADRÕES
-          question_operator: false
+          question_operator: true
         }
 
         // Adicionar ao Redux
         dispatch(addNewChat(basicChat))
         console.log(`📋 Protocolo ${protocolEvent.protocol} adicionado ao Redux (aguardando histórico)`)
 
+        fetchHistoryForNewProtocolWithRetry(protocolEvent.protocol)
+
         // O useEffect detectNewProtocols vai pegar e buscar o histórico automaticamente
       } catch (error) {
         console.error('💥 Erro no handleProtocolCreated:', error)
       }
     },
-    [dispatch]
+    [dispatch, fetchHistoryForNewProtocol]
   )
 
   // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { MutableRefObject, ReactNode } from 'react'
 
 import Typography from '@mui/material/Typography'
@@ -140,12 +140,16 @@ const ScrollWrapper = ({
 }: {
   children: ReactNode
   isBelowLgScreen: boolean
-  scrollRef: MutableRefObject<null>
+  scrollRef: (element: any) => void
   className?: string
 }) => {
   if (isBelowLgScreen) {
     return (
-      <div ref={scrollRef} className={classnames('bs-full overflow-y-auto overflow-x-hidden ', className)}>
+      <div
+        ref={scrollRef}
+        className={classnames('bs-full overflow-y-auto overflow-x-hidden ', className)}
+        style={{ scrollBehavior: 'auto' }}
+      >
         {children}
       </div>
     )
@@ -179,7 +183,50 @@ const ChatLog = ({
 
   isShowDetailsChatLog
 }: AdaptedChatLogProps) => {
-  const scrollRef = useRef(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+
+  // 🔥 FUNÇÃO: Scroll direto para o final
+  const scrollToBottom = useCallback(() => {
+    if (!scrollRef.current) return
+
+    if (isBelowLgScreen) {
+      // @ts-ignore
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    } else {
+      // @ts-ignore
+      if (scrollRef.current._container) {
+        scrollRef.current._container.scrollTop = scrollRef.current._container.scrollHeight
+      }
+    }
+  }, [isBelowLgScreen])
+
+  // 🔥 SCROLL INICIAL: Executa ANTES da renderização visual
+  useLayoutEffect(() => {
+    if (chatData?.history?.length) {
+      scrollToBottom()
+    }
+  }, [chatData?.history?.length, scrollToBottom])
+
+  // 🔥 REF CALLBACK: Scroll imediato quando ref é criado
+  const handleScrollRef = useCallback(
+    (element: HTMLDivElement | any) => {
+      scrollRef.current = element
+
+      if (element && chatData?.history?.length) {
+        // Scroll imediato na criação
+        setTimeout(() => {
+          if (isBelowLgScreen) {
+            element.scrollTop = element.scrollHeight
+          } else {
+            if (element._container) {
+              element._container.scrollTop = element._container.scrollHeight
+            }
+          }
+        }, 0)
+      }
+    },
+    [chatData?.history?.length, isBelowLgScreen]
+  )
 
   console.log('🔥 CHATLOG RENDERIZADO!', {
     showOperatorTriggers,
@@ -214,7 +261,7 @@ const ChatLog = ({
   // const isSmallScreen = window.innerWidth < 600
 
   return (
-    <ScrollWrapper isBelowLgScreen={isBelowLgScreen} scrollRef={scrollRef}>
+    <ScrollWrapper isBelowLgScreen={isBelowLgScreen} scrollRef={handleScrollRef}>
       <CardContent
         className='p-0'
         style={{
