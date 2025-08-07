@@ -113,3 +113,42 @@ export const selectConnectedProtocols = createSelector([selectMonitoringState], 
 export const useChatSelector = (protocol: string) => {
   return createSelector([selectChatsByProtocol], chatsByProtocol => chatsByProtocol[protocol] || null)
 }
+
+// redux-store/selectors/monitoring.ts - ADICIONAR SELECTOR
+// redux-store/selectors/monitoring.ts - SELECTOR MAIS PERMISSIVO
+export const selectRenderableChats = createSelector(
+  [(state: RootState) => Object.values(state.monitoring.chatsByProtocol)],
+  chats => {
+    console.log('🔍 selectRenderableChats - Avaliando chats:', chats.length)
+
+    const renderableChats = chats.filter(chat => {
+      const hasMessages = chat.history && chat.history.length > 0
+      const notAwaitingHistory = !chat.isAwaitingHistory
+      const hasError = !!chat.historyError
+
+      // 🔥 NOVA LÓGICA: Renderizar se:
+      // 1. Tem mensagens OU
+      // 2. Não está aguardando histórico OU
+      // 3. Tem erro (melhor mostrar card com erro que nada)
+      const shouldRender = hasMessages || notAwaitingHistory || hasError
+
+      console.log(`🔍 Chat ${chat.protocol}:`, {
+        hasMessages: hasMessages,
+        notAwaitingHistory: notAwaitingHistory,
+        hasError: hasError,
+        shouldRender: shouldRender,
+        historyLoading: chat.historyLoading,
+        messageCount: chat.messageCount
+      })
+
+      return shouldRender
+    })
+
+    console.log(
+      '✅ Chats renderizáveis:',
+      renderableChats.map(c => c.protocol)
+    )
+
+    return renderableChats
+  }
+)

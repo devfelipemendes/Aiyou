@@ -1,4 +1,4 @@
-// app/(pages)/operador/monitoramento/page.tsx - IMPLEMENTAÇÃO COMPLETA OTIMIZADA
+// app/(pages)/operador/monitoramento/page.tsx - CORRIGIDO
 'use client'
 import { useState, useCallback, useMemo, useEffect, memo } from 'react'
 
@@ -25,22 +25,21 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-// import { useAppSelector } from '@/redux-store'
-
 // 🔥 HOOK OTIMIZADO
-import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSocket'
 
 // 🔥 COMPONENTES OTIMIZADOS
-import CardMonitorOptimized from '@/components/card_monitormanto/CardMonitor' // Agora é o otimizado
+import CardMonitorOptimized from '@/components/card_monitormanto/CardMonitor'
 
 import { useAppSelector } from '@/redux-store'
 import { selectChatOrder } from '@/redux-store/slices/monitoring'
 import { useGetAllHistoryByProtocolQuery } from '@/api/endpoints/chat/protocolHistory'
 import ChatMonitoringModal from '@/components/dialogs/chat'
+import { selectRenderableChats } from '@/redux-store/selectors/monitoring'
+import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSocket'
 
-// Tipos (mantidos)
+// 🔧 TIPOS CORRIGIDOS
 type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
-type ChatStatus = 'active' | 'resolved' | 'closed' | 'pending'
+type ChatStatus = 'active' | 'resolved' | 'closed' | 'pending' | 'inactive' | 'unresolved' // ✅ Todos os status
 type ChannelType = 'whatsapp' | 'telegram' | 'webchat' | 'email' | 'sms'
 
 interface ChatFilters {
@@ -62,16 +61,15 @@ const MonitoringPageOptimized = () => {
     isRefreshing,
     error,
     refetch,
-
+    isLoadingHistory, // ✅ USAR na UI
     selectChat,
     updateChatOrder,
     isWebSocketConnected,
     connectedChannels
   } = useMonitoringChatWithWebSocket()
 
-  const chatProtocols = useAppSelector(selectChatOrder)
-
-  // const user = useAppSelector((state: any) => state.authReducer?.user)
+  const chatOrder = useAppSelector(selectChatOrder) // ✅ CORRIGIDO: era chatProtocols
+  const renderableChats = useAppSelector(selectRenderableChats)
 
   const { data: protocolHistoryData } = useGetAllHistoryByProtocolQuery()
 
@@ -90,7 +88,7 @@ const MonitoringPageOptimized = () => {
     cardsPerRow: 4
   })
 
-  // 🔥 CHAT SINCRONIZADO PARA MODAL (tempo real)
+  // 🔥 CHAT SINCRONIZADO PARA MODAL
   const selectedChatForDialog = useMemo(() => {
     if (!selectedProtocolForDialog) return null
 
@@ -133,7 +131,78 @@ const MonitoringPageOptimized = () => {
     }
   }, [selectedChatForDialog, protocolHistoryData])
 
-  // 🎛️ CALLBACKS ESTÁVEIS (performance critical)
+  // 🔧 HELPER: Obter propriedades derivadas do chat
+  const getChatChannel = useCallback((chat: any): ChannelType => {
+    // Mapear source para channel
+    const sourceToChannel: Record<string, ChannelType> = {
+      whatsapp: 'whatsapp',
+      telegram: 'telegram',
+      webchat: 'webchat',
+      email: 'email',
+      sms: 'sms'
+    }
+
+    return sourceToChannel[chat.source] || 'whatsapp'
+  }, [])
+
+  const getChatPriority = useCallback((chat: any): PriorityLevel => {
+    // Lógica para determinar prioridade baseada em dados do chat
+    if (chat.operator && chat.question_operator) return 'urgent'
+    if (chat.messageCount > 10) return 'high'
+    if (chat.messageCount > 5) return 'normal'
+
+    return 'low'
+  }, [])
+
+  const getChatLastActivity = useCallback((chat: any): string => {
+    // Usar lastMessage ou updated_at
+    return chat.lastMessage?.created_at || chat.updated_at
+  }, [])
+
+  // ✅ FILTROS CORRIGIDOS
+  const filteredChats = useMemo(() => {
+    return renderableChats
+      .filter(chat => {
+        // ✅ USAR PROPRIEDADE EXISTENTE
+        if (!filters.showClosed && chat.status === 'inactive') return false
+
+        // ✅ USAR ARRAY DE STATUS CORRIGIDO
+        if (filters.statuses.length > 0 && !filters.statuses.includes(chat.status as ChatStatus)) return false
+
+        // ✅ USAR HELPER PARA CHANNEL
+        const chatChannel = getChatChannel(chat)
+
+        if (filters.channels.length > 0 && !filters.channels.includes(chatChannel)) return false
+
+        // ✅ USAR HELPER PARA PRIORITY
+        const chatPriority = getChatPriority(chat)
+
+        if (filters.priorities.length > 0 && !filters.priorities.includes(chatPriority)) return false
+
+        return true
+      })
+      .sort((a, b) => {
+        switch (filters.orderBy) {
+          case 'priority':
+            const priorityOrder: Record<PriorityLevel, number> = { urgent: 3, high: 2, normal: 1, low: 0 }
+            const aPriority = getChatPriority(a)
+            const bPriority = getChatPriority(b)
+
+            return priorityOrder[bPriority] - priorityOrder[aPriority]
+
+          case 'last_activity':
+            const aActivity = getChatLastActivity(a)
+            const bActivity = getChatLastActivity(b)
+
+            return new Date(bActivity).getTime() - new Date(aActivity).getTime()
+
+          default: // created_at
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        }
+      })
+  }, [renderableChats, filters, getChatChannel, getChatPriority, getChatLastActivity])
+
+  // 🎛️ CALLBACKS ESTÁVEIS
   const handleCardClick = useCallback(
     (protocol: string) => {
       setSelectedCardId(protocol)
@@ -167,9 +236,9 @@ const MonitoringPageOptimized = () => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        // ✅ USAR chatProtocols ao invés de chats
-        const oldIndex = chatProtocols.findIndex((protocol: any) => protocol === active.id)
-        const newIndex = chatProtocols.findIndex((protocol: any) => protocol === over.id)
+        // ✅ USAR chatOrder corretamente
+        const oldIndex = chatOrder.findIndex((protocol: any) => protocol === active.id)
+        const newIndex = chatOrder.findIndex((protocol: any) => protocol === over.id)
 
         if (oldIndex !== -1 && newIndex !== -1) {
           console.log(`🔄 Movendo chat: ${oldIndex} → ${newIndex}`)
@@ -177,7 +246,7 @@ const MonitoringPageOptimized = () => {
         }
       }
     },
-    [chatProtocols, updateChatOrder] // ← chatProtocols, não chats
+    [chatOrder, updateChatOrder]
   )
 
   // 🔄 CALLBACKS DE FILTROS
@@ -216,8 +285,7 @@ const MonitoringPageOptimized = () => {
     }
   }, [filters.cardsPerRow])
 
-  // 🎨 COMPONENTE: Card Draggable OTIMIZADO (separado para evitar problemas com hooks)
-  // ✅ OTIMIZAÇÃO: Separar drag props dos dados
+  // 🎨 COMPONENTE: Card Draggable OTIMIZADO
   const DraggableCardOptimized = memo(({ protocol }: { protocol: string }) => {
     const {
       attributes,
@@ -228,7 +296,7 @@ const MonitoringPageOptimized = () => {
       isDragging: isCurrentlyDragging
     } = useSortable({ id: protocol })
 
-    // 🔥 PROPS ESTÁVEIS (não dependem de drag)
+    // 🔥 PROPS ESTÁVEIS
     const stableProps = useMemo(
       () => ({
         protocol,
@@ -238,11 +306,10 @@ const MonitoringPageOptimized = () => {
         isWebSocketConnected,
         isInModal: isCardInModal(protocol)
       }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [protocol, isWebSocketConnected] // ← Só dependências estáveis
+      [protocol, isWebSocketConnected]
     )
 
-    // 🔥 PROPS INSTÁVEIS (apenas drag)
+    // 🔥 PROPS INSTÁVEIS
     const dragProps = {
       dragListeners: listeners,
       dragAttributes: attributes,
@@ -271,7 +338,7 @@ const MonitoringPageOptimized = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // 🔄 VERIFICAR SE CHAT AINDA EXISTE QUANDO MODAL ESTÁ ABERTO
+  // 🔄 VERIFICAR SE CHAT AINDA EXISTE
   useEffect(() => {
     if (dialogOpen && selectedProtocolForDialog && !selectedChatForDialog) {
       console.warn('⚠️ Chat removido enquanto modal estava aberto, fechando...')
@@ -307,14 +374,14 @@ const MonitoringPageOptimized = () => {
 
   return (
     <Box>
-      {/* 🔥 HEADER OTIMIZADO COM STATUS WEBSOCKET */}
+      {/* 🔥 HEADER COM STATUS */}
       <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, md: 8 }}>
             <Box display='flex' flexDirection='column' gap={1}>
               <Typography variant='h5'>Monitoramento de Chats ({stats.total})</Typography>
 
-              {/* 📊 ESTATÍSTICAS EM TEMPO REAL */}
+              {/* 📊 ESTATÍSTICAS */}
               <Box display='flex' gap={1} flexWrap='wrap'>
                 <Chip label={`${stats.total} Total`} color='primary' size='small' />
                 <Chip label={`${stats.totalMessages} Mensagens`} color='secondary' size='small' />
@@ -333,6 +400,16 @@ const MonitoringPageOptimized = () => {
                   />
                 ) : (
                   <Chip icon={<WifiOff size={16} />} label='WebSocket Desconectado' color='error' size='small' />
+                )}
+
+                {/* ✅ USAR isLoadingHistory */}
+                {isLoadingHistory && (
+                  <Chip
+                    icon={<CircularProgress size={14} />}
+                    label='Carregando históricos...'
+                    color='info'
+                    size='small'
+                  />
                 )}
               </Box>
             </Box>
@@ -382,22 +459,28 @@ const MonitoringPageOptimized = () => {
         </Grid>
       </Paper>
 
-      {/* 🔥 GRID OTIMIZADO COM CARDS */}
+      {/* 🔥 GRID COM CARDS */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={chatProtocols} strategy={verticalListSortingStrategy}>
+        <SortableContext items={chatOrder} strategy={verticalListSortingStrategy}>
           <Grid container spacing={3}>
-            {chatProtocols.map((protocol: any) => (
-              <Grid size={getGridSize()} key={protocol}>
-                <DraggableCardOptimized protocol={protocol} /> {/* ← SÓ PROTOCOL */}
-              </Grid>
-            ))}
+            {filteredChats.map(
+              (
+                chat // ✅ USAR chat ao invés de protocol
+              ) => (
+                <Grid key={chat.protocol} size={getGridSize()}>
+                  {' '}
+                  {/* ✅ USAR chat.protocol */}
+                  <DraggableCardOptimized protocol={chat.protocol} />
+                </Grid>
+              )
+            )}
           </Grid>
         </SortableContext>
       </DndContext>
 
       {/* 🔥 MENSAGEM QUANDO NÃO HÁ CHATS */}
-      {chatProtocols.length === 0 &&
-        !isLoading && ( // ← chatProtocols, não chats
+      {chatOrder.length === 0 &&
+        !isLoading && ( // ✅ USAR chatOrder
           <Box display='flex' flexDirection='column' alignItems='center' py={8}>
             <BoxIcon size={64} color='#ccc' />
             <Typography variant='h6' color='text.secondary' mt={2}>
@@ -412,31 +495,27 @@ const MonitoringPageOptimized = () => {
           </Box>
         )}
 
-      {/* 🆕 MODAL COM DADOS DE PROTOCOLO */}
+      {/* 🆕 MODAL */}
       {dialogOpen && modalData && (
         <ChatMonitoringModal
           open={dialogOpen}
           onClose={handleCloseDialog}
           chatData={modalData.chatData}
-          clientHistories={modalData.clientHistories} // 🔥 Dados formatados para o sidebar
+          clientHistories={modalData.clientHistories}
         />
       )}
 
-      {/* 🔥 DEBUG INFO (desenvolvimento) */}
+      {/* 🔥 DEBUG INFO */}
       {process.env.NODE_ENV === 'development' && (
         <Paper elevation={1} sx={{ p: 2, mt: 3, backgroundColor: '#f5f5f5' }}>
           <Typography variant='h6' gutterBottom>
-            🚀 Performance Debug - Dados de Protocolo
+            🚀 Performance Debug
           </Typography>
           <Typography variant='body2'>
-            <strong>Chats Convertidos:</strong> {chats.length} |<strong>Protocolos Brutos:</strong>{' '}
+            <strong>Chats:</strong> {chats.length} |<strong>Protocolos:</strong>{' '}
             {protocolHistoryData?.stats.totalProtocols || 0} |<strong>WebSocket:</strong>{' '}
             {isWebSocketConnected ? '✅ Conectado' : '❌ Desconectado'} |<strong>Canais:</strong>{' '}
-            {connectedChannels.length}
-          </Typography>
-          <Typography variant='body2' mt={1}>
-            <strong>Mensagens:</strong> {stats.totalMessages} |<strong>Sucessos:</strong> {stats.successCount} |
-            <strong>Erros:</strong> {stats.errorCount}
+            {connectedChannels.length} |<strong>Carregando Histórico:</strong> {isLoadingHistory ? '⏳ Sim' : '✅ Não'}
           </Typography>
         </Paper>
       )}

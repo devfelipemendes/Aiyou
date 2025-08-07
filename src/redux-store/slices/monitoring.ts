@@ -102,6 +102,67 @@ export const monitoringSlice = createSlice({
       console.log('✅ Chat atualizado:', protocol, updates)
     },
 
+    // 🔥 REDUCER 4: Atualizar mensagens de protocolo específico (CORRIGIDO)
+    updateProtocolMessages: (
+      state,
+      action: PayloadAction<{
+        protocolId: string
+        messages: any[]
+      }>
+    ) => {
+      const { protocolId, messages } = action.payload
+
+      // ✅ USAR ESTRUTURA NORMALIZADA
+      const existingChat = state.chatsByProtocol[protocolId]
+
+      if (!existingChat) {
+        console.warn('⚠️ Chat não encontrado para atualização de mensagens:', protocolId)
+
+        return
+      }
+
+      // Converter mensagens para formato ChatHistoryMessage
+      const formattedMessages = messages.map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        role: msg.role,
+        operator: msg.operator,
+        created_at: msg.created_at,
+        timestamp: msg.created_at
+      }))
+
+      // ✅ ATUALIZAR DADOS DO CHAT ESPECÍFICO
+      state.chatsByProtocol[protocolId].history = formattedMessages
+      state.chatsByProtocol[protocolId].messageCount = formattedMessages.length
+      state.chatsByProtocol[protocolId].historyLoading = false
+      state.chatsByProtocol[protocolId].isAwaitingHistory = false
+
+      if (formattedMessages.length > 0) {
+        state.chatsByProtocol[protocolId].lastMessage = formattedMessages[formattedMessages.length - 1]
+      }
+
+      console.log(`✅ Mensagens atualizadas para protocolo ${protocolId}: ${formattedMessages.length} mensagens`)
+    },
+
+    // 🆕 REDUCER 5: Marcar protocolo como aguardando histórico (NOVO)
+    markProtocolAwaitingHistory: (state, action: PayloadAction<string>) => {
+      const protocolId = action.payload
+      const existingChat = state.chatsByProtocol[protocolId]
+
+      if (!existingChat) {
+        console.warn('⚠️ Chat não encontrado para marcar como aguardando:', protocolId)
+
+        return
+      }
+
+      // ✅ MARCAR COMO AGUARDANDO HISTÓRICO
+      state.chatsByProtocol[protocolId].isAwaitingHistory = true
+      state.chatsByProtocol[protocolId].historyLoading = true
+
+      console.log(`🔄 Protocolo ${protocolId} marcado como aguardando histórico`)
+    },
+
+    // 🔥 REDUCER 6: Atualizar question_operator
     updatedQuestionOperator: (state, action: PayloadAction<{ protocol: string; question_operator: boolean }>) => {
       const { protocol, question_operator } = action.payload
       const chat = state.chatsByProtocol[protocol]
@@ -116,7 +177,7 @@ export const monitoringSlice = createSlice({
       chat.updated_at = new Date().toISOString()
     },
 
-    // 🔥 REDUCER 4: Adicionar mensagem a UM chat (WebSocket: message.created)
+    // 🔥 REDUCER 7: Adicionar mensagem a UM chat (WebSocket: message.created)
     addMessageToChat: (
       state,
       action: PayloadAction<{
@@ -151,7 +212,7 @@ export const monitoringSlice = createSlice({
       console.log('✅ Mensagem adicionada ao chat:', protocol)
     },
 
-    // 🔥 REDUCER 5: Remover chat (WebSocket: protocol.deleted)
+    // 🔥 REDUCER 8: Remover chat (WebSocket: protocol.deleted)
     removeChat: (state, action: PayloadAction<string>) => {
       const protocol = action.payload
 
@@ -170,7 +231,7 @@ export const monitoringSlice = createSlice({
       console.log('✅ Chat removido:', protocol)
     },
 
-    // 🔥 REDUCER 6: Reordenar chats (Drag & Drop)
+    // 🔥 REDUCER 9: Reordenar chats (Drag & Drop)
     reorderChats: (
       state,
       action: PayloadAction<{
@@ -235,6 +296,7 @@ export const monitoringSlice = createSlice({
 
       state.connectedChannels = state.connectedChannels.filter(ch => ch !== channel)
     },
+
     toggleAssumeChat: (state, action: PayloadAction<string>) => {
       const protocol = action.payload
       const chat = state.chatsByProtocol[protocol]
@@ -269,6 +331,8 @@ export const {
   initializeChats,
   addNewChat,
   updateChatInfo,
+  updateProtocolMessages, // ← CORRIGIDA
+  markProtocolAwaitingHistory, // ← NOVA
   addMessageToChat,
   removeChat,
   reorderChats,
@@ -285,7 +349,7 @@ export const {
   updatedQuestionOperator
 } = monitoringSlice.actions
 
-// 🎯 SELETORES BÁSICOS (vamos expandir na Etapa 2)
+// 🎯 SELETORES BÁSICOS
 export const selectChatsByProtocol = (state: any) => state.monitoring.chatsByProtocol
 export const selectChatOrder = (state: any) => state.monitoring.chatOrder
 export const selectMonitoringLoading = (state: any) => state.monitoring.isLoading
@@ -293,7 +357,7 @@ export const selectMonitoringError = (state: any) => state.monitoring.error
 export const selectSelectedProtocol = (state: any) => state.monitoring.selectedProtocol
 
 export const selectCallOperator = (state: any) => {
-  state.monitoring.selectedProtocol
+  return state.monitoring.selectedProtocol
 }
 
 export default monitoringSlice.reducer

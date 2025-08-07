@@ -99,8 +99,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
         console.log('✅ Mensagem do operador enviada com sucesso!')
       } catch (error) {
         console.error('❌ Erro ao enviar mensagem do operador:', error)
-
-        // TODO: Mostrar toast de erro
       }
     },
     [selectedProtocol, operatorReply]
@@ -236,7 +234,8 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
         operator: chatData?.operator || false,
         question_operator: chatData?.question_operator || false,
         updated_at: chatData?.updated_at || new Date().toISOString(),
-        created_at: protocolData.createdAt || new Date().toISOString()
+        created_at: protocolData.createdAt || new Date().toISOString(),
+        isAwaitingHistory: false
       }
 
       return result

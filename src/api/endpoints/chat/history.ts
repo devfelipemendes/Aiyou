@@ -29,6 +29,7 @@ export interface ChatWithHistory {
   project_id: string
   operator: boolean
   question_operator: boolean
+  isAwaitingHistory: boolean
   updated_at: string
   created_at: string
 }
