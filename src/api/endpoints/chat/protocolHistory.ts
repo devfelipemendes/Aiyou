@@ -381,5 +381,9 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
 export const {
   useGetProtocolHistoryQuery,
   useGetMultipleProtocolHistoriesQuery,
-  useGetAllHistoryByProtocolQuery // 🆕 NOVO HOOK
+  useGetAllHistoryByProtocolQuery, // 🆕 NOVO HOOK
+
+  useLazyGetProtocolHistoryQuery,
+  useLazyGetMultipleProtocolHistoriesQuery,
+  useLazyGetAllHistoryByProtocolQuery
 } = protocolHistoryApi
