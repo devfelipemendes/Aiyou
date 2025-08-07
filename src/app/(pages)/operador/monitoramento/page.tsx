@@ -17,13 +17,7 @@ import {
   useSensors,
   type DragEndEvent
 } from '@dnd-kit/core'
-import {
-  rectSortingStrategy,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy
-} from '@dnd-kit/sortable'
+import { rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
 // 🔥 HOOK OTIMIZADO
@@ -253,8 +247,8 @@ const MonitoringPageOptimized = () => {
       }
 
       // 2. 🔄 Mapear para posições GLOBAIS no chatOrder
-      const globalOldIndex = chatOrder.findIndex(protocol => protocol === active.id)
-      const globalNewIndex = chatOrder.findIndex(protocol => protocol === over.id)
+      const globalOldIndex = chatOrder.findIndex((protocol: any) => protocol === active.id)
+      const globalNewIndex = chatOrder.findIndex((protocol: any) => protocol === over.id)
 
       if (globalOldIndex === -1 || globalNewIndex === -1) {
         console.warn('⚠️ Índices globais não encontrados:', { globalOldIndex, globalNewIndex })
