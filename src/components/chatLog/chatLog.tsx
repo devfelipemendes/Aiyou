@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import type { MutableRefObject, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import Typography from '@mui/material/Typography'
 import Avatar from '@mui/material/Avatar'
@@ -183,7 +183,7 @@ const ChatLog = ({
 
   isShowDetailsChatLog
 }: AdaptedChatLogProps) => {
-  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const scrollRef = useRef<any>(null)
 
   // 🔥 FUNÇÃO: Scroll direto para o final
   const scrollToBottom = useCallback(() => {
