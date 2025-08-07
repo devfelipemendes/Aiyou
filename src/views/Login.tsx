@@ -47,6 +47,7 @@ import themeConfig from '@/configs/themeConfig'
 import { useSettings } from '@core/hooks/useSettings'
 import { usePostLoginMutation } from '@/api/endpoints/authUser/login'
 import SimpleLoadingButton from '@/components/ButtonLoading/ButtonLoading'
+import VersionDisplay from '@/components/VersionDisplay'
 
 const shimmerAnimation = keyframes`
   0% { 
@@ -342,6 +343,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
               </IconButton>
             </div>
           </form>
+          <VersionDisplay />
         </div>
       </div>
     </div>
