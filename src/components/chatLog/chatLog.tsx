@@ -301,7 +301,7 @@ const ChatLog = ({
                 )}
 
                 {msgGroup.messages.map((msg, msgIndex) => {
-                  const hasButton = !isSender && msg.operator === true && isShowDetailsChatLog
+                  const hasButton = !isSender && msg.operator === true && isShowDetailsChatLog === true
                   const showingInput = activeInstructionMessageId === msg.messageId
 
                   return (
