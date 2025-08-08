@@ -309,57 +309,102 @@ const MonitoringPageOptimized = () => {
   }, [filters.cardsPerRow])
 
   // 🎨 COMPONENTE: Card Draggable OTIMIZADO
-  const DraggableCardOptimized = memo(({ protocol }: { protocol: string }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging: isCurrentlyDragging
-    } = useSortable({ id: protocol })
-
-    // 🔥 PROPS ESTÁVEIS
-    const stableProps = useMemo(
-      () => ({
-        protocol,
-        onChatSelect: handleCardClick,
-        onChatDoubleClick: handleCardDoubleClick,
-        isSelected: isCardSelected(protocol),
-        isWebSocketConnected, // ← Valor pode ficar, só remover das deps
-        isInModal: isCardInModal(protocol)
-      }),
-      [protocol] // ← Só protocol é necessário
-    )
-
-    // 🔥 PROPS INSTÁVEIS
-    const dragProps = {
-      dragListeners: listeners,
-      dragAttributes: attributes,
-      isDragging: isCurrentlyDragging
-    }
-
-    const style = useMemo(
-      () => ({
-        transform: CSS.Transform.toString(transform),
+  const DraggableCardOptimized = memo(
+    ({ protocol }: { protocol: string }) => {
+      const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
         transition,
-        opacity: isCurrentlyDragging ? 0.5 : 1
-      }),
-      [transform, transition, isCurrentlyDragging]
-    )
+        isDragging: isCurrentlyDragging
+      } = useSortable({ id: protocol })
 
-    return (
-      <div ref={setNodeRef} style={style}>
-        <CardMonitorOptimized {...stableProps} {...dragProps} />
-      </div>
-    )
-  })
+      const chatData = chats.find(chat => chat.protocol === protocol)
+
+      const cardProps = useMemo(
+        () => ({
+          protocol,
+          onChatSelect: handleCardClick,
+          onChatDoubleClick: handleCardDoubleClick,
+          isSelected: isCardSelected(protocol),
+          isWebSocketConnected,
+          isInModal: isCardInModal(protocol),
+
+          // 🔥 ADICIONAR CAMPOS QUE FORÇAM RE-RENDER:
+          chatUpdatedAt: chatData?.updated_at,
+          callOperator: chatData?.question_operator,
+          operatorState: chatData?.operator
+        }),
+
+        [
+          protocol,
+          chatData?.updated_at, // 🔥 DEPENDÊNCIA CRÍTICA
+          chatData?.question_operator, // 🔥 DEPENDÊNCIA CRÍTICA
+          chatData?.operator, // 🔥 DEPENDÊNCIA CRÍTICA
+          chatData?.status
+        ]
+      )
+
+      // 🔥 PROPS ESTÁVEIS
+      // const stableProps = useMemo(
+      //   () => ({
+      //     protocol,
+      //     onChatSelect: handleCardClick,
+      //     onChatDoubleClick: handleCardDoubleClick,
+      //     isSelected: isCardSelected(protocol),
+      //     isWebSocketConnected, // ← Valor pode ficar, só remover das deps
+      //     isInModal: isCardInModal(protocol)
+      //   }),
+      //   [protocol] // ← Só protocol é necessário
+      // )
+
+      // 🔥 PROPS INSTÁVEIS
+      const dragProps = {
+        dragListeners: listeners,
+        dragAttributes: attributes,
+        isDragging: isCurrentlyDragging
+      }
+
+      const style = useMemo(
+        () => ({
+          transform: CSS.Transform.toString(transform),
+          transition,
+          opacity: isCurrentlyDragging ? 0.5 : 1
+        }),
+        [transform, transition, isCurrentlyDragging]
+      )
+
+      return (
+        <div ref={setNodeRef} style={style}>
+          <CardMonitorOptimized {...cardProps} {...dragProps} />
+        </div>
+      )
+    },
+    (prevProps, nextProps) => {
+      if (prevProps.protocol !== nextProps.protocol) {
+        false
+      }
+
+      return false
+    }
+  )
 
   // 🔧 DnD SENSORS
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  useEffect(() => {
+    console.log('🔄 Chats atualizaram na página de monitoramento:', {
+      total: chats.length,
+      withOperatorCall: chats.filter(c => c.question_operator === true).length,
+      chatsWithOperator: chats
+        .filter(c => c.question_operator === true)
+        .map(c => ({ protocol: c.protocol, question_operator: c.question_operator }))
+    })
+  }, [chats])
 
   // 🔄 VERIFICAR SE CHAT AINDA EXISTE
   useEffect(() => {
@@ -486,17 +531,16 @@ const MonitoringPageOptimized = () => {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={filteredChatIds} strategy={rectSortingStrategy}>
           <Grid container spacing={3}>
-            {filteredChats.map(
-              (
-                chat // ✅ USAR chat ao invés de protocol
-              ) => (
-                <Grid key={chat.protocol} size={getGridSize()}>
-                  {' '}
-                  {/* ✅ USAR chat.protocol */}
+            {filteredChats.map(chat => {
+              // 🔥 KEY DINÂMICA que muda quando o estado muda
+              const dynamicKey = `${chat.protocol}-${chat.updated_at}-${chat.question_operator}-${chat.operator}`
+
+              return (
+                <Grid key={dynamicKey} size={getGridSize()}>
                   <DraggableCardOptimized protocol={chat.protocol} />
                 </Grid>
               )
-            )}
+            })}
           </Grid>
         </SortableContext>
       </DndContext>

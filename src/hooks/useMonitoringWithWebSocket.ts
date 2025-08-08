@@ -55,10 +55,13 @@ import { useGetActiveChatsQuery } from '@/api/endpoints/chat/queries'
 interface ProtocolEvent {
   protocol: string
   client_id: string
+  project_id: string
   assistant_id: string
   source: string
   identifier: string
   operator: boolean
+  error: string | null
+  question_operator: boolean
   status: string
   created_at: string
   updated_at: string
@@ -575,10 +578,36 @@ export function useMonitoringWithWebSocket(
     [dispatch, fetchHistoryForNewProtocol]
   )
 
-  // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)
+  // // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)
+  // const handleProtocolUpdated = useCallback(
+  //   (protocolEvent: ProtocolEvent) => {
+  //     console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
+
+  //     dispatch(
+  //       updateChatInfo({
+  //         protocol: protocolEvent.protocol,
+  //         updates: {
+  //           status: protocolEvent.status as any,
+  //           operator: protocolEvent.operator,
+  //           updated_at: protocolEvent.updated_at
+  //         }
+  //       })
+  //     )
+  //   },
+  //   [dispatch]
+  // )
+  //! Versão de dbug =>
   const handleProtocolUpdated = useCallback(
     (protocolEvent: ProtocolEvent) => {
-      console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
+      // 🚨 DEBUG ESPECÍFICO PARA O PROBLEMA DO OPERADOR
+      console.log('🔥 ===== PROTOCOL.UPDATED RECEBIDO =====')
+      console.log('📊 Dados completos do evento:', JSON.stringify(protocolEvent, null, 2))
+      console.log('⏰ Timestamp:', new Date().toISOString())
+      console.log('🏷️ Protocol ID:', protocolEvent.protocol)
+      console.log('👨‍💼 Campo operator:', protocolEvent.operator)
+      console.log('📈 Status:', protocolEvent.status)
+      console.log('🔄 Updated_at:', protocolEvent.updated_at)
+      console.log('=====================================')
 
       dispatch(
         updateChatInfo({
@@ -586,10 +615,25 @@ export function useMonitoringWithWebSocket(
           updates: {
             status: protocolEvent.status as any,
             operator: protocolEvent.operator,
+            question_operator: protocolEvent.question_operator,
             updated_at: protocolEvent.updated_at
           }
         })
       )
+
+      // 🚨 DEBUG: Verificar se a atualização foi aplicada no Redux
+      setTimeout(() => {
+        const state = store.getState()
+        const updatedChat = state.monitoring.chatsByProtocol[protocolEvent.protocol]
+
+        console.log('🔍 Estado do chat após update no Redux:', {
+          protocol: protocolEvent.protocol,
+          operator: updatedChat?.operator,
+          status: updatedChat?.status,
+          question_operador: updatedChat?.question_operator,
+          updated_at: updatedChat?.updated_at
+        })
+      }, 100)
     },
     [dispatch]
   )

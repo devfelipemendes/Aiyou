@@ -205,7 +205,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
           '&:hover': { background: theme.palette.text.secondary }
         }
       }),
-      [modeTheme, theme.palette.divider, theme.palette.text.secondary]
+      [modeTheme, theme.palette.divider, theme.palette.text.secondary, callOperator]
     )
 
     // 🎛️ CALLBACKS (SEMPRE EXECUTADOS)
