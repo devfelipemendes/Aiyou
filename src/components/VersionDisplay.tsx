@@ -2,7 +2,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-import { Chip } from '@mui/material'
+import { Chip, Typography } from '@mui/material'
 
 interface VersionInfo {
   version: string
@@ -57,16 +57,18 @@ const VersionDisplay = ({
   const version = versionInfo.version.startsWith('v') ? versionInfo.version : `v${versionInfo.version}`
 
   return (
-    <Chip
-      label={version}
+    <Typography
       color={color}
-      size={size}
-      variant='outlined'
       sx={{
-        cursor: 'pointer',
-        '&:hover': { backgroundColor: 'action.hover' }
+        display: 'flex',
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer'
       }}
-    />
+    >
+      {version}
+    </Typography>
   )
 }
 
