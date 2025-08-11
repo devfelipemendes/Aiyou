@@ -73,6 +73,55 @@ const MonitoringPageOptimized = () => {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedProtocolForDialog, setSelectedProtocolForDialog] = useState<string | null>(null)
 
+  const IsolatedCard = memo<{
+    protocol: string
+    onSelect: (protocol: string) => void
+    onDoubleClick: (protocol: string) => void
+    isSelected: boolean
+    isWebSocketConnected: boolean
+  }>(
+    ({ protocol, onSelect, onDoubleClick, isSelected, isWebSocketConnected }) => {
+      // ✅ PROPS TOTALMENTE ESTÁVEIS - nunca mudam
+      const stableProps = useMemo(
+        () => ({
+          protocol,
+          onChatSelect: onSelect,
+          onChatDoubleClick: onDoubleClick,
+          isSelected,
+          isWebSocketConnected,
+          isInModal: false,
+          isDragging: false
+        }),
+        [protocol, onSelect, onDoubleClick, isSelected, isWebSocketConnected]
+      )
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🎯 IsolatedCard ${protocol} renderizou`)
+      }
+
+      return <CardMonitorOptimized {...stableProps} />
+    },
+    (prevProps, nextProps) => {
+      // ✅ MEMO CORRETO: Só re-renderiza se props relevantes mudarem
+      const shouldSkip =
+        prevProps.protocol === nextProps.protocol &&
+        prevProps.isSelected === nextProps.isSelected &&
+        prevProps.isWebSocketConnected === nextProps.isWebSocketConnected
+
+      if (process.env.NODE_ENV === 'development') {
+        if (shouldSkip) {
+          console.log(`✅ IsolatedCard ${nextProps.protocol} - Re-render BLOQUEADO`)
+        } else {
+          console.log(`🔄 IsolatedCard ${nextProps.protocol} - Re-render PERMITIDO`)
+        }
+      }
+
+      return shouldSkip
+    }
+  )
+
+  IsolatedCard.displayName = 'IsolatedCard'
+
   const [filters, setFilters] = useState<ChatFilters>({
     orderBy: 'created_at',
     showClosed: false,

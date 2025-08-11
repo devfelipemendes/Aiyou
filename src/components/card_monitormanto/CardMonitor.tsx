@@ -3,11 +3,9 @@ import React, { useEffect, useRef, memo, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, Chip, Typography, Box } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 
-import { useAppSelector } from '@/redux-store'
-import { selectChatByProtocol } from '@/redux-store/selectors/monitoring'
-
 import ChatLog from '../chatLog/chatLog'
 import CustomIconButton from '@core/components/mui/IconButton'
+import { useChatDataOptimized } from '@/hooks/useChatDataOptmizedReturn'
 
 // 🔧 INTERFACE SIMPLIFICADA
 interface ChatMonitorOptimizedProps {
@@ -21,39 +19,43 @@ interface ChatMonitorOptimizedProps {
   isWebSocketConnected?: boolean
   isInModal?: boolean
 }
+interface StatusConfig {
+  label: string
+  
+  color: 'primary' | 'warning' | 'success' | 'error'
+  sx?: { bgcolor?: string }
+}
 
 // 🔧 FUNÇÕES HELPER (mantidas iguais)
 const getStatusColor = (status: string, callOperator: boolean): string => {
   if (callOperator) return 'error.main'
 
-  switch (status) {
-    case 'active':
-      return 'primary.main'
-    case 'inactive':
-      return '#797979'
-    case 'resolved':
-      return 'success.main'
-    case 'unresolved':
-      return 'warning.main'
-    default:
-      return 'text.primary'
-  }
+  const statusColors = {
+    active: 'primary.main',
+    inactive: '#797979',
+    resolved: 'success.main',
+    unresolved: 'warning.main'
+  } as const
+
+  return statusColors[status as keyof typeof statusColors] || 'text.primary'
 }
 
-const getStatusProtocol = (status: string, callOperator: boolean) => {
+const GetStatusProtocol = memo(({ status, callOperator }: { status: string; callOperator: boolean }) => {
   if (callOperator) {
     return <Chip label='Atenção' color='error' variant='outlined' className='mr-2' />
   }
 
-  const config = {
+  const statusConfigs: Record<string, StatusConfig> = {
     active: { label: 'Ativo', color: 'primary' },
     inactive: { label: 'Inativo', color: 'warning', sx: { bgcolor: '#797979' } },
     resolved: { label: 'Resolvido', color: 'success' },
     unresolved: { label: 'Não resolvido', color: 'warning' }
-  }[status] ?? { label: 'Ativo', color: 'success' }
+  }
 
-  return <Chip label={config.label} color={config.color as any} variant='outlined' sx={config.sx} className='mr-2' />
-}
+  const config = statusConfigs[status as keyof typeof statusConfigs] ?? statusConfigs.active
+
+  return <Chip label={config.label} color={config.color} variant='outlined' sx={config.sx} className='mr-2' />
+})
 
 const calculateProgressTime = (createdAt: string, updatedAt: string) => {
   const start = new Date(createdAt).getTime()
@@ -80,84 +82,64 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       onChatSelect,
       isDragging = false,
       onChatDoubleClick,
-      isSelected = false,
+
       isInModal = false
     } = props
 
-    // 🔥 TODOS OS HOOKS DEVEM VIR PRIMEIRO (antes de qualquer condicional)
-    const prevPropsRef = useRef(props)
-
-    if (process.env.NODE_ENV === 'development') {
-      // ✅ CORREÇÃO: Type assertion para debugging de props
-      const prevProps = prevPropsRef.current as Record<string, any>
-      const currentProps = props as Record<string, any>
-
-      const changedProps = Object.keys(props).filter(key => prevProps[key] !== currentProps[key])
-
-      if (changedProps.length > 0) {
-        console.log(`🔄 CARD ${protocol} - Props mudaram:`, {
-          changedProps,
-          prevProps: prevPropsRef.current,
-          newProps: props
-        })
+    const { chatData, isLoading, hasError, messageCount, lastMessageId, isAwaitingHistory } = useChatDataOptimized(
+      protocol,
+      {
+        enableDeepComparison: true,
+        debugMode: process.env.NODE_ENV === 'development'
       }
+    )
 
-      prevPropsRef.current = props
-    }
-
-    // 🔧 REFS
     const scrollContainerRef = useRef<HTMLDivElement>(null)
     const clickTimeout = useRef<NodeJS.Timeout | null>(null)
     const clickCount = useRef(0)
+    const renderCount = useRef(0)
 
-    // 🎨 THEME
     const theme = useTheme()
     const modeTheme = theme.palette.mode
 
-    // 🔥 SELETOR REDUX
-    const chatData = useAppSelector(state => selectChatByProtocol(state, protocol))
+    renderCount.current++
 
-    const prevChatDataRef = useRef(chatData)
-
-    if (process.env.NODE_ENV === 'development' && prevChatDataRef.current !== chatData) {
-      // ✅ CORREÇÃO: Type assertion para debugging de chatData
-      const prevData = prevChatDataRef.current as Record<string, any>
-      const currentData = chatData as Record<string, any>
-
-      console.log(`📊 CARD ${protocol} - ChatData mudou:`, {
-        prevData: prevChatDataRef.current,
-        newData: chatData,
-        changedFields:
-          chatData && prevChatDataRef.current
-            ? Object.keys(chatData).filter(key => prevData?.[key] !== currentData[key])
-            : []
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🎯 CardMonitor ${protocol} - Render #${renderCount.current}`, {
+        messageCount,
+        lastMessageId,
+        isLoading,
+        hasError,
+        isAwaitingHistory,
+        optimization: 'Factory Selector'
       })
-      prevChatDataRef.current = chatData
     }
 
     // 📊 EXTRAIR DADOS (com valores padrão para evitar erros)
-    const identifier = chatData?.identifier || protocol.slice(-6)
-    const status = chatData?.status || 'active'
+    const { identifier, status, callOperator, attendant, progressTime, statusColor } = useMemo(() => {
+      if (!chatData) {
+        return {
+          identifier: protocol.slice(-6),
+          status: 'inactive',
+          callOperator: false,
+          attendant: 'Sistema',
+          progressTime: '0m',
+          statusColor: 'text.secondary'
+        }
+      }
+
+      return {
+        identifier: chatData.identifier || protocol.slice(-6),
+        status: chatData.status || 'active',
+        callOperator: chatData.question_operator || false,
+        attendant: 'Sistema', // TODO: Pegar do operador real
+        progressTime: calculateProgressTime(chatData.created_at, chatData.updated_at),
+        statusColor: getStatusColor(chatData.status || 'active', chatData.question_operator || false)
+      }
+    }, [chatData, protocol])
 
     const historyLoading = chatData?.historyLoading || false
-    const lastMessage = chatData?.lastMessage
-    const created_at = chatData?.created_at || new Date().toISOString()
-    const updated_at = chatData?.updated_at || new Date().toISOString()
-    const messageCount = chatData?.messageCount || 0
-    const assistant = chatData?.assistant
 
-    const callOperator = chatData.question_operator === true
-
-    // 🔧 VALORES CALCULADOS MEMOIZADOS (SEMPRE EXECUTADOS)
-    // const callOperator = useMemo(() => !!historyError, [historyError])
-
-    const progressTime = useMemo(() => calculateProgressTime(created_at, updated_at), [created_at, updated_at])
-
-    const attendant = useMemo(() => assistant?.name || 'Sistema', [assistant?.name])
-
-    const statusColor = useMemo(() => getStatusColor(status, callOperator), [status, callOperator])
-
-    // 🎨 ESTILOS MEMOIZADOS (SEMPRE EXECUTADOS)
     const cardStyles = useMemo(() => {
       return {
         cursor: isDragging ? 'grabbing' : 'pointer',
@@ -244,19 +226,6 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
       scrollToBottom()
     }, [messageCount, scrollToBottom])
 
-    // 📊 DEBUG (desenvolvimento)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🔄 CardMonitor ${protocol} re-renderizou`, {
-        messageCount,
-        lastUpdate: updated_at,
-        isSelected,
-        isInModal,
-        isDragging,
-        chatDataExists: !!chatData,
-        renderReason: 'Props ou ChatData mudaram'
-      })
-    }
-
     // 🚨 RENDER CONDICIONAL (SÓ DEPOIS DE TODOS OS HOOKS)
     if (!chatData) {
       return (
@@ -293,16 +262,16 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
                 {messageCount || 0} mensagem{messageCount !== 1 ? 's' : ''}
               </Typography>
 
-              {lastMessage && (
+              {chatData.lastMessage && (
                 <Typography variant='caption' color='text.secondary' display='block'>
-                  Última: {new Date(lastMessage.created_at).toLocaleString()}
+                  Última: {new Date(chatData.lastMessage.created_at).toLocaleString()}
                 </Typography>
               )}
             </Box>
           }
           action={
             <Box>
-              {getStatusProtocol(status, callOperator)}
+              <GetStatusProtocol status={status} callOperator={callOperator} />
               <CustomIconButton
                 color='primary'
                 variant='outlined'
@@ -362,51 +331,45 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(
         </CardContent>
       </Card>
     )
+  },
+
+  (prevProps, nextProps) => {
+    // 1. Props visuais mudaram?
+    const visualPropsChanged =
+      prevProps.isSelected !== nextProps.isSelected ||
+      prevProps.isInModal !== nextProps.isInModal ||
+      prevProps.isDragging !== nextProps.isDragging ||
+      prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
+
+    if (visualPropsChanged) {
+      console.log(`🔄 CardMonitor ${nextProps.protocol} - Props visuais mudaram`)
+
+      return false
+    }
+
+    // 2. Protocol mudou? (nunca deveria acontecer)
+    if (prevProps.protocol !== nextProps.protocol) {
+      console.log(`🔄 CardMonitor ${nextProps.protocol} - Protocol mudou`)
+
+      return false
+    }
+
+    // 3. Callbacks mudaram? (importante para evitar re-renders)
+    if (
+      prevProps.onChatSelect !== nextProps.onChatSelect ||
+      prevProps.onChatDoubleClick !== nextProps.onChatDoubleClick
+    ) {
+      console.log(`🔄 CardMonitor ${nextProps.protocol} - Callbacks mudaram`)
+
+      return false
+    }
+
+    // ✅ Se chegou até aqui, pode bloquear o re-render
+    // O hook interno (useChatDataOptimized) já cuida dos dados do chat
+    console.log(`✅ CardMonitor ${nextProps.protocol} - Re-render bloqueado pelo memo`)
+
+    return true
   }
-
-  // ✅ MEMO COMPARADOR CORRIGIDO
-  // (prevProps, nextProps) => {
-  //   // 1. Protocolo mudou? (nunca deveria mudar)
-  //   if (prevProps.protocol !== nextProps.protocol) {
-  //     console.log(`🔄 MEMO ${nextProps.protocol} - Protocolo mudou`)
-
-  //     return false
-  //   }
-
-  //   // 2. Estados visuais mudaram?
-  //   if (
-  //     prevProps.isSelected !== nextProps.isSelected ||
-  //     prevProps.isInModal !== nextProps.isInModal ||
-  //     prevProps.isDragging !== nextProps.isDragging ||
-  //     prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
-  //   ) {
-  //     console.log(`🔄 MEMO ${nextProps.protocol} - Estados visuais mudaram`)
-
-  //     return false
-  //   }
-
-  //   // 3. 🔥 DADOS DO CHAT mudaram? (usando store diretamente)
-  //   try {
-  //     const currentState = store.getState()
-  //     const prevChatData = selectChatByProtocol(currentState, prevProps.protocol)
-  //     const nextChatData = selectChatByProtocol(currentState, nextProps.protocol)
-
-  //     if (prevChatData !== nextChatData) {
-  //       console.log(`🔄 MEMO ${nextProps.protocol} - ChatData mudou`)
-
-  //       return false
-  //     }
-  //   } catch (error) {
-  //     console.warn(`⚠️ MEMO ${nextProps.protocol} - Erro ao comparar chat data:`, error)
-
-  //     return false // Re-renderizar por segurança
-  //   }
-
-  //   // ✅ Todos os dados importantes são iguais - bloquear re-render
-  //   console.log(`✅ MEMO ${nextProps.protocol} - Bloqueou re-render`)
-
-  //   return true
-  // }
 )
 
 CardMonitorOptimized.displayName = 'CardMonitorOptimized'
