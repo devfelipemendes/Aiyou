@@ -200,6 +200,11 @@ const ChatLog = ({
     }
   }, [isBelowLgScreen])
 
+  const handleCloseInstructionInput = useCallback(() => {
+    console.log('🚫 Fechando input de instrução')
+    setActiveInstructionMessageId(null)
+  }, [])
+
   // 🔥 SCROLL INICIAL: Executa ANTES da renderização visual
   useLayoutEffect(() => {
     if (chatData?.history?.length) {
@@ -258,6 +263,16 @@ const ChatLog = ({
 
   const messageInputRef = useRef<HTMLDivElement>(null)
 
+  const handleInstructionSent = useCallback(
+    (questionId: string) => {
+      console.log('✅ Instrução enviada com sucesso para:', questionId)
+
+      // Fechar o input automaticamente
+      setActiveInstructionMessageId(null)
+    },
+    [scrollToBottom]
+  )
+
   // const isSmallScreen = window.innerWidth < 600
 
   return (
@@ -315,6 +330,8 @@ const ChatLog = ({
                             placeholder='Digite uma instrução'
                             isInstruction={true}
                             questionId={msg.messageId}
+                            onInstructionSent={handleInstructionSent}
+                            onCancel={handleCloseInstructionInput}
                           />
                         </div>
                       )}

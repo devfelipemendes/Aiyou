@@ -20,7 +20,8 @@ import {
   clearAllChats,
   updatedQuestionOperator,
   markProtocolAwaitingHistory,
-  updateProtocolMessages
+  updateProtocolMessages,
+  updateMessageInChat
 } from '@/redux-store/slices/monitoring'
 
 // 🔥 IMPORTS DOS SELETORES
@@ -183,9 +184,54 @@ export function useMonitoringWithWebSocket(
 
   const handleNewMessage = useCallback(
     (messageEvent: MessageEvent & { question_operator?: boolean }) => {
+      // 🔥 DEBUG COMPLETO - INÍCIO
       console.log('🚨🚨🚨 handleNewMessage CHAMADO!')
-      console.log('🔍 Dados da mensagem:', messageEvent)
-      console.log('💬 Nova mensagem recebida:', messageEvent.protocol)
+      console.log('====================================')
+      console.log('📋 DEBUG COMPLETO DO EVENT:')
+      console.log('====================================')
+
+      // 1️⃣ ESTRUTURA COMPLETA DO OBJETO
+      console.log('🔍 OBJETO COMPLETO:', JSON.stringify(messageEvent, null, 2))
+
+      // 2️⃣ PROPRIEDADES PRINCIPAIS
+      console.log('📌 PROPRIEDADES PRINCIPAIS:')
+      console.log('- ID:', messageEvent.id)
+      console.log('- Protocol:', messageEvent.protocol)
+      console.log('- Content:', messageEvent.content)
+      console.log('- Role:', messageEvent.role)
+      console.log('- Created At:', messageEvent.created_at)
+
+      // 3️⃣ PROPRIEDADES ESPECÍFICAS
+      console.log('📌 PROPRIEDADES ESPECÍFICAS:')
+      console.log('- Operator:', messageEvent.operator)
+      console.log('- Question Operator:', messageEvent.question_operator)
+
+      // 4️⃣ TODAS AS CHAVES DO OBJETO
+      console.log('📌 TODAS AS CHAVES DISPONÍVEIS:')
+      Object.keys(messageEvent).forEach(key => {
+        console.log(`  - ${key}:`, typeof messageEvent[key], messageEvent[key])
+      })
+
+      // 5️⃣ VERIFICAR SE EXISTE PROPRIEDADE 'data'
+      if ('data' in messageEvent && messageEvent.data) {
+        console.log('📌 PROPRIEDADE DATA ENCONTRADA:')
+        console.log('  - Data completo:', JSON.stringify(messageEvent.data, null, 2))
+
+        // Verificar chaves do data
+        Object.keys(messageEvent.data).forEach(key => {
+          console.log(`    - data.${key}:`, typeof messageEvent.data[key], messageEvent.data[key])
+        })
+      }
+
+      // 6️⃣ VERIFICAR DIFERENTES FORMATOS DE EVENT
+      console.log('📌 VERIFICAÇÃO DE FORMATOS:')
+      console.log('- Tem messageEvent.data?', 'data' in messageEvent)
+      console.log('- É object direto?', typeof messageEvent === 'object')
+      console.log('- Constructor name:', messageEvent.constructor.name)
+
+      console.log('====================================')
+      console.log('🔥 FIM DO DEBUG - PROCESSANDO...')
+      console.log('====================================')
 
       const newMessage = createChatHistoryMessage(messageEvent)
 
@@ -237,6 +283,86 @@ export function useMonitoringWithWebSocket(
       }
     },
     [dispatch, createChatHistoryMessage, chats]
+  )
+
+  // 🔥 HANDLER: Question atualizada (NOVO)
+  const handleQuestionUpdated = useCallback(
+    (questionEvent: any) => {
+      // 🔥 DEBUG PARA QUESTION.UPDATED
+      console.log('🚨🚨🚨 handleQuestionUpdated CHAMADO!')
+      console.log('====================================')
+      console.log('📋 DEBUG QUESTION.UPDATED:')
+      console.log('====================================')
+
+      // 1️⃣ ESTRUTURA COMPLETA
+      console.log('🔍 OBJETO COMPLETO:', JSON.stringify(questionEvent, null, 2))
+
+      // 2️⃣ PROPRIEDADES PRINCIPAIS
+      console.log('📌 PROPRIEDADES:')
+      Object.keys(questionEvent).forEach(key => {
+        console.log(`  - ${key}:`, typeof questionEvent[key], questionEvent[key])
+      })
+
+      // 3️⃣ VERIFICAR CAMPOS ESPECÍFICOS DE ATUALIZAÇÃO
+      console.log('📌 CAMPOS DE ATUALIZAÇÃO:')
+      console.log('- Answered mudou?', questionEvent.answered)
+      console.log('- Operator mudou?', questionEvent.operator)
+      console.log('- Question Operator?', questionEvent.question_operator)
+      console.log('- Content mudou?', questionEvent.content)
+
+      console.log('====================================')
+
+      // 4️⃣ ATUALIZAR NO REDUX
+      try {
+        // Primeiro, verificar se existe um chat com esse protocolo
+        const chat = chats.find(c => c.protocol === questionEvent.protocol)
+
+        if (!chat) {
+          console.warn('⚠️ Chat não encontrado para question.updated:', questionEvent.protocol)
+
+          return
+        }
+
+        // 5️⃣ ENCONTRAR A MENSAGEM NO HISTÓRICO E ATUALIZAR
+        const messageIndex = chat.history.findIndex(msg => msg.id === questionEvent.id)
+
+        if (messageIndex !== -1) {
+          console.log('✅ Mensagem encontrada, atualizando no Redux...')
+
+          // Usar action específica para atualizar mensagem
+          dispatch(
+            updateMessageInChat({
+              protocol: questionEvent.protocol,
+              messageId: questionEvent.id,
+              updates: {
+                content: questionEvent.content,
+
+                // Mapear answered para algum campo se necessário
+                operator:
+                  typeof questionEvent.operator === 'boolean' ? questionEvent.operator : !!questionEvent.operator
+              }
+            })
+          )
+        } else {
+          console.warn('⚠️ Mensagem não encontrada no histórico:', questionEvent.id)
+        }
+
+        // 6️⃣ ATUALIZAR QUESTION_OPERATOR SE PRESENTE
+        if (typeof questionEvent.question_operator !== 'undefined') {
+          console.log('🚨 Atualizando question_operator:', questionEvent.question_operator)
+
+          dispatch(
+            updatedQuestionOperator({
+              protocol: questionEvent.protocol,
+              question_operator: questionEvent.question_operator
+            })
+          )
+        }
+      } catch (error) {
+        console.error('💥 Erro ao processar question.updated:', error)
+      }
+    },
+    [dispatch, chats]
   )
 
   const reconnectToNewChannels = useCallback(() => {
@@ -716,6 +842,10 @@ export function useMonitoringWithWebSocket(
             .listen('.question.created', (event: any) => {
               console.log('🚨 LISTENER .question.created DISPARADO!')
               handleNewMessage(event)
+            })
+            .listen('.question.updated', (event: any) => {
+              console.log('🚨 LISTENER .question.updated DISPARADO!')
+              handleQuestionUpdated(event)
             })
             .listen('.reply.created', (event: any) => {
               console.log('🚨 LISTENER .reply.created DISPARADO!')

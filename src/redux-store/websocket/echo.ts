@@ -65,7 +65,7 @@ const getReverbConfig = () => {
   console.log('🔧 Configuração Reverb FINAL:', {
     appKey: config.appKey,
     wsHost: config.wsHost,
-    port: config.port,
+    wsPort: config.port,
     scheme: config.scheme,
     wsUrl: config.wsUrl,
     authEndpoint: config.authEndpoint,

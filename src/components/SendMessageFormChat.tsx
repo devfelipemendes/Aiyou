@@ -35,6 +35,8 @@ type Props = {
   onSendMessage?: (content: string) => Promise<void>
   questionId?: string
   disabled?: boolean
+  onInstructionSent?: (questionId: string) => void // 👈 NOVO CALLBACK
+  onCancel?: () => void
 }
 
 // Emoji Picker Component for selecting emojis
@@ -94,7 +96,9 @@ const SendMsgForm = ({
   isInstruction,
   questionId,
   onSendMessage,
-  disabled
+  disabled,
+
+  onInstructionSent
 }: Props) => {
   // States
   const [msg, setMsg] = useState('')
@@ -147,6 +151,10 @@ const SendMsgForm = ({
         console.log('✅ Intervenção do operador enviada com sucesso!')
 
         setMsg('')
+
+        if (onInstructionSent) {
+          onInstructionSent(questionId)
+        }
 
         // TODO: Fechar modal ou dar feedback visual
         // onSuccess?.() // Se você tiver callback de sucesso
