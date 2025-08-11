@@ -37,6 +37,8 @@ type Props = {
   disabled?: boolean
   onInstructionSent?: (questionId: string) => void // 👈 NOVO CALLBACK
   onCancel?: () => void
+  onInstructionSending?: (questionId: string) => void
+  onInstructionError?: (questionId: string) => void
 }
 
 // Emoji Picker Component for selecting emojis
@@ -97,6 +99,8 @@ const SendMsgForm = ({
   questionId,
   onSendMessage,
   disabled,
+  onInstructionError,
+  onInstructionSending,
 
   onInstructionSent
 }: Props) => {
@@ -143,6 +147,10 @@ const SendMsgForm = ({
       if (isInstruction && questionId) {
         console.log('📨 Enviando intervenção do operador:', { questionId, content: msg })
 
+        if (onInstructionSending) {
+          onInstructionSending(questionId)
+        }
+
         await operatorIntervention({
           questionId,
           content: msg
@@ -166,6 +174,10 @@ const SendMsgForm = ({
       }
     } catch (error) {
       console.error('❌ Erro ao enviar:', error)
+
+      if (isInstruction && questionId && onInstructionError) {
+        onInstructionError(questionId)
+      }
 
       // TODO: Mostrar toast/snackbar de erro
       // showError('Erro ao enviar mensagem')
@@ -249,8 +261,17 @@ const SendMsgForm = ({
           </>
         )}
         {isBelowSmScreen ? (
-          <CustomIconButton variant='contained' color='primary' type='submit'>
-            <i className='ri-send-plane-line' />
+          <CustomIconButton
+            variant='contained'
+            color='primary'
+            type='submit'
+            disabled={disabled || isOperatorLoading} // 👈 LOADING STATE
+          >
+            {disabled || isOperatorLoading ? (
+              <i className='ri-loader-4-line animate-spin' /> // 👈 LOADING ICON
+            ) : (
+              <i className='ri-send-plane-line' />
+            )}
           </CustomIconButton>
         ) : (
           <Button
@@ -258,10 +279,16 @@ const SendMsgForm = ({
             size='small'
             color='primary'
             type='submit'
-            endIcon={<i className='ri-send-plane-line' />}
-            disabled={isOperatorLoading || disabled}
+            disabled={disabled || isOperatorLoading} // 👈 LOADING STATE
+            endIcon={
+              disabled || isOperatorLoading ? (
+                <i className='ri-loader-4-line animate-spin' /> // 👈 LOADING ICON
+              ) : (
+                <i className='ri-send-plane-line' />
+              )
+            }
           >
-            Enviar
+            {disabled || isOperatorLoading ? 'Enviando...' : 'Enviar'} {/* 👈 TEXTO DINÂMICO */}
           </Button>
         )}
       </div>

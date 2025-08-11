@@ -185,6 +185,8 @@ const ChatLog = ({
 }: AdaptedChatLogProps) => {
   const scrollRef = useRef<any>(null)
 
+  const [instructionLoading, setInstructionLoading] = useState<string | null>(null)
+
   // 🔥 FUNÇÃO: Scroll direto para o final
   const scrollToBottom = useCallback(() => {
     if (!scrollRef.current) return
@@ -200,8 +202,12 @@ const ChatLog = ({
     }
   }, [isBelowLgScreen])
 
+  const handleInstructionSending = useCallback((questionId: string) => {
+    setInstructionLoading(questionId)
+  }, [])
+
   const handleCloseInstructionInput = useCallback(() => {
-    console.log('🚫 Fechando input de instrução')
+    setInstructionLoading(null)
     setActiveInstructionMessageId(null)
   }, [])
 
@@ -267,11 +273,21 @@ const ChatLog = ({
     (questionId: string) => {
       console.log('✅ Instrução enviada com sucesso para:', questionId)
 
-      // Fechar o input automaticamente
-      setActiveInstructionMessageId(null)
+      // Aguardar um pouco para suavizar a transição
+      setTimeout(() => {
+        setInstructionLoading(null)
+        setActiveInstructionMessageId(null)
+      }, 500)
     },
     [scrollToBottom]
   )
+
+  const handleInstructionError = useCallback((questionId: string) => {
+    console.log('❌ Erro ao enviar instrução para:', questionId)
+    setInstructionLoading(null)
+
+    // Manter modal aberto em caso de erro
+  }, [])
 
   // const isSmallScreen = window.innerWidth < 600
 
@@ -317,7 +333,8 @@ const ChatLog = ({
 
                 {msgGroup.messages.map((msg, msgIndex) => {
                   const hasButton = !isSender && msg.operator === true && isShowDetailsChatLog === true
-                  const showingInput = activeInstructionMessageId === msg.messageId
+                  const isLoadingThisMessage = instructionLoading === msg.messageId
+                  const showingInput = activeInstructionMessageId === msg.messageId && !isLoadingThisMessage
 
                   return (
                     <>
@@ -327,11 +344,14 @@ const ChatLog = ({
                             dispatch={undefined as any}
                             isBelowSmScreen={isBelowSmScreen}
                             messageInputRef={messageInputRef}
-                            placeholder='Digite uma instrução'
+                            placeholder={isLoadingThisMessage ? 'Enviando instrução...' : 'Digite uma instrução'}
                             isInstruction={true}
                             questionId={msg.messageId}
                             onInstructionSent={handleInstructionSent}
                             onCancel={handleCloseInstructionInput}
+                            onInstructionSending={handleInstructionSending} // 👈 NOVO: callback de início
+                            onInstructionError={handleInstructionError} // 👈 NOVO: callback de erro
+                            disabled={isLoadingThisMessage}
                           />
                         </div>
                       )}
@@ -372,17 +392,28 @@ const ChatLog = ({
                               variant='contained'
                               size='small'
                               className='cursor-pointer'
-                              color={!showingInput ? 'info' : 'error'}
+                              color={!showingInput ? 'info' : isLoadingThisMessage ? 'warning' : 'error'}
                               sx={{
                                 flexShrink: 0,
                                 alignSelf: 'flex-start'
                               }}
                               onClick={() => handleToggleInstructionInput(msg.messageId)}
+                              disabled={isLoadingThisMessage} // 👈 NOVO: disabled durante loading
                               endIcon={
-                                showingInput ? <i className='ri-close-line' /> : <i className='ri-chat-3-line' />
+                                isLoadingThisMessage ? (
+                                  <i className='ri-loader-4-line animate-spin' /> // 👈 LOADING ICON
+                                ) : showingInput ? (
+                                  <i className='ri-close-line' />
+                                ) : (
+                                  <i className='ri-chat-3-line' />
+                                )
                               }
                             >
-                              {showingInput ? 'Cancelar modo instrução' : 'Instruir assistente'}
+                              {isLoadingThisMessage
+                                ? 'Enviando...'
+                                : showingInput
+                                  ? 'Cancelar instrução'
+                                  : 'Instruir assistente'}
                             </Button>
                           </>
                         ) : (
