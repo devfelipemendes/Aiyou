@@ -102,25 +102,18 @@ const OptimizedDraggableCard = memo<{
     )
   },
   (prevProps, nextProps) => {
-    // ✅ MEMO CORRETO: Só re-renderiza se props essenciais mudarem
+    // ✅ NUNCA bloquear re-render durante drag
+    //@ts-ignore
+    if (nextProps.isDragging !== prevProps.isDragging) {
+      return false // Permitir re-render
+    }
+
+    // ✅ Resto da lógica igual
     const shouldSkip =
       prevProps.protocol === nextProps.protocol &&
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.isWebSocketConnected === nextProps.isWebSocketConnected &&
       prevProps.isInModal === nextProps.isInModal
-
-    if (process.env.NODE_ENV === 'development') {
-      if (shouldSkip) {
-        console.log(`✅ DraggableCard ${nextProps.protocol} - Re-render BLOQUEADO`)
-      } else {
-        console.log(`🔄 DraggableCard ${nextProps.protocol} - Re-render PERMITIDO`, {
-          protocolChanged: prevProps.protocol !== nextProps.protocol,
-          selectedChanged: prevProps.isSelected !== nextProps.isSelected,
-          websocketChanged: prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected,
-          modalChanged: prevProps.isInModal !== nextProps.isInModal
-        })
-      }
-    }
 
     return shouldSkip
   }
@@ -283,10 +276,7 @@ const CardsGrid = memo<{
     return (
       <Grid container spacing={3}>
         {protocols.map(protocol => (
-          <Grid
-            key={protocol} // ✅ KEY ESTÁVEL - protocol nunca muda
-            size={gridSize}
-          >
+          <Grid key={protocol} size={gridSize}>
             <OptimizedDraggableCard
               protocol={protocol}
               onSelect={onCardSelect}
@@ -301,27 +291,24 @@ const CardsGrid = memo<{
     )
   },
   (prevProps, nextProps) => {
-    // ✅ MEMO: Grid só muda se lista de protocolos ou props essenciais mudarem
-    const shouldSkip =
-      prevProps.protocols.length === nextProps.protocols.length &&
-      prevProps.protocols.every((p, i) => p === nextProps.protocols[i]) &&
-      prevProps.selectedCardId === nextProps.selectedCardId &&
-      prevProps.selectedProtocolForDialog === nextProps.selectedProtocolForDialog &&
-      prevProps.isWebSocketConnected === nextProps.isWebSocketConnected &&
-      prevProps.gridSize.xs === nextProps.gridSize.xs &&
-      prevProps.gridSize.sm === nextProps.gridSize.sm &&
-      prevProps.gridSize.md === nextProps.gridSize.md &&
-      prevProps.gridSize.lg === nextProps.gridSize.lg
+    // ✅ COMPARAÇÃO SIMPLIFICADA - só ordem dos protocolos importa
+    const protocolsChanged =
+      prevProps.protocols.length !== nextProps.protocols.length ||
+      !prevProps.protocols.every((p, i) => p === nextProps.protocols[i])
 
     if (process.env.NODE_ENV === 'development') {
-      if (shouldSkip) {
-        console.log(`✅ CardsGrid - Re-render BLOQUEADO`)
+      if (protocolsChanged) {
+        console.log('🔄 CardsGrid - PROTOCOLS MUDARAM:', {
+          before: prevProps.protocols,
+          after: nextProps.protocols
+        })
       } else {
-        console.log(`🔄 CardsGrid - Re-render PERMITIDO`)
+        console.log('✅ CardsGrid - PROTOCOLS IGUAIS')
       }
     }
 
-    return shouldSkip
+    // ✅ Se protocolos mudaram, SEMPRE re-renderizar
+    return !protocolsChanged
   }
 )
 
@@ -388,48 +375,91 @@ const MonitoringPageComplete = () => {
     return chat.lastMessage?.created_at || chat.updated_at
   }, [])
 
-  // ✅ FILTROS OTIMIZADOS
-  const filteredChats = useMemo(() => {
-    return renderableChats
-      .filter(chat => {
-        if (!filters.showClosed && chat.status === 'inactive') return false
-        if (filters.statuses.length > 0 && !filters.statuses.includes(chat.status as ChatStatus)) return false
+  const filteredProtocols = useMemo(() => {
+    // 1️⃣ Primeiro, filtrar os chats que devem aparecer
+    const validChats = renderableChats.filter(chat => {
+      if (!filters.showClosed && chat.status === 'inactive') return false
+      if (filters.statuses.length > 0 && !filters.statuses.includes(chat.status as ChatStatus)) return false
 
-        const chatChannel = getChatChannel(chat)
+      const chatChannel = getChatChannel(chat)
 
-        if (filters.channels.length > 0 && !filters.channels.includes(chatChannel)) return false
+      if (filters.channels.length > 0 && !filters.channels.includes(chatChannel)) return false
 
-        const chatPriority = getChatPriority(chat)
+      const chatPriority = getChatPriority(chat)
 
-        if (filters.priorities.length > 0 && !filters.priorities.includes(chatPriority)) return false
+      if (filters.priorities.length > 0 && !filters.priorities.includes(chatPriority)) return false
 
-        return true
-      })
-      .sort((a, b) => {
+      return true
+    })
+
+    // 2️⃣ Pegar apenas os protocolos dos chats válidos
+    const validProtocols = validChats.map(chat => chat.protocol)
+
+    // 3️⃣ Ordenar baseado no chatOrder global
+    const orderedProtocols = chatOrder.filter((protocol: any) => validProtocols.includes(protocol))
+
+    // 4️⃣ ✅ NOVA FUNCIONALIDADE: Separar urgentes (question_operator) dos normais
+    const protocolToChat = new Map(validChats.map(chat => [chat.protocol, chat]))
+
+    const urgentProtocols: string[] = []
+    const normalProtocols: string[] = []
+
+    orderedProtocols.forEach((protocol: any) => {
+      const chat = protocolToChat.get(protocol)
+
+      if (chat?.question_operator) {
+        urgentProtocols.push(protocol)
+      } else {
+        normalProtocols.push(protocol)
+      }
+    })
+
+    // 5️⃣ Aplicar ordenação adicional se necessário (mantendo separação urgente/normal)
+    if (filters.orderBy !== 'created_at') {
+      const sortFunction = (a: string, b: string) => {
+        const chatA = protocolToChat.get(a)!
+        const chatB = protocolToChat.get(b)!
+
         switch (filters.orderBy) {
           case 'priority':
             const priorityOrder: Record<PriorityLevel, number> = { urgent: 3, high: 2, normal: 1, low: 0 }
-            const aPriority = getChatPriority(a)
-            const bPriority = getChatPriority(b)
+            const aPriority = getChatPriority(chatA)
+            const bPriority = getChatPriority(chatB)
 
             return priorityOrder[bPriority] - priorityOrder[aPriority]
 
           case 'last_activity':
-            const aActivity = getChatLastActivity(a)
-            const bActivity = getChatLastActivity(b)
+            const aActivity = getChatLastActivity(chatA)
+            const bActivity = getChatLastActivity(chatB)
 
             return new Date(bActivity).getTime() - new Date(aActivity).getTime()
 
-          default: // created_at
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          default:
+            return 0
         }
-      })
-  }, [renderableChats, filters, getChatChannel, getChatPriority, getChatLastActivity])
+      }
 
-  // ✅ PROTOCOLOS ESTÁVEIS - só muda quando lista realmente muda
-  const filteredProtocols = useMemo(() => {
-    return filteredChats.map(chat => chat.protocol)
-  }, [filteredChats])
+      // Ordenar cada grupo separadamente
+      urgentProtocols.sort(sortFunction)
+      normalProtocols.sort(sortFunction)
+    }
+
+    // 6️⃣ ✅ RESULTADO FINAL: Urgentes primeiro, depois normais
+    const finalOrder = [...urgentProtocols, ...normalProtocols]
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎯 filteredProtocols calculado com priorização:', {
+        total: finalOrder.length,
+        urgentes: urgentProtocols.length,
+        normais: normalProtocols.length,
+        urgentProtocols,
+        normalProtocols,
+        finalOrder
+      })
+    }
+
+    return finalOrder
+  }, [renderableChats, chatOrder, filters, getChatChannel, getChatPriority, getChatLastActivity])
 
   // 🔧 MODAL DATA
   const selectedChatForDialog = useMemo(() => {
@@ -510,15 +540,71 @@ const MonitoringPageComplete = () => {
 
       if (!over || active.id === over.id) return
 
-      const oldIndex = chatOrder.findIndex((p: string) => p === active.id)
-      const newIndex = chatOrder.findIndex((p: string) => p === over.id)
+      const activeProtocol = active.id as string
+      const overProtocol = over.id as string
 
-      if (oldIndex !== -1 && newIndex !== -1) {
-        console.log(`🔄 Drag & Drop: ${active.id} (${oldIndex} → ${newIndex})`)
-        updateChatOrder(oldIndex, newIndex)
+      // 1️⃣ Debug inicial - vamos ver o que está acontecendo
+      console.log('🎯 DRAG START DEBUG:', {
+        activeProtocol,
+        overProtocol,
+        filteredProtocols,
+        chatOrder
+      })
+
+      // 2️⃣ Posições na lista FILTRADA
+      const filteredOldIndex = filteredProtocols.findIndex(p => p === activeProtocol)
+      const filteredNewIndex = filteredProtocols.findIndex(p => p === overProtocol)
+
+      if (filteredOldIndex === -1 || filteredNewIndex === -1) {
+        console.warn('⚠️ Protocolos não encontrados na lista filtrada')
+
+        return
+      }
+
+      // 3️⃣ Se não mudou de posição VISUAL, não faz nada
+      if (filteredOldIndex === filteredNewIndex) {
+        console.log('✅ Mesmo item - ignorando')
+
+        return
+      }
+
+      // 4️⃣ Posições GLOBAIS
+      const globalOldIndex = chatOrder.findIndex((p: any) => p === activeProtocol)
+      const globalOverIndex = chatOrder.findIndex((p: any) => p === overProtocol)
+
+      if (globalOldIndex === -1 || globalOverIndex === -1) {
+        console.warn('⚠️ Protocolos não encontrados na ordem global')
+
+        return
+      }
+
+      // 5️⃣ NOVA LÓGICA: Calcular onde inserir baseado na direção do movimento
+      let globalNewIndex: number
+
+      if (filteredOldIndex < filteredNewIndex) {
+        // 📍 Movendo para BAIXO na lista visual
+        globalNewIndex = globalOverIndex
+      } else {
+        // 📍 Movendo para CIMA na lista visual
+        globalNewIndex = globalOverIndex
+      }
+
+      // 6️⃣ Debug detalhado
+      console.log('🔄 DRAG CALCULATION:', {
+        visual: { old: filteredOldIndex, new: filteredNewIndex },
+        global: { old: globalOldIndex, over: globalOverIndex, new: globalNewIndex },
+        direction: filteredOldIndex < filteredNewIndex ? 'DOWN' : 'UP'
+      })
+
+      // 7️⃣ Executar se realmente mudou
+      if (globalOldIndex !== globalNewIndex) {
+        console.log('🚀 EXECUTANDO DRAG:', { globalOldIndex, globalNewIndex })
+        updateChatOrder(globalOldIndex, globalNewIndex)
+      } else {
+        console.log('⚠️ Posições globais iguais - ignorando')
       }
     },
-    [chatOrder, updateChatOrder]
+    [chatOrder, filteredProtocols, updateChatOrder]
   )
 
   // 🔧 GRID SIZE
