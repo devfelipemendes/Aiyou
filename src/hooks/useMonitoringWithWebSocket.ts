@@ -20,7 +20,8 @@ import {
   clearAllChats,
   updatedQuestionOperator,
   markProtocolAwaitingHistory,
-  updateProtocolMessages
+  updateProtocolMessages,
+  updateMessageInChat
 } from '@/redux-store/slices/monitoring'
 
 // 🔥 IMPORTS DOS SELETORES
@@ -55,10 +56,13 @@ import { useGetActiveChatsQuery } from '@/api/endpoints/chat/queries'
 interface ProtocolEvent {
   protocol: string
   client_id: string
+  project_id: string
   assistant_id: string
   source: string
   identifier: string
   operator: boolean
+  error: string | null
+  question_operator: boolean
   status: string
   created_at: string
   updated_at: string
@@ -180,10 +184,6 @@ export function useMonitoringWithWebSocket(
 
   const handleNewMessage = useCallback(
     (messageEvent: MessageEvent & { question_operator?: boolean }) => {
-      console.log('🚨🚨🚨 handleNewMessage CHAMADO!')
-      console.log('🔍 Dados da mensagem:', messageEvent)
-      console.log('💬 Nova mensagem recebida:', messageEvent.protocol)
-
       const newMessage = createChatHistoryMessage(messageEvent)
 
       // ✅ DISPATCH REDUX - só o chat específico será atualizado
@@ -234,6 +234,86 @@ export function useMonitoringWithWebSocket(
       }
     },
     [dispatch, createChatHistoryMessage, chats]
+  )
+
+  // 🔥 HANDLER: Question atualizada (NOVO)
+  const handleQuestionUpdated = useCallback(
+    (questionEvent: any) => {
+      // 🔥 DEBUG PARA QUESTION.UPDATED
+      console.log('🚨🚨🚨 handleQuestionUpdated CHAMADO!')
+      console.log('====================================')
+      console.log('📋 DEBUG QUESTION.UPDATED:')
+      console.log('====================================')
+
+      // 1️⃣ ESTRUTURA COMPLETA
+      console.log('🔍 OBJETO COMPLETO:', JSON.stringify(questionEvent, null, 2))
+
+      // 2️⃣ PROPRIEDADES PRINCIPAIS
+      console.log('📌 PROPRIEDADES:')
+      Object.keys(questionEvent).forEach(key => {
+        console.log(`  - ${key}:`, typeof questionEvent[key], questionEvent[key])
+      })
+
+      // 3️⃣ VERIFICAR CAMPOS ESPECÍFICOS DE ATUALIZAÇÃO
+      console.log('📌 CAMPOS DE ATUALIZAÇÃO:')
+      console.log('- Answered mudou?', questionEvent.answered)
+      console.log('- Operator mudou?', questionEvent.operator)
+      console.log('- Question Operator?', questionEvent.question_operator)
+      console.log('- Content mudou?', questionEvent.content)
+
+      console.log('====================================')
+
+      // 4️⃣ ATUALIZAR NO REDUX
+      try {
+        // Primeiro, verificar se existe um chat com esse protocolo
+        const chat = chats.find(c => c.protocol === questionEvent.protocol)
+
+        if (!chat) {
+          console.warn('⚠️ Chat não encontrado para question.updated:', questionEvent.protocol)
+
+          return
+        }
+
+        // 5️⃣ ENCONTRAR A MENSAGEM NO HISTÓRICO E ATUALIZAR
+        const messageIndex = chat.history.findIndex(msg => msg.id === questionEvent.id)
+
+        if (messageIndex !== -1) {
+          console.log('✅ Mensagem encontrada, atualizando no Redux...')
+
+          // Usar action específica para atualizar mensagem
+          dispatch(
+            updateMessageInChat({
+              protocol: questionEvent.protocol,
+              messageId: questionEvent.id,
+              updates: {
+                content: questionEvent.content,
+
+                // Mapear answered para algum campo se necessário
+                operator:
+                  typeof questionEvent.operator === 'boolean' ? questionEvent.operator : !!questionEvent.operator
+              }
+            })
+          )
+        } else {
+          console.warn('⚠️ Mensagem não encontrada no histórico:', questionEvent.id)
+        }
+
+        // 6️⃣ ATUALIZAR QUESTION_OPERATOR SE PRESENTE
+        if (typeof questionEvent.question_operator !== 'undefined') {
+          console.log('🚨 Atualizando question_operator:', questionEvent.question_operator)
+
+          dispatch(
+            updatedQuestionOperator({
+              protocol: questionEvent.protocol,
+              question_operator: questionEvent.question_operator
+            })
+          )
+        }
+      } catch (error) {
+        console.error('💥 Erro ao processar question.updated:', error)
+      }
+    },
+    [dispatch, chats]
   )
 
   const reconnectToNewChannels = useCallback(() => {
@@ -575,10 +655,36 @@ export function useMonitoringWithWebSocket(
     [dispatch, fetchHistoryForNewProtocol]
   )
 
-  // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)
+  // // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)
+  // const handleProtocolUpdated = useCallback(
+  //   (protocolEvent: ProtocolEvent) => {
+  //     console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
+
+  //     dispatch(
+  //       updateChatInfo({
+  //         protocol: protocolEvent.protocol,
+  //         updates: {
+  //           status: protocolEvent.status as any,
+  //           operator: protocolEvent.operator,
+  //           updated_at: protocolEvent.updated_at
+  //         }
+  //       })
+  //     )
+  //   },
+  //   [dispatch]
+  // )
+  //! Versão de dbug =>
   const handleProtocolUpdated = useCallback(
     (protocolEvent: ProtocolEvent) => {
-      console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
+      // 🚨 DEBUG ESPECÍFICO PARA O PROBLEMA DO OPERADOR
+      console.log('🔥 ===== PROTOCOL.UPDATED RECEBIDO =====')
+      console.log('📊 Dados completos do evento:', JSON.stringify(protocolEvent, null, 2))
+      console.log('⏰ Timestamp:', new Date().toISOString())
+      console.log('🏷️ Protocol ID:', protocolEvent.protocol)
+      console.log('👨‍💼 Campo operator:', protocolEvent.operator)
+      console.log('📈 Status:', protocolEvent.status)
+      console.log('🔄 Updated_at:', protocolEvent.updated_at)
+      console.log('=====================================')
 
       dispatch(
         updateChatInfo({
@@ -586,10 +692,25 @@ export function useMonitoringWithWebSocket(
           updates: {
             status: protocolEvent.status as any,
             operator: protocolEvent.operator,
+            question_operator: protocolEvent.question_operator,
             updated_at: protocolEvent.updated_at
           }
         })
       )
+
+      // 🚨 DEBUG: Verificar se a atualização foi aplicada no Redux
+      setTimeout(() => {
+        const state = store.getState()
+        const updatedChat = state.monitoring.chatsByProtocol[protocolEvent.protocol]
+
+        console.log('🔍 Estado do chat após update no Redux:', {
+          protocol: protocolEvent.protocol,
+          operator: updatedChat?.operator,
+          status: updatedChat?.status,
+          question_operador: updatedChat?.question_operator,
+          updated_at: updatedChat?.updated_at
+        })
+      }, 100)
     },
     [dispatch]
   )
@@ -672,6 +793,10 @@ export function useMonitoringWithWebSocket(
             .listen('.question.created', (event: any) => {
               console.log('🚨 LISTENER .question.created DISPARADO!')
               handleNewMessage(event)
+            })
+            .listen('.question.updated', (event: any) => {
+              console.log('🚨 LISTENER .question.updated DISPARADO!')
+              handleQuestionUpdated(event)
             })
             .listen('.reply.created', (event: any) => {
               console.log('🚨 LISTENER .reply.created DISPARADO!')

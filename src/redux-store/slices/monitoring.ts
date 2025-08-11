@@ -212,6 +212,51 @@ export const monitoringSlice = createSlice({
       console.log('✅ Mensagem adicionada ao chat:', protocol)
     },
 
+    updateMessageInChat: (
+      state,
+      action: PayloadAction<{
+        protocol: string
+        messageId: string
+        updates: Partial<ChatHistoryMessage>
+      }>
+    ) => {
+      const { protocol, messageId, updates } = action.payload
+      const chat = state.chatsByProtocol[protocol]
+
+      if (!chat) {
+        console.warn('⚠️ Chat não encontrado para atualização de mensagem:', protocol)
+
+        return
+      }
+
+      // 🔍 ENCONTRAR MENSAGEM NO HISTÓRICO
+      const messageIndex = chat.history.findIndex(msg => msg.id === messageId)
+
+      if (messageIndex === -1) {
+        console.warn('⚠️ Mensagem não encontrada para atualização:', messageId)
+
+        return
+      }
+
+      // ✅ ATUALIZAR MENSAGEM ESPECÍFICA
+      const currentMessage = chat.history[messageIndex]
+
+      chat.history[messageIndex] = {
+        ...currentMessage,
+        ...updates
+      }
+
+      // 📅 ATUALIZAR TIMESTAMP DO CHAT
+      chat.updated_at = new Date().toISOString()
+
+      // 🔄 SE FOR A ÚLTIMA MENSAGEM, ATUALIZAR LASTMESSAGE
+      if (messageIndex === chat.history.length - 1) {
+        chat.lastMessage = chat.history[messageIndex]
+      }
+
+      console.log('✅ Mensagem atualizada no chat:', protocol, messageId)
+    },
+
     // 🔥 REDUCER 8: Remover chat (WebSocket: protocol.deleted)
     removeChat: (state, action: PayloadAction<string>) => {
       const protocol = action.payload
@@ -334,6 +379,7 @@ export const {
   updateProtocolMessages, // ← CORRIGIDA
   markProtocolAwaitingHistory, // ← NOVA
   addMessageToChat,
+  updateMessageInChat,
   removeChat,
   reorderChats,
   setLoading,

@@ -1,6 +1,7 @@
 stages:
   - publish
   - deploy
+  - version
 
 variables:
   DOCKER_DRIVER: overlay2
@@ -48,3 +49,22 @@ deploy_staging:
     - docker pull $TAG_COMMIT
     - docker container rm -f $CONTAINER_NAME || true
     - docker run -d -p 3000:3000 --name $CONTAINER_NAME --network aiyou-network $TAG_COMMIT
+
+auto-version:
+  stage: version
+  image: node:18
+  before_script:
+    - chmod +x scripts/auto-version.sh
+    - apt-get update -qq && apt-get install -y git
+  script:
+    - ./scripts/auto-version.sh
+  artifacts:
+    paths:
+      - version.json
+      - public/version.json
+    expire_in: 1 day
+  only:
+    - main
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /\[skip ci\]/
