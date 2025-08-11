@@ -184,55 +184,6 @@ export function useMonitoringWithWebSocket(
 
   const handleNewMessage = useCallback(
     (messageEvent: MessageEvent & { question_operator?: boolean }) => {
-      // 🔥 DEBUG COMPLETO - INÍCIO
-      console.log('🚨🚨🚨 handleNewMessage CHAMADO!')
-      console.log('====================================')
-      console.log('📋 DEBUG COMPLETO DO EVENT:')
-      console.log('====================================')
-
-      // 1️⃣ ESTRUTURA COMPLETA DO OBJETO
-      console.log('🔍 OBJETO COMPLETO:', JSON.stringify(messageEvent, null, 2))
-
-      // 2️⃣ PROPRIEDADES PRINCIPAIS
-      console.log('📌 PROPRIEDADES PRINCIPAIS:')
-      console.log('- ID:', messageEvent.id)
-      console.log('- Protocol:', messageEvent.protocol)
-      console.log('- Content:', messageEvent.content)
-      console.log('- Role:', messageEvent.role)
-      console.log('- Created At:', messageEvent.created_at)
-
-      // 3️⃣ PROPRIEDADES ESPECÍFICAS
-      console.log('📌 PROPRIEDADES ESPECÍFICAS:')
-      console.log('- Operator:', messageEvent.operator)
-      console.log('- Question Operator:', messageEvent.question_operator)
-
-      // 4️⃣ TODAS AS CHAVES DO OBJETO
-      console.log('📌 TODAS AS CHAVES DISPONÍVEIS:')
-      Object.keys(messageEvent).forEach(key => {
-        console.log(`  - ${key}:`, typeof messageEvent[key], messageEvent[key])
-      })
-
-      // 5️⃣ VERIFICAR SE EXISTE PROPRIEDADE 'data'
-      if ('data' in messageEvent && messageEvent.data) {
-        console.log('📌 PROPRIEDADE DATA ENCONTRADA:')
-        console.log('  - Data completo:', JSON.stringify(messageEvent.data, null, 2))
-
-        // Verificar chaves do data
-        Object.keys(messageEvent.data).forEach(key => {
-          console.log(`    - data.${key}:`, typeof messageEvent.data[key], messageEvent.data[key])
-        })
-      }
-
-      // 6️⃣ VERIFICAR DIFERENTES FORMATOS DE EVENT
-      console.log('📌 VERIFICAÇÃO DE FORMATOS:')
-      console.log('- Tem messageEvent.data?', 'data' in messageEvent)
-      console.log('- É object direto?', typeof messageEvent === 'object')
-      console.log('- Constructor name:', messageEvent.constructor.name)
-
-      console.log('====================================')
-      console.log('🔥 FIM DO DEBUG - PROCESSANDO...')
-      console.log('====================================')
-
       const newMessage = createChatHistoryMessage(messageEvent)
 
       // ✅ DISPATCH REDUX - só o chat específico será atualizado
