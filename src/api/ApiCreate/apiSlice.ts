@@ -24,12 +24,10 @@ const axiosBaseQuery =
     } catch (error) {
       const axiosError = error as AxiosError
 
-      // 🚨 NOVO: Interceptar 401 e fazer logout automático
       if (axiosError.response?.status === 401) {
         const isLoginEndpoint = config.url?.includes('/login')
         const isRegisterEndpoint = config.url?.includes('/register')
 
-        // Só faz logout se NÃO for tentativa de login/registro
         if (!isLoginEndpoint && !isRegisterEndpoint) {
           console.log('🚨 API retornou 401 - fazendo logout automático')
           forceLogout('Token inválido ou expirado')

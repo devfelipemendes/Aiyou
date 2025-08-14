@@ -1,6 +1,5 @@
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
-// 🎯 TIPOS PARA O HISTÓRICO DE MENSAGENS
 export interface ChatHistoryMessage {
   id: string
   content: string
@@ -14,7 +13,6 @@ export interface ChatHistoryResponse {
   data: ChatHistoryMessage[]
 }
 
-// 🎯 TIPOS PARA O RESULTADO COMBINADO
 export interface ChatWithHistory {
   protocol: string
   assistant: any // Vem do chat ativo
@@ -34,7 +32,6 @@ export interface ChatWithHistory {
   created_at: string
 }
 
-// 🎯 RESULTADO FINAL CONSOLIDADO
 export interface ChatWithHistoryListResponse {
   chats: ChatWithHistory[]
   totalChats: number
@@ -44,10 +41,8 @@ export interface ChatWithHistoryListResponse {
   successChats: ChatWithHistory[]
 }
 
-// 🎯 EXTEND DO CHAT API
 export const chatHistoryApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    // 🔥 ENDPOINT INDIVIDUAL: Buscar histórico de um chat específico
     getChatHistory: builder.query<ChatHistoryResponse, string>({
       query: protocol => ({
         url: `/chat/${protocol}/history`,
@@ -82,16 +77,14 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
 
       providesTags: (result, error, protocol) => [{ type: 'Chat' as const, id: `${protocol}-history` }],
 
-      keepUnusedDataFor: 300 // 5 minutos - histórico não muda muito
+      keepUnusedDataFor: 300
     }),
 
-    // 🚀 ENDPOINT PRINCIPAL: Buscar TODOS os históricos (método otimizado)
     getAllChatsWithHistory: builder.query<ChatWithHistoryListResponse, void>({
       queryFn: async (arg, api, extraOptions, baseQuery) => {
         try {
           console.log('🚀 Iniciando busca completa: chats + históricos...')
 
-          // 📋 PASSO 1: Buscar lista de chats ativos
           console.log('📋 Passo 1: Buscando chats ativos...')
 
           const chatsResult = await baseQuery({
@@ -120,7 +113,6 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
             }
           }
 
-          // 📨 PASSO 2: Buscar históricos em PARALELO (muito mais rápido!)
           console.log('📨 Passo 2: Buscando históricos em paralelo...')
 
           const historyPromises = activeChats.map(async (chat: any, chatIndex: number) => {
@@ -166,7 +158,6 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
                 lastMessage: historyData[historyData.length - 1]?.content?.slice(0, 30) || 'Vazia'
               })
 
-              // Ordenar mensagens por data
               const sortedHistory = historyData.sort(
                 (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
               )
@@ -200,22 +191,13 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
             }
           })
 
-          // ⏳ AGUARDAR TODOS OS HISTÓRICOS
           console.log('⏳ Aguardando todos os históricos...')
           const chatsWithHistory = await Promise.all(historyPromises)
 
-          // 📊 CALCULAR ESTATÍSTICAS
           const totalMessages = chatsWithHistory.reduce((sum, chat) => sum + chat.messageCount, 0)
           const loadingChats = chatsWithHistory.filter(chat => chat.historyLoading)
           const erroredChats = chatsWithHistory.filter(chat => chat.historyError)
           const successChats = chatsWithHistory.filter(chat => !chat.historyError && !chat.historyLoading)
-
-          console.log('📊 Estatísticas finais:', {
-            totalChats: chatsWithHistory.length,
-            totalMessages,
-            successCount: successChats.length,
-            errorCount: erroredChats.length
-          })
 
           return {
             data: {
@@ -228,8 +210,6 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
             }
           }
         } catch (error) {
-          console.error('💥 Erro crítico na operação completa:', error)
-
           return {
             error: {
               status: 500,
@@ -239,7 +219,6 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 TAGS PARA INVALIDAÇÃO
       providesTags: result => {
         const tags: any[] = ['ActiveChats']
 
@@ -255,25 +234,21 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
         return tags
       },
 
-      // ⚡ CONFIGURAÇÕES DE CACHE
-      keepUnusedDataFor: 60 // 1 minuto - dados mais dinâmicos
+      keepUnusedDataFor: 60
     }),
 
-    // 🔄 MUTATION: Atualizar histórico de um chat específico
     refreshChatHistory: builder.mutation<ChatHistoryResponse, string>({
       query: protocol => ({
         url: `/chat/${protocol}/history`,
         method: 'GET'
       }),
 
-      // 🎯 INVALIDAR CACHE ESPECÍFICO
       invalidatesTags: (result, error, protocol) => [
         { type: 'Chat' as const, id: `${protocol}-history` },
-        'ActiveChats' // Para re-fetch geral se necessário
+        'ActiveChats'
       ]
     })
   })
 })
 
-// 🎯 HOOKS EXPORTADOS
 export const { useGetChatHistoryQuery, useGetAllChatsWithHistoryQuery, useRefreshChatHistoryMutation } = chatHistoryApi

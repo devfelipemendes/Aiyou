@@ -98,14 +98,10 @@ export const SignIn = apiSlice.injectEndpoints({
       }),
 
       transformResponse: (response: LoginResponse) => {
-        console.log('✅ Login successful:', response)
-
         return response
       },
 
       transformErrorResponse: (response: any) => {
-        console.error('❌ Login error:', response)
-
         return {
           message: response?.data?.message || 'Erro no login',
           status: response?.status,

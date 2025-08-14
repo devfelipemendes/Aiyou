@@ -156,14 +156,6 @@ export const selectRenderableChats = createSelector(
       return hasMessages || notAwaitingHistory || hasError
     })
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 selectRenderableChats:', {
-        total: chats.length,
-        renderable: renderableChats.length,
-        filtered: chats.length - renderableChats.length
-      })
-    }
-
     return renderableChats
   }
 )

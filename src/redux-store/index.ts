@@ -24,6 +24,7 @@ import protocolsReducer from './slices/protocols'
 import questionsReducer from './slices/questions'
 import messagesReducer from './slices/messages'
 import clientHistoriesReducer from './slices/clientHistoriesSlice'
+import { soundNotificationMiddleware } from './midleware/soundNotificationMiddleware'
 
 const persistConfig = {
   key: 'root',
@@ -72,7 +73,7 @@ export const store = configureStore({
         ],
         ignoredPaths: ['register', 'websocket.connection', 'websocket.channels', 'activeChatsReducer.connectedChannels']
       }
-    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware),
+    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware, soundNotificationMiddleware),
 
   devTools: process.env.NODE_ENV !== 'production'
 })

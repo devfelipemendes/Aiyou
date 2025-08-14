@@ -2,8 +2,8 @@
 'use client'
 import React, { useState, useCallback, useMemo, useEffect, memo } from 'react'
 
-import { Box as BoxIcon, RefreshCw, Wifi, WifiOff } from 'lucide-react'
-import { Button, Typography, Paper, Box, Alert, CircularProgress, Chip } from '@mui/material'
+import { Box as BoxIcon, ChevronDown, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { Button, Typography, Paper, Box, Alert, CircularProgress, Chip, MenuItem, Menu } from '@mui/material'
 import Grid from '@mui/material/Grid2'
 
 // DnD Kit imports
@@ -32,6 +32,7 @@ type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent'
 type ChatStatus = 'active' | 'resolved' | 'closed' | 'pending' | 'inactive' | 'unresolved'
 type ChannelType = 'whatsapp' | 'telegram' | 'webchat' | 'email' | 'sms'
 
+// No tipo ChatFilters, certifique-se que cardsPerRow suporte o range:
 interface ChatFilters {
   orderBy: 'created_at' | 'priority' | 'last_activity'
   showClosed: boolean
@@ -39,7 +40,7 @@ interface ChatFilters {
   channels: ChannelType[]
   priorities: PriorityLevel[]
   messagesLimit: number
-  cardsPerRow: number
+  cardsPerRow: 2 | 3 | 4 | 5 | 6 // ✅ Suporte para 2-6
 }
 
 // 🚀 CARD DRAGGABLE OTIMIZADO - ISOLADO COMPLETAMENTE
@@ -122,6 +123,7 @@ const OptimizedDraggableCard = memo<{
 OptimizedDraggableCard.displayName = 'OptimizedDraggableCard'
 
 // 🚀 HEADER ISOLADO
+// 🚀 HEADER ISOLADO
 const MonitoringHeader = memo<{
   stats: any
   isWebSocketConnected: boolean
@@ -142,6 +144,24 @@ const MonitoringHeader = memo<{
     onRefresh,
     onFilterChange
   }) => {
+    // ✅ ESTADO PARA O MENU - SEMPRE NO TOPO!
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+    const isMenuOpen = Boolean(anchorEl)
+
+    // ✅ FUNÇÕES DO MENU
+    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+      setAnchorEl(event.currentTarget)
+    }
+
+    const handleCloseMenu = () => {
+      setAnchorEl(null)
+    }
+
+    const handleSelectCards = (value: number) => {
+      onFilterChange('cardsPerRow', value)
+      handleCloseMenu()
+    }
+
     if (process.env.NODE_ENV === 'development') {
       console.log(`🏠 MonitoringHeader renderizou`)
     }
@@ -199,38 +219,39 @@ const MonitoringHeader = memo<{
                 {isRefreshing ? 'Atualizando...' : 'Atualizar'}
               </Button>
 
-              {/* 🔧 FILTROS */}
-              <Button
-                variant={filters.orderBy === 'created_at' ? 'contained' : 'outlined'}
-                size='small'
-                onClick={() => onFilterChange('orderBy', filters.orderBy === 'created_at' ? 'priority' : 'created_at')}
-              >
-                {filters.orderBy === 'created_at' ? 'Por Data' : 'Por Prioridade'}
-              </Button>
+              {/* ✅ BOTÃO COM MENU DROPDOWN */}
+              <>
+                <Button
+                  variant='outlined'
+                  size='small'
+                  onClick={handleOpenMenu}
+                  endIcon={<ChevronDown size={14} />}
+                  sx={{ minWidth: 70 }}
+                >
+                  {filters.cardsPerRow}x
+                </Button>
 
-              <Button
-                variant={filters.showClosed ? 'contained' : 'outlined'}
-                size='small'
-                onClick={() => onFilterChange('showClosed', !filters.showClosed)}
-              >
-                {filters.showClosed ? 'Ocultar Fechados' : 'Mostrar Fechados'}
-              </Button>
-
-              <Button
-                variant='outlined'
-                size='small'
-                onClick={() => onFilterChange('cardsPerRow', filters.cardsPerRow === 4 ? 3 : 4)}
-              >
-                {filters.cardsPerRow === 4 ? '3 por linha' : '4 por linha'}
-              </Button>
+                <Menu anchorEl={anchorEl} open={isMenuOpen} onClose={handleCloseMenu} MenuListProps={{ dense: true }}>
+                  {[1, 2, 3, 4, 5].map(value => (
+                    <MenuItem
+                      key={value}
+                      onClick={() => handleSelectCards(value)}
+                      selected={filters.cardsPerRow === value}
+                    >
+                      {value} por linha
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </>
             </Box>
           </Grid>
         </Grid>
       </Paper>
     )
   },
+
+  // ✅ MEMO continua igual...
   (prevProps, nextProps) => {
-    // ✅ MEMO: Header só muda se dados relevantes mudarem
     const shouldSkip =
       prevProps.stats.total === nextProps.stats.total &&
       prevProps.stats.totalMessages === nextProps.stats.totalMessages &&
@@ -269,10 +290,6 @@ const CardsGrid = memo<{
     selectedProtocolForDialog,
     isWebSocketConnected
   }) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`📋 CardsGrid renderizou com ${protocols.length} protocolos`)
-    }
-
     return (
       <Grid container spacing={3}>
         {protocols.map(protocol => (
@@ -291,24 +308,28 @@ const CardsGrid = memo<{
     )
   },
   (prevProps, nextProps) => {
-    // ✅ COMPARAÇÃO SIMPLIFICADA - só ordem dos protocolos importa
+    // ✅ VERIFICAR PROTOCOLOS
     const protocolsChanged =
       prevProps.protocols.length !== nextProps.protocols.length ||
       !prevProps.protocols.every((p, i) => p === nextProps.protocols[i])
 
-    if (process.env.NODE_ENV === 'development') {
-      if (protocolsChanged) {
-        console.log('🔄 CardsGrid - PROTOCOLS MUDARAM:', {
-          before: prevProps.protocols,
-          after: nextProps.protocols
-        })
-      } else {
-        console.log('✅ CardsGrid - PROTOCOLS IGUAIS')
-      }
-    }
+    // ✅ VERIFICAR GRIDSIZE
+    const gridSizeChanged =
+      prevProps.gridSize.xs !== nextProps.gridSize.xs ||
+      prevProps.gridSize.sm !== nextProps.gridSize.sm ||
+      prevProps.gridSize.md !== nextProps.gridSize.md ||
+      prevProps.gridSize.lg !== nextProps.gridSize.lg
 
-    // ✅ Se protocolos mudaram, SEMPRE re-renderizar
-    return !protocolsChanged
+    // ✅ VERIFICAR OUTRAS PROPS
+    const otherPropsChanged =
+      prevProps.selectedCardId !== nextProps.selectedCardId ||
+      prevProps.selectedProtocolForDialog !== nextProps.selectedProtocolForDialog ||
+      prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
+
+    const shouldRerender = protocolsChanged || gridSizeChanged || otherPropsChanged
+
+    // ✅ Só bloquear se NADA mudou
+    return !shouldRerender
   }
 )
 
@@ -340,6 +361,7 @@ const MonitoringPageComplete = () => {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedProtocolForDialog, setSelectedProtocolForDialog] = useState<string | null>(null)
 
+  // No useState dos filters, altere o valor inicial:
   const [filters, setFilters] = useState<ChatFilters>({
     orderBy: 'created_at',
     showClosed: false,
@@ -347,7 +369,7 @@ const MonitoringPageComplete = () => {
     channels: [],
     priorities: [],
     messagesLimit: 10,
-    cardsPerRow: 4
+    cardsPerRow: 4 // ✅ Manter 4 como padrão
   })
 
   // 🔧 HELPERS MEMOIZADOS
@@ -446,17 +468,6 @@ const MonitoringPageComplete = () => {
 
     // 6️⃣ ✅ RESULTADO FINAL: Urgentes primeiro, depois normais
     const finalOrder = [...urgentProtocols, ...normalProtocols]
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎯 filteredProtocols calculado com priorização:', {
-        total: finalOrder.length,
-        urgentes: urgentProtocols.length,
-        normais: normalProtocols.length,
-        urgentProtocols,
-        normalProtocols,
-        finalOrder
-      })
-    }
 
     return finalOrder
   }, [renderableChats, chatOrder, filters, getChatChannel, getChatPriority, getChatLastActivity])
@@ -609,7 +620,17 @@ const MonitoringPageComplete = () => {
 
   // 🔧 GRID SIZE
   const gridSize = useMemo(() => {
-    return filters.cardsPerRow === 3 ? { xs: 12, sm: 6, md: 4 } : { xs: 12, sm: 6, md: 4, lg: 3 }
+    const cardsPerRow = filters.cardsPerRow
+
+    // Calculo das colunas Bootstrap (12 colunas totais)
+    const colSize = Math.floor(12 / cardsPerRow)
+
+    return {
+      xs: 12, // Mobile: sempre 1 por linha
+      sm: cardsPerRow <= 2 ? 6 : colSize, // Tablet: ajustar baseado na escolha
+      md: colSize, // Desktop: usar o cálculo
+      lg: colSize // Desktop grande: usar o cálculo
+    }
   }, [filters.cardsPerRow])
 
   // 🔧 DnD SENSORS

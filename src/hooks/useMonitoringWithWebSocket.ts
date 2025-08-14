@@ -37,7 +37,6 @@ import {
 import {
   useGetAllHistoryByProtocolQuery,
   useLazyGetProtocolHistoryQuery,
-  type AllProtocolHistoryResponse,
   type ProcessedProtocolHistoryItem
 } from '@/api/endpoints/chat/protocolHistory'
 
@@ -51,6 +50,7 @@ import {
 import { getEcho, isEchoConnected } from '@/redux-store/websocket/echo'
 import { adaptProtocolHistoryResponse } from './adapters/protocolHistoryAdapter'
 import { useGetActiveChatsQuery } from '@/api/endpoints/chat/queries'
+import { handleSoundNotifications } from '@/utils/notifications/websocketSoundIntegration'
 
 // 🎯 TIPOS (mantidos)
 interface ProtocolEvent {
@@ -79,7 +79,7 @@ interface MessageEvent {
 
 interface UseMonitoringWithWebSocketOptions {
   enableWebSocket?: boolean
-  onLoadComplete?: (data: AllProtocolHistoryResponse) => void
+
   onError?: (error: any) => void
   onChatSelect?: (protocol: string, chat: ChatWithHistory) => void
 }
@@ -113,7 +113,7 @@ interface UseMonitoringWithWebSocketReturn {
 export function useMonitoringWithWebSocket(
   options: UseMonitoringWithWebSocketOptions = {}
 ): UseMonitoringWithWebSocketReturn {
-  const { enableWebSocket = true, onLoadComplete, onError, onChatSelect } = options
+  const { enableWebSocket = true, onError, onChatSelect } = options
 
   const dispatch = useAppDispatch()
 
@@ -652,40 +652,11 @@ export function useMonitoringWithWebSocket(
         console.error('💥 Erro no handleProtocolCreated:', error)
       }
     },
-    [dispatch, fetchHistoryForNewProtocol]
+    [dispatch, fetchHistoryForNewProtocolWithRetry]
   )
 
-  // // 🔥 HANDLER: Protocolo atualizado (REDUX VERSION)
-  // const handleProtocolUpdated = useCallback(
-  //   (protocolEvent: ProtocolEvent) => {
-  //     console.log('📋 Protocolo atualizado:', protocolEvent.protocol)
-
-  //     dispatch(
-  //       updateChatInfo({
-  //         protocol: protocolEvent.protocol,
-  //         updates: {
-  //           status: protocolEvent.status as any,
-  //           operator: protocolEvent.operator,
-  //           updated_at: protocolEvent.updated_at
-  //         }
-  //       })
-  //     )
-  //   },
-  //   [dispatch]
-  // )
-  //! Versão de dbug =>
   const handleProtocolUpdated = useCallback(
     (protocolEvent: ProtocolEvent) => {
-      // 🚨 DEBUG ESPECÍFICO PARA O PROBLEMA DO OPERADOR
-      console.log('🔥 ===== PROTOCOL.UPDATED RECEBIDO =====')
-      console.log('📊 Dados completos do evento:', JSON.stringify(protocolEvent, null, 2))
-      console.log('⏰ Timestamp:', new Date().toISOString())
-      console.log('🏷️ Protocol ID:', protocolEvent.protocol)
-      console.log('👨‍💼 Campo operator:', protocolEvent.operator)
-      console.log('📈 Status:', protocolEvent.status)
-      console.log('🔄 Updated_at:', protocolEvent.updated_at)
-      console.log('=====================================')
-
       dispatch(
         updateChatInfo({
           protocol: protocolEvent.protocol,
@@ -697,20 +668,6 @@ export function useMonitoringWithWebSocket(
           }
         })
       )
-
-      // 🚨 DEBUG: Verificar se a atualização foi aplicada no Redux
-      setTimeout(() => {
-        const state = store.getState()
-        const updatedChat = state.monitoring.chatsByProtocol[protocolEvent.protocol]
-
-        console.log('🔍 Estado do chat após update no Redux:', {
-          protocol: protocolEvent.protocol,
-          operator: updatedChat?.operator,
-          status: updatedChat?.status,
-          question_operador: updatedChat?.question_operator,
-          updated_at: updatedChat?.updated_at
-        })
-      }, 100)
     },
     [dispatch]
   )
@@ -751,7 +708,10 @@ export function useMonitoringWithWebSocket(
           const channel = echo.private(channelName)
 
           channel
-            .listen('.protocol.created', handleProtocolCreated)
+            .listen('.protocol.created', (protocolEvent: any) => {
+              handleSoundNotifications.onProtocolCreated(protocolEvent) // ✅ Com parâmetro
+              handleProtocolCreated(protocolEvent)
+            })
             .listen('.protocol.updated', handleProtocolUpdated)
             .listen('.protocol.deleted', handleProtocolDeleted)
 
@@ -796,6 +756,7 @@ export function useMonitoringWithWebSocket(
             })
             .listen('.question.updated', (event: any) => {
               console.log('🚨 LISTENER .question.updated DISPARADO!')
+              handleSoundNotifications.onQuestionUpdated()
               handleQuestionUpdated(event)
             })
             .listen('.reply.created', (event: any) => {
@@ -955,14 +916,6 @@ export function useMonitoringWithWebSocket(
     [dispatch]
   )
 
-  // 🎯 CALLBACKS
-  useEffect(() => {
-    if (data && onLoadComplete) {
-      //@ts-ignore
-      onLoadComplete(data)
-    }
-  }, [data, onLoadComplete])
-
   useEffect(() => {
     if (error && onError) {
       onError(error)
@@ -994,13 +947,6 @@ export function useMonitoringWithWebSocket(
 export function useMonitoringChatWithWebSocket() {
   return useMonitoringWithWebSocket({
     enableWebSocket: true,
-    onLoadComplete: data => {
-      console.log('🔄 Dados carregados + Redux ativo:', {
-        totalChats: data.totalChats,
-        totalMessages: data.totalMessages,
-        status: '✅ Performance Otimizada!'
-      })
-    },
     onError: error => {
       console.error('💥 Erro no hook de monitoramento:', error)
     }
