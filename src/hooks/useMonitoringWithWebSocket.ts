@@ -50,6 +50,7 @@ import {
 import { getEcho, isEchoConnected } from '@/redux-store/websocket/echo'
 import { adaptProtocolHistoryResponse } from './adapters/protocolHistoryAdapter'
 import { useGetActiveChatsQuery } from '@/api/endpoints/chat/queries'
+import { handleSoundNotifications } from '@/utils/notifications/websocketSoundIntegration'
 
 // 🎯 TIPOS (mantidos)
 interface ProtocolEvent {
@@ -651,7 +652,7 @@ export function useMonitoringWithWebSocket(
         console.error('💥 Erro no handleProtocolCreated:', error)
       }
     },
-    [dispatch, fetchHistoryForNewProtocol]
+    [dispatch, fetchHistoryForNewProtocolWithRetry]
   )
 
   const handleProtocolUpdated = useCallback(
@@ -707,7 +708,10 @@ export function useMonitoringWithWebSocket(
           const channel = echo.private(channelName)
 
           channel
-            .listen('.protocol.created', handleProtocolCreated)
+            .listen('.protocol.created', (protocolEvent: any) => {
+              handleSoundNotifications.onProtocolCreated(protocolEvent) // ✅ Com parâmetro
+              handleProtocolCreated(protocolEvent)
+            })
             .listen('.protocol.updated', handleProtocolUpdated)
             .listen('.protocol.deleted', handleProtocolDeleted)
 
@@ -752,6 +756,7 @@ export function useMonitoringWithWebSocket(
             })
             .listen('.question.updated', (event: any) => {
               console.log('🚨 LISTENER .question.updated DISPARADO!')
+              handleSoundNotifications.onQuestionUpdated()
               handleQuestionUpdated(event)
             })
             .listen('.reply.created', (event: any) => {
