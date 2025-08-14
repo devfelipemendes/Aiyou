@@ -290,10 +290,6 @@ const CardsGrid = memo<{
     selectedProtocolForDialog,
     isWebSocketConnected
   }) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`📋 CardsGrid renderizou com ${protocols.length} protocolos`)
-    }
-
     return (
       <Grid container spacing={3}>
         {protocols.map(protocol => (
@@ -331,19 +327,6 @@ const CardsGrid = memo<{
       prevProps.isWebSocketConnected !== nextProps.isWebSocketConnected
 
     const shouldRerender = protocolsChanged || gridSizeChanged || otherPropsChanged
-
-    if (process.env.NODE_ENV === 'development') {
-      if (shouldRerender) {
-        console.log('🔄 CardsGrid - RE-RENDER PERMITIDO:', {
-          protocolsChanged,
-          gridSizeChanged,
-          otherPropsChanged,
-          newGridSize: nextProps.gridSize
-        })
-      } else {
-        console.log('✅ CardsGrid - RE-RENDER BLOQUEADO')
-      }
-    }
 
     // ✅ Só bloquear se NADA mudou
     return !shouldRerender
@@ -485,17 +468,6 @@ const MonitoringPageComplete = () => {
 
     // 6️⃣ ✅ RESULTADO FINAL: Urgentes primeiro, depois normais
     const finalOrder = [...urgentProtocols, ...normalProtocols]
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎯 filteredProtocols calculado com priorização:', {
-        total: finalOrder.length,
-        urgentes: urgentProtocols.length,
-        normais: normalProtocols.length,
-        urgentProtocols,
-        normalProtocols,
-        finalOrder
-      })
-    }
 
     return finalOrder
   }, [renderableChats, chatOrder, filters, getChatChannel, getChatPriority, getChatLastActivity])

@@ -71,12 +71,12 @@ class WebSocketAutoReconnect {
       // 🎯 Conexão real: deve ter estado 'connected' E socket_id válido
       const isConnected = state === 'connected' && socketId && socketId.length > 0
 
-      console.log(`🔍 Verificação rigorosa: ${isConnected ? '✅' : '❌'}`, {
-        state,
-        socketId: socketId || 'null',
-        hasEcho: !!echo,
-        hasConnection: !!connection
-      })
+      // console.log(`🔍 Verificação rigorosa: ${isConnected ? '✅' : '❌'}`, {
+      //   state,
+      //   socketId: socketId || 'null',
+      //   hasEcho: !!echo,
+      //   hasConnection: !!connection
+      // })
 
       return isConnected
     } catch (error) {
@@ -123,7 +123,7 @@ class WebSocketAutoReconnect {
   private checkConnection() {
     const isConnected = this.isReallyConnected()
 
-    console.log(`🔍 Verificando WebSocket: ${isConnected ? '✅ Conectado' : '❌ Desconectado'}`)
+    // console.log(`🔍 Verificando WebSocket: ${isConnected ? '✅ Conectado' : '❌ Desconectado'}`)
 
     if (!isConnected && !this.isReconnecting && this.retryCount < this.config.maxRetries) {
       this.attemptReconnect()
