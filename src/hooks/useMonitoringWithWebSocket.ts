@@ -108,6 +108,9 @@ interface UseMonitoringWithWebSocketReturn {
   updateChatOrder: (oldIndex: number, newIndex: number) => void
   isLoadingHistory: boolean
   protocolsAwaitingHistoryCount: number
+
+  isPolling: boolean
+  pollingAttempts: number
 }
 
 export function useMonitoringWithWebSocket(
@@ -117,11 +120,16 @@ export function useMonitoringWithWebSocket(
 
   const dispatch = useAppDispatch()
 
+  const [isPolling, setIsPolling] = useState(false)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingAttempts = useRef(0)
+
   // 🔄 RTK QUERY (mantido)
   const {
     data: protocolData,
     error: apiError,
-    isLoading: apiLoading
+    isLoading: apiLoading,
+    refetch: rtqRefetch
   } = useGetAllHistoryByProtocolQuery(undefined, {
     refetchOnMountOrArgChange: true,
     refetchOnFocus: false,
@@ -812,6 +820,105 @@ export function useMonitoringWithWebSocket(
     }
   }, [apiError, dispatch])
 
+  const refetch = useCallback(async () => {
+    dispatch(setRefreshing(true))
+
+    try {
+      await rtqRefetch()
+    } finally {
+      dispatch(setRefreshing(false))
+    }
+  }, [dispatch, rtqRefetch])
+
+  const startPollingForChats = useCallback(() => {
+    if (isPolling || pollingIntervalRef.current) {
+      console.log('⚠️ Polling já está ativo, ignorando...')
+
+      return
+    }
+
+    console.log('🔄 Iniciando polling para buscar chats a cada 10 segundos...')
+    setIsPolling(true)
+    pollingAttempts.current = 0
+
+    const pollFunction = async () => {
+      try {
+        pollingAttempts.current++
+        console.log(`📡 [POLLING] Tentativa ${pollingAttempts.current} - Buscando chats...`)
+
+        // Força refetch da RTK Query
+        await refetch()
+
+        // A verificação de parada será feita no useEffect que monitora 'data'
+      } catch (error) {
+        console.error('💥 [POLLING] Erro na tentativa:', error)
+      }
+    }
+
+    // Executa imediatamente uma vez
+    pollFunction()
+
+    // Configura interval para repetir a cada 10 segundos
+    pollingIntervalRef.current = setInterval(pollFunction, 10000)
+  }, [refetch, isPolling])
+
+  const stopPollingForChats = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      console.log('⏹️ [POLLING] Parando polling - chats encontrados!')
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+      setIsPolling(false)
+      pollingAttempts.current = 0
+    }
+  }, [])
+
+  useEffect(() => {
+    // Só inicia polling se:
+    // 1. Não está carregando dados iniciais
+    // 2. Não tem chats
+    // 3. Não tem erro na API
+    // 4. Ainda não está fazendo polling
+    const shouldStartPolling =
+      !apiLoading && (!data?.chats || data.chats.length === 0) && !apiError && !isPolling && !pollingIntervalRef.current
+
+    if (shouldStartPolling) {
+      console.log('🎯 [POLLING] Condições atendidas - iniciando polling para chats vazios')
+      startPollingForChats()
+    }
+
+    // Se recebeu chats, para o polling
+    if (data?.chats && data.chats.length > 0 && isPolling) {
+      console.log('✅ [POLLING] Chats encontrados! Parando polling...', data.chats.length)
+      stopPollingForChats()
+
+      // Aguarda um pouco para o Redux ser atualizado e conecta WebSocket
+      setTimeout(() => {
+        const connected = isEchoConnected()
+
+        if (connected) {
+          console.log('🔌 [POLLING] Conectando WebSocket após encontrar chats...')
+          connectToProjectChannels()
+          connectToProtocolChannels()
+        }
+      }, 1000)
+    }
+
+    // Cleanup automático após 5 minutos (30 tentativas)
+    if (pollingAttempts.current >= 30) {
+      console.log('⏰ [POLLING] Timeout - parando polling após 5 minutos')
+      stopPollingForChats()
+    }
+  }, [
+    data?.chats,
+    apiLoading,
+    apiError,
+    isPolling,
+    startPollingForChats,
+    stopPollingForChats,
+    connectToProjectChannels,
+    connectToProtocolChannels
+  ])
+
   // 🔄 WEBSOCKET CONNECTION MANAGEMENT
   useEffect(() => {
     if (!enableWebSocket) return
@@ -821,10 +928,14 @@ export function useMonitoringWithWebSocket(
 
       dispatch(setWebSocketConnected(connected))
 
-      if (connected && chatsRef.current.length > 0) {
+      if (connected && (chatsRef.current.length > 0 || !isPolling)) {
         console.log('🔌 WebSocket conectado, configurando canais...')
         connectToProjectChannels()
-        connectToProtocolChannels()
+
+        // Só conecta aos canais de protocolo se tiver chats
+        if (chatsRef.current.length > 0) {
+          connectToProtocolChannels()
+        }
       }
     }
 
@@ -832,6 +943,13 @@ export function useMonitoringWithWebSocket(
 
     return () => {
       console.log('🧹 Limpando canais WebSocket...')
+
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+
+      setIsPolling(false)
 
       try {
         const echo = getEcho()
@@ -872,10 +990,6 @@ export function useMonitoringWithWebSocket(
   }, [fetchHistoryForNewProtocol])
 
   // 🎛️ AÇÕES
-  const refetch = useCallback(async () => {
-    dispatch(setRefreshing(true))
-    dispatch(setRefreshing(false))
-  }, [dispatch])
 
   const refreshSpecificChat = useCallback(
     async (protocol: string) => {
@@ -939,7 +1053,9 @@ export function useMonitoringWithWebSocket(
     connectedChannels,
     updateChatOrder,
     isLoadingHistory,
-    protocolsAwaitingHistoryCount: protocolsAwaitingHistory.size
+    protocolsAwaitingHistoryCount: protocolsAwaitingHistory.size,
+    isPolling,
+    pollingAttempts: pollingAttempts.current
   }
 }
 
