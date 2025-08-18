@@ -14,7 +14,6 @@ import {
   StepLabel,
   StepButton,
   useTheme,
-  alpha,
   Dialog,
   DialogContent,
   IconButton
@@ -525,7 +524,7 @@ export const FirstModulePresentation: React.FC<InstructionSwiperProps> = ({
                   )
                 }
                 variant='contained'
-                color='primary'
+                color={currentStep === steps.length - 1 ? 'success' : 'primary'}
                 sx={{
                   borderRadius: 2,
                   boxShadow: theme.shadows[2],
@@ -534,7 +533,7 @@ export const FirstModulePresentation: React.FC<InstructionSwiperProps> = ({
                   }
                 }}
               >
-                {currentStep === steps.length - 1 ? 'Finalizar' : 'Próximo'}
+                {currentStep === steps.length - 1 ? 'Concluir Instruções' : 'Próximo'}
               </Button>
             </Box>
 

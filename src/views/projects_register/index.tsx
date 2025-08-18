@@ -1,7 +1,10 @@
 'use client'
 
 // React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+// Next.js Imports
+import Image from 'next/image'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -24,6 +27,40 @@ import StepReviewProject from './StepReviewConfigs'
 import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
 import StepCreateProject from './StepCreateProject'
 
+const ONBOARDING_COOKIE_NAME = 'first_project_onboarding_completed'
+const COOKIE_EXPIRY_DAYS = 365
+
+const setCookie = (name: string, value: string, days: number) => {
+  const expires = new Date()
+
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`
+}
+
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + '='
+  const ca = document.cookie.split(';')
+
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
+  }
+
+  return null
+}
+
+const hasCompletedOnboarding = (): boolean => {
+  if (typeof window === 'undefined') return false
+
+  return getCookie(ONBOARDING_COOKIE_NAME) === 'true'
+}
+
+const markOnboardingAsCompleted = () => {
+  setCookie(ONBOARDING_COOKIE_NAME, 'true', COOKIE_EXPIRY_DAYS)
+}
+
 // Vars
 const steps = [
   {
@@ -45,7 +82,16 @@ const onboardingSteps: StepData[] = [
     title: 'Bem-vindo à primeira criação de projetos! ',
     description:
       'Os Projetos são como pastas de organização onde você pode atribuir assistentes Aiyou para cumprir objetivos específicos. Se o seu plano permite até 10 assistentes, você pode criar quantos projetos quiser e atribuir um ou mais assistentes a cada um deles.',
-    icon: <img src='/images/illustrations/characters/3.png' className='w-36' />,
+    icon: (
+      <Image
+        src='/images/illustrations/characters/3.png'
+        alt='Personagem de boas-vindas'
+        width={144}
+        height={144}
+        className='w-36 h-auto'
+        priority
+      />
+    ),
     information: 'info',
     tips: [
       'Se você quer que um assistente cuide do seu SAC, basta criar um projeto chamado SAC e atribuir um ou mais assistentes a ele.',
@@ -79,15 +125,18 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
 
   return (
     <>
-      {step !== 0 && (
-        <div className='mb-6'>
-          <img
-            src={'/images/iaImages/icons.png'}
-            alt={`Step ${step + 1} Header`}
-            className='w-full h-52 object-cover rounded-lg'
-          />
-        </div>
-      )}
+      <div className='mb-6 relative'>
+        <Image
+          src='/images/iaImages/icons.png'
+          alt={`Step ${step + 1} Header`}
+          width={800}
+          height={208}
+          className='w-full h-52 object-cover rounded-lg'
+          sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+          quality={85}
+        />
+      </div>
+
       <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
     </>
   )
@@ -103,7 +152,15 @@ const ConnectorHeight = styled(StepConnector)(() => ({
 const PropertyListingWizard = () => {
   // States
   const [activeStep, setActiveStep] = useState<number>(0)
-  const [modalOpen, setModalOpen] = useState(true)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    const completed = hasCompletedOnboarding()
+
+    setModalOpen(!completed)
+  }, [])
 
   const handleNext = () => {
     if (activeStep !== steps.length - 1) {
@@ -119,23 +176,66 @@ const PropertyListingWizard = () => {
     }
   }
 
+  const handleOnboardingComplete = () => {
+    markOnboardingAsCompleted()
+    setModalOpen(false)
+  }
+
+  const handleModalClose = () => {
+    setModalOpen(false)
+  }
+
+  const resetOnboarding = () => {
+    setCookie(ONBOARDING_COOKIE_NAME, '', -1) // Delete cookie
+    setModalOpen(true)
+  }
+
+  if (!isClient) {
+    return (
+      <Card className='flex flex-col lg:flex-row'>
+        <CardContent className='max-lg:border-be lg:border-ie lg:min-is-[300px]'>
+          <StepperWrapper className='bs-full'>
+            <Stepper activeStep={activeStep} connector={<ConnectorHeight />} orientation='vertical'>
+              {steps.map((step, index) => {
+                return (
+                  <Step key={index} onClick={() => setActiveStep(index)}>
+                    <StepLabel
+                      className='p-0'
+                      slots={{
+                        stepIcon: StepperCustomDot
+                      }}
+                    >
+                      <div className='step-label cursor-pointer'>
+                        <Typography className='step-number' color='text.primary'>{`0${index + 1}`}</Typography>
+                        <div>
+                          <Typography className='step-title' color='text.primary'>
+                            {step.title}
+                          </Typography>
+                          <Typography className='step-subtitle' color='text.primary'>
+                            {step.subtitle}
+                          </Typography>
+                        </div>
+                      </div>
+                    </StepLabel>
+                  </Step>
+                )
+              })}
+            </Stepper>
+          </StepperWrapper>
+        </CardContent>
+        <CardContent className='flex-1 !pbs-5 w-full'>{getStepContent(activeStep, handleNext, handlePrev)}</CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <Card className='flex flex-col lg:flex-row '>
+    <Card className='flex flex-col lg:flex-row'>
       <Box sx={{ mb: 4 }}>
         <FirstModulePresentation
           open={modalOpen}
           steps={onboardingSteps}
-          onComplete={() => {
-            console.log('Tutorial concluído!')
-
-            // Lógica adicional quando completa
-          }}
-          onFinaly={() => {
-            console.log('Finalizado!')
-
-            // Ação específica do botão Finalizar
-          }}
-          onClose={() => setModalOpen(false)}
+          onFinaly={handleOnboardingComplete} // Save to cookies when completed
+          onClose={handleModalClose} // Close without saving
           size='large'
           variant='default'
           allowCloseOnlyAtEnd={true}
@@ -173,6 +273,17 @@ const PropertyListingWizard = () => {
       </CardContent>
 
       <CardContent className='flex-1 !pbs-5 w-full'>{getStepContent(activeStep, handleNext, handlePrev)}</CardContent>
+
+      {/* Development helper - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <button
+          onClick={resetOnboarding}
+          className='fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg'
+          title='Reset Onboarding (Development only)'
+        >
+          Reset Onboarding
+        </button>
+      )}
     </Card>
   )
 }
