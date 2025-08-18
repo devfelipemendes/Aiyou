@@ -14,11 +14,15 @@ import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 
 // Styled Component Imports
+import { Box } from '@mui/material'
+
 import StepperWrapper from '@core/styles/stepper'
 import StepperCustomDot from '@components/stepper-dot'
 import StepCreateFunction from './StepCreateFunctions'
 import StepReviewProject from './StepReviewConfigs'
-import StepWelcomeToProject from './StepWelcomeToProject'
+
+import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
+import StepCreateProject from './StepCreateProject'
 
 // Vars
 const steps = [
@@ -36,15 +40,42 @@ const steps = [
   }
 ]
 
+const onboardingSteps: StepData[] = [
+  {
+    title: 'Bem-vindo à primeira criação de projetos! ',
+    description:
+      'Os Projetos são como pastas de organização onde você pode atribuir assistentes Aiyou para cumprir objetivos específicos. Se o seu plano permite até 10 assistentes, você pode criar quantos projetos quiser e atribuir um ou mais assistentes a cada um deles.',
+    icon: <img src='/images/illustrations/characters/3.png' className='w-36' />,
+    information: 'info',
+    tips: [
+      'Se você quer que um assistente cuide do seu SAC, basta criar um projeto chamado SAC e atribuir um ou mais assistentes a ele.',
+      'Se nesse caso você atribuir apenas 1 assistente, ainda terá 9 disponíveis para outros projetos.',
+      'Você pode distribuir esses assistentes da forma que preferir: todos em um único projeto ou divididos entre vários.'
+    ]
+  },
+  {
+    title: 'IMPORTANTE!',
+    description:
+      'Se tiver dúvidas ou quiser mais informações, fale com um dos assistentes ou entre em contato com nossa equipe de atendimento.',
+    icon: <i className='ri-alert-line text-yellow-500 text-8xl' />,
+    information: 'alert',
+    tips: [
+      'Um projeto sem assistente não funcionará.',
+      'Ao migrar um assistente para outro projeto, ele deixará de atuar no projeto anterior.',
+      'Sempre verifique as especificações do assistente antes de movê-lo.'
+    ]
+  }
+]
+
 const getStepContent = (step: number, handleNext: () => void, handlePrev: () => void) => {
   const Tag =
     step === 0
-      ? StepWelcomeToProject
+      ? StepCreateProject
       : step === 1
         ? StepCreateFunction
         : step === 2
           ? StepReviewProject
-          : StepWelcomeToProject
+          : StepCreateProject
 
   return (
     <>
@@ -72,6 +103,7 @@ const ConnectorHeight = styled(StepConnector)(() => ({
 const PropertyListingWizard = () => {
   // States
   const [activeStep, setActiveStep] = useState<number>(0)
+  const [modalOpen, setModalOpen] = useState(true)
 
   const handleNext = () => {
     if (activeStep !== steps.length - 1) {
@@ -89,6 +121,26 @@ const PropertyListingWizard = () => {
 
   return (
     <Card className='flex flex-col lg:flex-row '>
+      <Box sx={{ mb: 4 }}>
+        <FirstModulePresentation
+          open={modalOpen}
+          steps={onboardingSteps}
+          onComplete={() => {
+            console.log('Tutorial concluído!')
+
+            // Lógica adicional quando completa
+          }}
+          onFinaly={() => {
+            console.log('Finalizado!')
+
+            // Ação específica do botão Finalizar
+          }}
+          onClose={() => setModalOpen(false)}
+          size='large'
+          variant='default'
+          allowCloseOnlyAtEnd={true}
+        />
+      </Box>
       <CardContent className='max-lg:border-be lg:border-ie lg:min-is-[300px]'>
         <StepperWrapper className='bs-full'>
           <Stepper activeStep={activeStep} connector={<ConnectorHeight />} orientation='vertical'>
