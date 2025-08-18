@@ -13,14 +13,12 @@ import StepConnector from '@mui/material/StepConnector'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 
-// Component Imports
-import StepCreateProject from './StepCreateProject'
-
 // Styled Component Imports
 import StepperWrapper from '@core/styles/stepper'
 import StepperCustomDot from '@components/stepper-dot'
 import StepCreateFunction from './StepCreateFunctions'
 import StepReviewProject from './StepReviewConfigs'
+import StepWelcomeToProject from './StepWelcomeToProject'
 
 // Vars
 const steps = [
@@ -39,32 +37,26 @@ const steps = [
 ]
 
 const getStepContent = (step: number, handleNext: () => void, handlePrev: () => void) => {
-  // Definir imagens diferentes para cada step
-  const stepImages: Record<number, string> = {
-    0: '/images/iaImages/icons.png',
-    1: '/images/iaImages/icons.png',
-    2: '/images/iaImages/icons.png'
-  }
-
   const Tag =
     step === 0
-      ? StepCreateProject
+      ? StepWelcomeToProject
       : step === 1
         ? StepCreateFunction
         : step === 2
           ? StepReviewProject
-          : StepCreateProject
+          : StepWelcomeToProject
 
   return (
     <>
-      <div className='mb-6'>
-        <img
-          src={stepImages[step] || stepImages[0]}
-          alt={`Step ${step + 1} Header`}
-          className='w-full h-52 object-cover rounded-lg'
-        />
-      </div>
-
+      {step !== 0 && (
+        <div className='mb-6'>
+          <img
+            src={'/images/iaImages/icons.png'}
+            alt={`Step ${step + 1} Header`}
+            className='w-full h-52 object-cover rounded-lg'
+          />
+        </div>
+      )}
       <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
     </>
   )

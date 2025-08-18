@@ -717,7 +717,7 @@ export function useMonitoringWithWebSocket(
 
           channel
             .listen('.protocol.created', (protocolEvent: any) => {
-              handleSoundNotifications.onProtocolCreated(protocolEvent) // ✅ Com parâmetro
+              handleSoundNotifications.onProtocolCreated() // ✅ Com parâmetro
               handleProtocolCreated(protocolEvent)
             })
             .listen('.protocol.updated', handleProtocolUpdated)
