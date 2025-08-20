@@ -1,12 +1,13 @@
 // MUI Imports
 import { useState, useCallback, useMemo, useEffect } from 'react'
 
+import Image from 'next/image'
+
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
-
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Collapse from '@mui/material/Collapse'
@@ -37,11 +38,78 @@ import {
 import ImageDropzone from '@/components/dropDonwLogo'
 import ProjectCard from '@/components/cardProject'
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
+import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
+
+const ONBOARDING_COOKIE_NAME = 'first_project_onboarding_completed'
+const COOKIE_EXPIRY_DAYS = 365
+
+const setCookie = (name: string, value: string, days: number) => {
+  const expires = new Date()
+
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`
+}
+
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + '='
+  const ca = document.cookie.split(';')
+
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
+  }
+
+  return null
+}
+
+const onboardingSteps: StepData[] = [
+  {
+    title: 'Bem-vindo à primeira criação de projetos! ',
+    description:
+      'Os Projetos são como pastas de organização onde você pode atribuir assistentes Aiyou para cumprir objetivos específicos. Se o seu plano permite até 10 assistentes, você pode criar quantos projetos quiser e atribuir um ou mais assistentes a cada um deles.',
+    icon: (
+      <Image
+        src='/images/illustrations/characters/3.png'
+        alt='Personagem de boas-vindas'
+        width={144}
+        height={144}
+        className='w-36 h-auto'
+        priority
+      />
+    ),
+    information: 'info',
+    tips: [
+      'Se você quer que um assistente cuide do seu SAC, basta criar um projeto chamado SAC e atribuir um ou mais assistentes a ele.',
+      'Se nesse caso você atribuir apenas 1 assistente, ainda terá 9 disponíveis para outros projetos.',
+      'Você pode distribuir esses assistentes da forma que preferir: todos em um único projeto ou divididos entre vários.'
+    ]
+  },
+  {
+    title: 'IMPORTANTE!',
+    description:
+      'Se tiver dúvidas ou quiser mais informações, fale com um dos assistentes ou entre em contato com nossa equipe de atendimento.',
+    icon: <i className='ri-alert-line text-yellow-500 text-8xl' />,
+    information: 'alert',
+    tips: [
+      'Um projeto sem assistente não funcionará.',
+      'Ao migrar um assistente para outro projeto, ele deixará de atuar no projeto anterior.',
+      'Sempre verifique as especificações do assistente antes de movê-lo.'
+    ]
+  }
+]
 
 // 🎯 INTERFACE LOCAL PARA UI
 export interface UIProject extends Project {
   status?: 'pending' | 'success' | 'error'
   imageFile?: File | null | undefined
+}
+
+interface ProjectManagerProps {
+  onNextStep?: () => void
+  showFinishButton?: boolean
+  finishButtonText?: string
 }
 
 // 🎯 SCHEMA DE VALIDAÇÃO
@@ -58,7 +126,11 @@ const ProjectSchema = v.object({
 
 type ProjectFormData = v.InferInput<typeof ProjectSchema>
 
-export default function ProjectManager() {
+export default function StepCreateProject({
+  onNextStep,
+  showFinishButton = true,
+  finishButtonText = 'Finalizar Criação de Projetos'
+}: ProjectManagerProps = {}) {
   const theme = useTheme()
 
   // 🎯 API HOOKS
@@ -69,6 +141,8 @@ export default function ProjectManager() {
     error: projectsError,
     refetch: refetchProjects
   } = useGetProjectsQuery()
+
+  const [modalOpen, setModalOpen] = useState(false)
 
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation()
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation()
@@ -113,15 +187,6 @@ export default function ProjectManager() {
     mode: 'onChange'
   })
 
-  // 🎯 SINCRONIZAR FORMS COM ESTADOS
-  useEffect(() => {
-    createForm.setValue('imageMode', createImageMode)
-  }, [createImageMode, createForm])
-
-  useEffect(() => {
-    editForm.setValue('imageMode', editImageMode)
-  }, [editImageMode, editForm])
-
   // 🎯 PROJETOS PROCESSADOS
   const projects: UIProject[] = useMemo(() => {
     if (!projectsResponse?.data) return []
@@ -153,6 +218,21 @@ export default function ProjectManager() {
     }
   }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
 
+  // 🎯 HANDLE FINAL SUBMIT
+  const handleFinalSubmit = useCallback(() => {
+    const finalData = {
+      projects: projects,
+      totalProjects: projects.length,
+      successfulProjects: projects.filter(p => p.status === 'success').length
+    }
+
+    console.log('Dados finais para envio:', finalData)
+
+    if (onNextStep) {
+      onNextStep()
+    }
+  }, [projects, onNextStep])
+
   // 🎯 HANDLERS DE IMAGEM - CRIAR
   const handleCreateImageChange = useCallback((file: File | null) => {
     setCreateImageFile(file)
@@ -163,7 +243,10 @@ export default function ProjectManager() {
       if (newMode !== null) {
         setCreateImageMode(newMode)
         setCreateImageFile(null)
-        createForm.setValue('img_url', '')
+
+        if (newMode === 'file') {
+          createForm.resetField('img_url')
+        }
       }
     },
     [createForm]
@@ -186,18 +269,17 @@ export default function ProjectManager() {
   )
 
   // 🎯 TOGGLE FORMULÁRIO DE CRIAÇÃO
+  // ✅ CORRIGIR
   const handleToggleCreateForm = useCallback(() => {
-    setIsCreatingProject(prev => {
-      if (prev) {
-        // Resetar tudo
-        createForm.reset()
-        setCreateImageFile(null)
-        setCreateImageMode('file')
-      }
+    setIsCreatingProject(prev => !prev)
 
-      return !prev
-    })
-  }, [createForm])
+    // ✅ Fazer reset FORA do setState
+    if (isCreatingProject) {
+      createForm.reset()
+      setCreateImageFile(null)
+      setCreateImageMode('file')
+    }
+  }, [createForm, isCreatingProject])
 
   // 🎯 MODAL DE EDIÇÃO
   const handleOpenEditModal = useCallback(
@@ -378,6 +460,31 @@ export default function ProjectManager() {
     setProjectToDelete(null)
   }, [confirmDialog])
 
+  const markOnboardingAsCompleted = () => {
+    setCookie(ONBOARDING_COOKIE_NAME, 'true', COOKIE_EXPIRY_DAYS)
+  }
+
+  const handleOnboardingComplete = () => {
+    markOnboardingAsCompleted()
+    setModalOpen(false)
+  }
+
+  const handleModalClose = () => {
+    setModalOpen(false)
+  }
+
+  const hasCompletedOnboarding = (): boolean => {
+    if (typeof window === 'undefined') return false
+
+    return getCookie(ONBOARDING_COOKIE_NAME) === 'true'
+  }
+
+  useEffect(() => {
+    const completed = hasCompletedOnboarding()
+
+    setModalOpen(!completed)
+  }, [])
+
   // 🎯 LOADING SKELETON
   const renderLoadingSkeleton = () => (
     <Grid container spacing={3}>
@@ -412,12 +519,17 @@ export default function ProjectManager() {
       {/* 🎯 HEADER */}
       <Box sx={{ mb: 3 }}>
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-          <Typography variant='h4' component='h1'>
-            Gerenciador de Projetos
-          </Typography>
+          <Box className='flex items-center gap-2'>
+            <Typography variant='h4' component='h1'>
+              Crie seus primeiros projetos
+            </Typography>
+            <i
+              className='ri-information-2-line text-info hover:text-gray-400 cursor-pointer'
+              onClick={() => setModalOpen(true)}
+            />
+          </Box>
 
           <Box display='flex' gap={2} alignItems='center'>
-            {/* Botão criar quando há projetos */}
             {(projects.length > 0 || isLoadingProjects) && (
               <Button
                 variant='contained'
@@ -560,25 +672,35 @@ export default function ProjectManager() {
       {isLoadingProjects ? (
         renderLoadingSkeleton()
       ) : projects.length > 0 ? (
-        <Grid container spacing={3}>
-          {projects.map(project => (
-            <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.id}>
-              <ProjectCard
-                project={project}
-                onEdit={handleOpenEditModal}
-                onRemove={id => handleDeleteProject(id)}
-                isUpdating={isUpdating || confirmDialog.loading}
-                backgroundColor={theme.palette.primary.main}
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          <Grid container spacing={3}>
+            {projects.map(project => (
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.id}>
+                <ProjectCard
+                  project={project}
+                  onEdit={handleOpenEditModal}
+                  onRemove={id => handleDeleteProject(id)}
+                  isUpdating={isUpdating || confirmDialog.loading}
+                  backgroundColor={theme.palette.primary.main}
+                />
+              </Grid>
+            ))}
+          </Grid>
+
+          {!isCreatingProject && onNextStep && showFinishButton && (
+            <Box className='flex flex-col w-full items-start mt-6'>
+              <Button variant='contained' color='primary' size='small' onClick={handleFinalSubmit}>
+                {finishButtonText}
+              </Button>
+            </Box>
+          )}
+        </>
       ) : (
         <>
           {!isCreatingProject && (
             <Box sx={{ textAlign: 'center', py: 6 }}>
               <Typography variant='h6' color='text.secondary' gutterBottom>
-                Nenhum projeto criado
+                Você ainda não tem projetos criados
               </Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
                 Comece criando seu primeiro projeto
@@ -728,6 +850,17 @@ export default function ProjectManager() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+      <Box sx={{ mb: 4 }}>
+        <FirstModulePresentation
+          open={modalOpen}
+          steps={onboardingSteps}
+          onFinaly={handleOnboardingComplete} // Save to cookies when completed
+          onClose={handleModalClose} // Close without saving
+          size='large'
+          variant='default'
+          allowCloseOnlyAtEnd={true}
+        />
+      </Box>
     </Box>
   )
 }
