@@ -26,6 +26,8 @@ type UpgradePlanProps = {
 
 const UpgradePlan = ({ open, setOpen }: UpgradePlanProps) => {
   // States
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [openConfirmation, setOpenConfirmation] = useState(false)
 
   const handleClose = () => {
@@ -86,7 +88,17 @@ const UpgradePlan = ({ open, setOpen }: UpgradePlanProps) => {
           </div>
         </DialogContent>
       </Dialog>
-      <ConfirmationDialog open={openConfirmation} setOpen={setOpenConfirmation} type='unsubscribe' />
+      <ConfirmationDialog
+        open={false}
+        title={''}
+        message={''}
+        onConfirm={function (): void {
+          throw new Error('Function not implemented.')
+        }}
+        onCancel={function (): void {
+          throw new Error('Function not implemented.')
+        }}
+      />
     </>
   )
 }
