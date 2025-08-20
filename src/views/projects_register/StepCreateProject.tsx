@@ -132,15 +132,6 @@ export default function ProjectManager() {
     }))
   }, [projectsResponse])
 
-  // 🎯 ESTATÍSTICAS
-  const projectStats = useMemo(() => {
-    const total = projects.length
-    const success = projects.filter(p => p.status === 'success').length
-    const errors = projects.filter(p => p.status === 'error').length
-
-    return { total, success, errors }
-  }, [projects])
-
   // 🎯 VALIDAÇÕES DE FORMULÁRIO
   const isCreateFormValid = useMemo(() => {
     const baseValid = createForm.formState.isValid
