@@ -1,86 +1,96 @@
 // MUI Imports
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardActions from '@mui/material/CardActions'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
-
 import Alert from '@mui/material/Alert'
 import Collapse from '@mui/material/Collapse'
 import FormControl from '@mui/material/FormControl'
 import FormLabel from '@mui/material/FormLabel'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import IconButton from '@mui/material/IconButton'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
-import Avatar from '@mui/material/Avatar'
-import Tooltip from '@mui/material/Tooltip'
+import Skeleton from '@mui/material/Skeleton'
+import { useTheme } from '@mui/material'
 import * as v from 'valibot'
-
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
 // 🎯 IMPORTAR NOSSAS APIs E COMPONENTES
 import {
+  useGetProjectsQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,
+  useDeleteProjectMutation,
+  type Project,
   type CreateProjectRequest,
   type UpdateProjectRequest
 } from '@/api/endpoints/Projects/project'
 import ImageDropzone from '@/components/dropDonwLogo'
+import ProjectCard from '@/components/cardProject'
+import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 
-interface Project {
-  id: string
-  name: string
-  description: string
-  img_url?: string
-  status: 'pending' | 'success' | 'error'
-  user_id?: string
+// 🎯 INTERFACE LOCAL PARA UI
+export interface UIProject extends Project {
+  status?: 'pending' | 'success' | 'error'
   imageFile?: File | null | undefined
-  created_at?: string
-  updated_at?: string
 }
-
-type ProjectFormData = v.InferInput<typeof ProjectSchema>
 
 // 🎯 SCHEMA DE VALIDAÇÃO
 const ProjectSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, 'Nome do projeto é obrigatório')),
-  description: v.pipe(v.string(), v.minLength(1, 'Descrição é obrigatória')),
+  description: v.pipe(
+    v.string(),
+    v.minLength(1, 'Descrição é obrigatória'),
+    v.maxLength(255, 'Descrição deve ter no máximo 255 caracteres')
+  ),
   imageMode: v.picklist(['file', 'url'], 'Selecione o modo de imagem'),
   img_url: v.optional(v.pipe(v.string(), v.url('Deve ser uma URL válida')))
 })
 
+type ProjectFormData = v.InferInput<typeof ProjectSchema>
+
 export default function ProjectManager() {
-  const [projects, setProjects] = useState<Project[]>([])
+  const theme = useTheme()
 
-  // 🎯 ESTADOS DO FORMULÁRIO DE CRIAÇÃO
-  const [isCreatingProject, setIsCreatingProject] = useState(false)
-  const [createImageFile, setCreateImageFile] = useState<File | null>(null)
-  const [createImagePreview, setCreateImagePreview] = useState<string | null>(null)
-  const [createImageMode, setCreateImageMode] = useState<'file' | 'url'>('file')
+  // 🎯 API HOOKS
+  const {
+    data: projectsResponse,
+    isLoading: isLoadingProjects,
+    isError: isErrorProjects,
+    error: projectsError,
+    refetch: refetchProjects
+  } = useGetProjectsQuery()
 
-  // 🎯 ESTADOS DO MODAL DE EDIÇÃO
-  const [editingProject, setEditingProject] = useState<Project | null>(null)
-  const [editImageFile, setEditImageFile] = useState<File | null>(null)
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
-  const [editImageMode, setEditImageMode] = useState<'file' | 'url'>('file')
-
-  // 🎯 HOOKS DAS APIs
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation()
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation()
+  const [deleteProject] = useDeleteProjectMutation()
 
-  // 🎯 FORMULÁRIO DE CRIAÇÃO
+  // 🎯 ESTADOS GERAIS
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [editingProject, setEditingProject] = useState<UIProject | null>(null)
+  const [projectToDelete, setProjectToDelete] = useState<UIProject | null>(null)
+
+  // 🎯 DIALOG DE CONFIRMAÇÃO
+  const confirmDialog = useConfirmDialog()
+
+  // 🎯 ESTADOS DO FORMULÁRIO DE CRIAÇÃO
+  const [createImageFile, setCreateImageFile] = useState<File | null>(null)
+  const [createImageMode, setCreateImageMode] = useState<'file' | 'url'>('file')
+
+  // 🎯 ESTADOS DO FORMULÁRIO DE EDIÇÃO
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImageMode, setEditImageMode] = useState<'file' | 'url'>('file')
+
+  // 🎯 FORMULÁRIOS
   const createForm = useForm<ProjectFormData>({
     resolver: valibotResolver(ProjectSchema),
     defaultValues: {
@@ -92,7 +102,6 @@ export default function ProjectManager() {
     mode: 'onChange'
   })
 
-  // 🎯 FORMULÁRIO DE EDIÇÃO
   const editForm = useForm<ProjectFormData>({
     resolver: valibotResolver(ProjectSchema),
     defaultValues: {
@@ -104,6 +113,25 @@ export default function ProjectManager() {
     mode: 'onChange'
   })
 
+  // 🎯 SINCRONIZAR FORMS COM ESTADOS
+  useEffect(() => {
+    createForm.setValue('imageMode', createImageMode)
+  }, [createImageMode, createForm])
+
+  useEffect(() => {
+    editForm.setValue('imageMode', editImageMode)
+  }, [editImageMode, editForm])
+
+  // 🎯 PROJETOS PROCESSADOS
+  const projects: UIProject[] = useMemo(() => {
+    if (!projectsResponse?.data) return []
+
+    return projectsResponse.data.map(project => ({
+      ...project,
+      status: 'success' as const
+    }))
+  }, [projectsResponse])
+
   // 🎯 ESTATÍSTICAS
   const projectStats = useMemo(() => {
     const total = projects.length
@@ -113,95 +141,7 @@ export default function ProjectManager() {
     return { total, success, errors }
   }, [projects])
 
-  // 🎯 CALLBACKS PARA IMAGEM DO CRIAR
-  const handleCreateImageChange = useCallback((file: File | null, imageUrl: string | null) => {
-    setCreateImageFile(file)
-    setCreateImagePreview(imageUrl)
-  }, [])
-
-  const handleCreateImageModeChange = useCallback(
-    (event: React.MouseEvent<HTMLElement>, newMode: 'file' | 'url') => {
-      if (newMode !== null) {
-        setCreateImageMode(newMode)
-        createForm.setValue('imageMode', newMode)
-        setCreateImageFile(null)
-        setCreateImagePreview(null)
-        createForm.setValue('img_url', '')
-      }
-    },
-    [createForm]
-  )
-
-  // 🎯 CALLBACKS PARA IMAGEM DO EDITAR
-  const handleEditImageChange = useCallback((file: File | null, imageUrl: string | null) => {
-    setEditImageFile(file)
-    setEditImagePreview(imageUrl)
-  }, [])
-
-  const handleEditImageModeChange = useCallback(
-    (event: React.MouseEvent<HTMLElement>, newMode: 'file' | 'url') => {
-      if (newMode !== null) {
-        setEditImageMode(newMode)
-        editForm.setValue('imageMode', newMode)
-        setEditImageFile(null)
-        setEditImagePreview(null)
-        editForm.setValue('img_url', '')
-      }
-    },
-    [editForm]
-  )
-
-  // 🎯 TOGGLE FORMULÁRIO DE CRIAÇÃO
-  const handleToggleCreateForm = useCallback(() => {
-    setIsCreatingProject(prev => {
-      if (prev) {
-        createForm.reset()
-        setCreateImageFile(null)
-        setCreateImagePreview(null)
-        setCreateImageMode('file')
-      }
-
-      return !prev
-    })
-  }, [createForm])
-
-  // 🎯 ABRIR MODAL DE EDIÇÃO
-  const handleOpenEditModal = useCallback(
-    (project: Project) => {
-      setEditingProject(project)
-
-      // Pré-preencher formulário
-      editForm.reset({
-        name: project.name,
-        description: project.description,
-        imageMode: project.img_url ? 'url' : 'file',
-        img_url: project.img_url || ''
-      })
-
-      // Configurar modo e imagem
-      if (project.img_url) {
-        setEditImageMode('url')
-        setEditImageFile(null)
-        setEditImagePreview(null)
-      } else {
-        setEditImageMode('file')
-        setEditImageFile(project.imageFile || null)
-        setEditImagePreview(project.imageFile ? URL.createObjectURL(project.imageFile) : null)
-      }
-    },
-    [editForm]
-  )
-
-  // 🎯 FECHAR MODAL DE EDIÇÃO
-  const handleCloseEditModal = useCallback(() => {
-    setEditingProject(null)
-    editForm.reset()
-    setEditImageFile(null)
-    setEditImagePreview(null)
-    setEditImageMode('file')
-  }, [editForm])
-
-  // 🎯 VALIDAÇÃO DE FORMULÁRIO
+  // 🎯 VALIDAÇÕES DE FORMULÁRIO
   const isCreateFormValid = useMemo(() => {
     const baseValid = createForm.formState.isValid
 
@@ -221,6 +161,82 @@ export default function ProjectManager() {
       return baseValid && editForm.watch('img_url')
     }
   }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
+
+  // 🎯 HANDLERS DE IMAGEM - CRIAR
+  const handleCreateImageChange = useCallback((file: File | null) => {
+    setCreateImageFile(file)
+  }, [])
+
+  const handleCreateImageModeChange = useCallback(
+    (_: React.MouseEvent<HTMLElement>, newMode: 'file' | 'url') => {
+      if (newMode !== null) {
+        setCreateImageMode(newMode)
+        setCreateImageFile(null)
+        createForm.setValue('img_url', '')
+      }
+    },
+    [createForm]
+  )
+
+  // 🎯 HANDLERS DE IMAGEM - EDITAR
+  const handleEditImageChange = useCallback((file: File | null) => {
+    setEditImageFile(file)
+  }, [])
+
+  const handleEditImageModeChange = useCallback(
+    (_: React.MouseEvent<HTMLElement>, newMode: 'file' | 'url') => {
+      if (newMode !== null) {
+        setEditImageMode(newMode)
+        setEditImageFile(null)
+        editForm.setValue('img_url', '')
+      }
+    },
+    [editForm]
+  )
+
+  // 🎯 TOGGLE FORMULÁRIO DE CRIAÇÃO
+  const handleToggleCreateForm = useCallback(() => {
+    setIsCreatingProject(prev => {
+      if (prev) {
+        // Resetar tudo
+        createForm.reset()
+        setCreateImageFile(null)
+        setCreateImageMode('file')
+      }
+
+      return !prev
+    })
+  }, [createForm])
+
+  // 🎯 MODAL DE EDIÇÃO
+  const handleOpenEditModal = useCallback(
+    (project: UIProject) => {
+      setEditingProject(project)
+
+      editForm.reset({
+        name: project.name,
+        description: project.description,
+        imageMode: project.img_url ? 'url' : 'file',
+        img_url: project.img_url || ''
+      })
+
+      if (project.img_url) {
+        setEditImageMode('url')
+        setEditImageFile(null)
+      } else {
+        setEditImageMode('file')
+        setEditImageFile(project.imageFile || null)
+      }
+    },
+    [editForm]
+  )
+
+  const handleCloseEditModal = useCallback(() => {
+    setEditingProject(null)
+    editForm.reset()
+    setEditImageFile(null)
+    setEditImageMode('file')
+  }, [editForm])
 
   // 🎯 SUBMIT CRIAÇÃO
   const handleCreateSubmit = useCallback(
@@ -249,42 +265,25 @@ export default function ProjectManager() {
           requestData.img_url = data.img_url
         }
 
-        const result = await createProject(requestData).unwrap()
+        const result = await createProject(requestData)
 
-        const newProject: Project = {
-          id: result.data.id,
-          name: result.data.name,
-          description: result.data.description,
-          img_url: result.data.img_url,
-          status: 'success',
-          user_id: result.data.user_id,
-          imageFile: createImageMode === 'file' ? createImageFile : undefined,
-          created_at: result.data.created_at,
-          updated_at: result.data.updated_at
+        if (result.error) {
+          console.error('❌ Erro na API:', result.error)
+          alert('Erro ao criar projeto')
+
+          return
         }
 
-        setProjects(prev => [...prev, newProject])
-
-        // Reset
+        // Sucesso - resetar form
         createForm.reset()
         setIsCreatingProject(false)
         setCreateImageFile(null)
-        setCreateImagePreview(null)
         setCreateImageMode('file')
 
-        console.log('✅ Projeto criado:', result)
+        console.log('✅ Projeto criado com sucesso!')
       } catch (error: any) {
-        const errorProject: Project = {
-          id: `temp_${Date.now()}`,
-          name: data.name,
-          description: data.description,
-          img_url: createImageMode === 'url' ? data.img_url : undefined,
-          status: 'error',
-          imageFile: createImageMode === 'file' ? createImageFile : undefined
-        }
-
-        setProjects(prev => [...prev, errorProject])
-        console.error('❌ Erro ao criar projeto:', error)
+        console.error('❌ Erro inesperado:', error)
+        alert('Erro inesperado ao criar projeto')
       }
     },
     [createProject, createForm, createImageMode, createImageFile]
@@ -320,37 +319,102 @@ export default function ProjectManager() {
           requestData.img_url = data.img_url
         }
 
-        const result = await updateProject(requestData).unwrap()
+        const result = await updateProject(requestData)
 
-        // Atualizar na lista
-        setProjects(prev =>
-          prev.map(p =>
-            p.id === editingProject.id
-              ? {
-                  ...p,
-                  name: result.data.name,
-                  description: result.data.description,
-                  img_url: result.data.img_url,
-                  updated_at: result.data.updated_at,
-                  imageFile: editImageMode === 'file' ? editImageFile : undefined
-                }
-              : p
-          )
-        )
+        if (result.error) {
+          console.error('❌ Erro na API:', result.error)
+          alert('Erro ao atualizar projeto')
 
+          return
+        }
+
+        // Sucesso - fechar modal
         handleCloseEditModal()
-        console.log('✅ Projeto atualizado:', result)
+        console.log('✅ Projeto atualizado com sucesso!')
       } catch (error: any) {
-        console.error('❌ Erro ao atualizar projeto:', error)
+        console.error('❌ Erro inesperado:', error)
+        alert('Erro inesperado ao atualizar projeto')
       }
     },
-    [updateProject, editForm, editImageMode, editImageFile, editingProject, handleCloseEditModal]
+    [updateProject, editImageMode, editImageFile, editingProject, handleCloseEditModal]
   )
 
-  // 🎯 REMOVER PROJETO
-  const handleRemoveProject = useCallback((id: string) => {
-    setProjects(prev => prev.filter(project => project.id !== id))
-  }, [])
+  // 🎯 DELETE PROJECT
+  const handleDeleteProject = useCallback(
+    (id: string) => {
+      // Encontrar o projeto completo
+      const project = projects.find(p => p.id === id)
+
+      if (!project) return
+
+      // Definir projeto a ser deletado e abrir dialog
+      setProjectToDelete(project)
+      confirmDialog.openDialog()
+    },
+    [projects, confirmDialog]
+  )
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!projectToDelete) return
+
+    try {
+      confirmDialog.setLoading(true)
+
+      const result = await deleteProject({ id: projectToDelete.id })
+
+      if (result.error) {
+        console.error('❌ Erro na API:', result.error)
+        alert('Erro ao deletar projeto')
+
+        return
+      }
+
+      console.log('✅ Projeto deletado com sucesso!')
+
+      // Fechar dialog e limpar estado
+      confirmDialog.closeDialog()
+      setProjectToDelete(null)
+    } catch (error: any) {
+      console.error('❌ Erro inesperado:', error)
+      alert('Erro inesperado ao deletar projeto')
+    } finally {
+      confirmDialog.setLoading(false)
+    }
+  }, [projectToDelete, deleteProject, confirmDialog])
+
+  const handleCancelDelete = useCallback(() => {
+    confirmDialog.closeDialog()
+    setProjectToDelete(null)
+  }, [confirmDialog])
+
+  // 🎯 LOADING SKELETON
+  const renderLoadingSkeleton = () => (
+    <Grid container spacing={3}>
+      {[1, 2, 3].map(item => (
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item}>
+          <Skeleton variant='rounded' height={400} />
+        </Grid>
+      ))}
+    </Grid>
+  )
+
+  // 🎯 ERROR STATE
+  if (isErrorProjects) {
+    return (
+      <Box sx={{ mx: 'auto', p: 3 }}>
+        <Alert
+          severity='error'
+          action={
+            <Button color='inherit' size='small' onClick={() => refetchProjects()}>
+              Tentar Novamente
+            </Button>
+          }
+        >
+          Erro ao carregar projetos: {(projectsError as any)?.message || 'Erro desconhecido'}
+        </Alert>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ mx: 'auto', p: 3 }}>
@@ -360,27 +424,21 @@ export default function ProjectManager() {
           <Typography variant='h4' component='h1'>
             Gerenciador de Projetos
           </Typography>
-          {projectStats.total > 0 && (
-            <Box display='flex' gap={1}>
-              <Chip label={`${projectStats.success} criados`} color='success' />
-              {projectStats.errors > 0 && <Chip label={`${projectStats.errors} com erro`} color='error' />}
-            </Box>
-          )}
-        </Box>
 
-        {/* 🎯 BOTÃO CRIAR */}
-        {projects.length === 0 && (
-          <Button
-            variant='contained'
-            color='primary'
-            onClick={handleToggleCreateForm}
-            disabled={isCreating}
-            startIcon={<i className='ri-add-line' />}
-            size='large'
-          >
-            Criar Novo Projeto
-          </Button>
-        )}
+          <Box display='flex' gap={2} alignItems='center'>
+            {/* Botão criar quando há projetos */}
+            {(projects.length > 0 || isLoadingProjects) && (
+              <Button
+                variant='contained'
+                onClick={handleToggleCreateForm}
+                disabled={isCreating || isLoadingProjects || confirmDialog.loading}
+                endIcon={<i className='ri-add-line' />}
+              >
+                Criar Projeto
+              </Button>
+            )}
+          </Box>
+        </Box>
       </Box>
 
       {/* 🎯 FORMULÁRIO DE CRIAÇÃO */}
@@ -391,8 +449,8 @@ export default function ProjectManager() {
           </Typography>
 
           <form onSubmit={createForm.handleSubmit(handleCreateSubmit)}>
-            <Grid container spacing={5}>
-              {/* Seção de imagem */}
+            <Grid container spacing={3}>
+              {/* Imagem */}
               <Grid size={{ xs: 12 }}>
                 <FormControl component='fieldset' sx={{ width: '100%' }}>
                   <FormLabel component='legend' sx={{ mb: 2 }}>
@@ -439,8 +497,9 @@ export default function ProjectManager() {
                   )}
                 </FormControl>
               </Grid>
-              {/* Campos básicos */}
-              <Grid size={{ xs: 12, md: 6 }}>
+
+              {/* Nome */}
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name='name'
                   control={createForm.control}
@@ -459,7 +518,8 @@ export default function ProjectManager() {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              {/* Descrição */}
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name='description'
                   control={createForm.control}
@@ -469,10 +529,15 @@ export default function ProjectManager() {
                       fullWidth
                       label='Descrição'
                       required
+                      multiline
+                      rows={4}
                       disabled={isCreating}
                       error={!!createForm.formState.errors.description}
-                      helperText={createForm.formState.errors.description?.message}
+                      helperText={
+                        createForm.formState.errors.description?.message || `${field.value?.length || 0}/255 caracteres`
+                      }
                       placeholder='Ex: Plataforma completa de e-commerce'
+                      inputProps={{ maxLength: 255 }}
                     />
                   )}
                 />
@@ -501,75 +566,45 @@ export default function ProjectManager() {
       </Collapse>
 
       {/* 🎯 LISTA DE PROJETOS */}
-      {projects.length > 0 && (
+      {isLoadingProjects ? (
+        renderLoadingSkeleton()
+      ) : projects.length > 0 ? (
         <Grid container spacing={3}>
           {projects.map(project => (
             <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box display='flex' alignItems='center' gap={2} mb={2}>
-                    {/* Avatar com imagem do projeto */}
-                    <Avatar
-                      src={project.img_url || (project.imageFile ? URL.createObjectURL(project.imageFile) : undefined)}
-                      sx={{ width: 56, height: 56 }}
-                    >
-                      {project.name.charAt(0).toUpperCase()}
-                    </Avatar>
-
-                    <Box flexGrow={1}>
-                      <Typography variant='h6' noWrap>
-                        {project.name}
-                      </Typography>
-                      <Chip
-                        size='small'
-                        label={project.status === 'success' ? 'Ativo' : 'Erro'}
-                        color={project.status === 'success' ? 'success' : 'error'}
-                      />
-                    </Box>
-                  </Box>
-
-                  <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                    {project.description}
-                  </Typography>
-
-                  {project.updated_at && (
-                    <Typography variant='caption' color='text.secondary'>
-                      Atualizado: {new Date(project.updated_at).toLocaleDateString('pt-BR')}
-                    </Typography>
-                  )}
-
-                  {project.status === 'error' && (
-                    <Alert severity='error' sx={{ mt: 1 }}>
-                      Falha na criação/atualização
-                    </Alert>
-                  )}
-                </CardContent>
-
-                <CardActions>
-                  <Tooltip title='Editar projeto'>
-                    <IconButton onClick={() => handleOpenEditModal(project)} disabled={isUpdating} color='primary'>
-                      <i className='ri-edit-line' />
-                    </IconButton>
-                  </Tooltip>
-
-                  <Tooltip title='Remover projeto'>
-                    <IconButton onClick={() => handleRemoveProject(project.id)} color='error'>
-                      <i className='ri-delete-bin-line' />
-                    </IconButton>
-                  </Tooltip>
-
-                  {project.img_url && (
-                    <Tooltip title='Ver imagem'>
-                      <IconButton onClick={() => window.open(project.img_url, '_blank')} color='default'>
-                        <i className='ri-external-link-line' />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </CardActions>
-              </Card>
+              <ProjectCard
+                project={project}
+                onEdit={handleOpenEditModal}
+                onRemove={id => handleDeleteProject(id)}
+                isUpdating={isUpdating || confirmDialog.loading}
+                backgroundColor={theme.palette.primary.main}
+              />
             </Grid>
           ))}
         </Grid>
+      ) : (
+        <>
+          {!isCreatingProject && (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <Typography variant='h6' color='text.secondary' gutterBottom>
+                Nenhum projeto criado
+              </Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+                Comece criando seu primeiro projeto
+              </Typography>
+              <Button
+                variant='contained'
+                color='primary'
+                onClick={handleToggleCreateForm}
+                disabled={isCreating || confirmDialog.loading}
+                startIcon={<i className='ri-add-line' />}
+                size='large'
+              >
+                Criar Novo Projeto
+              </Button>
+            </Box>
+          )}
+        </>
       )}
 
       {/* 🎯 MODAL DE EDIÇÃO */}
@@ -579,7 +614,7 @@ export default function ProjectManager() {
         <DialogContent>
           <form onSubmit={editForm.handleSubmit(handleEditSubmit)} id='edit-form'>
             <Grid container spacing={3} sx={{ mt: 1 }}>
-              {/* Campos básicos */}
+              {/* Nome */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name='name'
@@ -598,6 +633,7 @@ export default function ProjectManager() {
                 />
               </Grid>
 
+              {/* Descrição */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name='description'
@@ -610,13 +646,16 @@ export default function ProjectManager() {
                       required
                       disabled={isUpdating}
                       error={!!editForm.formState.errors.description}
-                      helperText={editForm.formState.errors.description?.message}
+                      helperText={
+                        editForm.formState.errors.description?.message || `${field.value?.length || 0}/255 caracteres`
+                      }
+                      inputProps={{ maxLength: 255 }}
                     />
                   )}
                 />
               </Grid>
 
-              {/* Seção de imagem */}
+              {/* Imagem */}
               <Grid size={{ xs: 12 }}>
                 <FormControl component='fieldset' sx={{ width: '100%' }}>
                   <FormLabel component='legend' sx={{ mb: 2 }}>
@@ -637,10 +676,7 @@ export default function ProjectManager() {
                   {editImageMode === 'file' ? (
                     <Box display='flex' justifyContent='center' sx={{ mb: 2 }}>
                       <ImageDropzone
-                        initialImage={
-                          editingProject?.img_url ||
-                          (editingProject?.imageFile ? URL.createObjectURL(editingProject.imageFile) : null)
-                        }
+                        initialImage={editingProject?.img_url || undefined}
                         onImageChange={handleEditImageChange}
                         size='lg'
                         placeholder='Imagem do projeto'
@@ -688,21 +724,19 @@ export default function ProjectManager() {
         </DialogActions>
       </Dialog>
 
-      {/* 🎯 EMPTY STATE */}
-      {projects.length === 0 ||
-        (!isCreatingProject && (
-          <Box sx={{ textAlign: 'center', py: 6 }}>
-            <Typography variant='h6' color='text.secondary' gutterBottom>
-              Nenhum projeto criado
-            </Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-              Comece criando seu primeiro projeto
-            </Typography>
-            <Button variant='contained' onClick={handleToggleCreateForm} startIcon={<i className='ri-add-line' />}>
-              Criar Projeto
-            </Button>
-          </Box>
-        ))}
+      {/* 🎯 DIALOG DE CONFIRMAÇÃO DELETE */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        loading={confirmDialog.loading}
+        type='error'
+        title='Deletar Projeto'
+        message={projectToDelete ? `Tem certeza que deseja deletar o projeto "${projectToDelete.name}"?` : ''}
+        subtitle='Esta ação não pode ser desfeita.'
+        confirmText='Deletar'
+        cancelText='Cancelar'
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </Box>
   )
 }

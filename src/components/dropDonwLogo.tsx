@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 
 import { Edit, Trash2, Upload, Plus } from 'lucide-react'
+import { useTheme } from '@mui/material'
 
 interface ImageDropzoneProps {
   initialImage?: string | null
@@ -43,6 +44,8 @@ export default function ImageDropzone({
   const [isHovering, setIsHovering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const theme = useTheme()
 
   // Sincronizar com prop externa
   useEffect(() => {
@@ -193,7 +196,11 @@ export default function ImageDropzone({
         onMouseLeave={() => setIsHovering(false)}
       >
         {/* Área interna da imagem */}
-        <div className='w-full h-full rounded-full overflow-hidden bg-zinc-100 relative flex items-center justify-center'>
+        <div
+          className={`w-full h-full rounded-full overflow-hidden relative flex items-center justify-center ${
+            theme.palette.mode !== 'light' ? 'bg-backgroundPaper' : 'bg-white'
+          }`}
+        >
           {image ? (
             <>
               {/* Imagem */}
@@ -207,7 +214,7 @@ export default function ImageDropzone({
                       e.stopPropagation()
                       handleEdit()
                     }}
-                    className='p-2 bg-white rounded-full hover:bg-gray-100 transition-colors duration-200'
+                    className='p-2 bg-white rounded-full hover:bg-gray-100 cursor-pointer flex align center justify-center transition-colors duration-200'
                     title='Editar imagem'
                   >
                     <Edit size={16} className='text-gray-700' />
@@ -217,7 +224,7 @@ export default function ImageDropzone({
                       e.stopPropagation()
                       handleDelete()
                     }}
-                    className='p-2 bg-white rounded-full hover:bg-gray-100 transition-colors duration-200'
+                    className='p-2 bg-white rounded-full hover:bg-gray-100 cursor-pointer flex align center justify-center transition-colors duration-200'
                     title='Deletar imagem'
                   >
                     <Trash2 size={16} className='text-red-600' />
@@ -230,7 +237,11 @@ export default function ImageDropzone({
               className={`
               w-full h-full flex flex-col items-center justify-center
               rounded-full transition-all duration-200
-              ${isDragging ? 'bg-green-50 text-green-600' : 'hover:bg-gray-50 text-gray-400'}
+               ${
+                 isDragging
+                   ? 'bg-backgroundPaper text-green-600'
+                   : `${theme.palette.mode === 'dark' ? 'hover:bg-backgroundDefault' : 'hover:bg-backgroundDefault'} text-gray-400`
+               }
             `}
             >
               <div className='text-center'>
@@ -240,7 +251,7 @@ export default function ImageDropzone({
                   <Plus size={size === 'sm' ? 20 : size === 'md' ? 24 : 32} className='text-gray-400 mx-auto mb-1' />
                 )}
                 <p
-                  className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium ${isDragging ? 'text-green-600' : 'text-gray-600'}`}
+                  className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium ${isDragging ? 'text-green-600' : 'text-gray-400'}`}
                 >
                   {isDragging ? 'Solte aqui' : size === 'sm' ? 'Add' : placeholder}
                 </p>

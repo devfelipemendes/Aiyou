@@ -1,139 +1,188 @@
-'use client'
+import React from 'react'
 
-// React Imports
-import { Fragment, useState } from 'react'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  CircularProgress,
+  useTheme
+} from '@mui/material'
 
-// MUI Imports
-import Dialog from '@mui/material/Dialog'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
-
-// Third-party Imports
-import classnames from 'classnames'
-
-type ConfirmationType = 'delete-account' | 'unsubscribe' | 'suspend-account' | 'delete-order' | 'delete-customer'
-
-type ConfirmationDialogProps = {
+export interface ConfirmDialogProps {
   open: boolean
-  setOpen: (open: boolean) => void
-  type: ConfirmationType
+
+  /** Título do dialog */
+  title: string
+
+  /** Mensagem principal */
+  message: string
+
+  /** Mensagem adicional (opcional) */
+  subtitle?: string
+
+  /** Texto do botão de confirmação */
+  confirmText?: string
+
+  /** Texto do botão de cancelamento */
+  cancelText?: string
+
+  /** Tipo de ação - afeta a cor do botão */
+  type?: 'default' | 'warning' | 'error' | 'success'
+
+  /** Se está executando a ação (loading) */
+  loading?: boolean
+
+  /** Callback quando confirmar */
+  onConfirm: () => void
+
+  /** Callback quando cancelar */
+  onCancel: () => void
+
+  /** Ícone opcional */
+  icon?: React.ReactNode
 }
 
-const ConfirmationDialog = ({ open, setOpen, type }: ConfirmationDialogProps) => {
-  // States
-  const [secondDialog, setSecondDialog] = useState(false)
-  const [userInput, setUserInput] = useState(false)
+export default function ConfirmDialog({
+  open,
+  title,
+  message,
+  subtitle,
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
+  type = 'default',
+  loading = false,
+  onConfirm,
+  onCancel,
+  icon
+}: ConfirmDialogProps) {
+  const theme = useTheme()
 
-  // Vars
-  const Wrapper = type === 'suspend-account' ? 'div' : Fragment
-
-  const handleSecondDialogClose = () => {
-    setSecondDialog(false)
-    setOpen(false)
+  // Cores baseadas no tipo
+  const getButtonColor = () => {
+    switch (type) {
+      case 'error':
+        return 'error'
+      case 'warning':
+        return 'warning'
+      case 'success':
+        return 'success'
+      default:
+        return 'primary'
+    }
   }
 
-  const handleConfirmation = (value: boolean) => {
-    setUserInput(value)
-    setSecondDialog(true)
-    setOpen(false)
+  const getIconColor = () => {
+    switch (type) {
+      case 'error':
+        return theme.palette.error.main
+      case 'warning':
+        return theme.palette.warning.main
+      case 'success':
+        return theme.palette.success.main
+      default:
+        return theme.palette.primary.main
+    }
+  }
+
+  const getDefaultIcon = () => {
+    switch (type) {
+      case 'error':
+        return <i className='ri-delete-bin-line' style={{ fontSize: '48px', color: getIconColor() }} />
+      case 'warning':
+        return <i className='ri-alert-line' style={{ fontSize: '48px', color: getIconColor() }} />
+      case 'success':
+        return <i className='ri-check-line' style={{ fontSize: '48px', color: getIconColor() }} />
+      default:
+        return <i className='ri-question-line' style={{ fontSize: '48px', color: getIconColor() }} />
+    }
   }
 
   return (
-    <>
-      <Dialog fullWidth maxWidth='xs' open={open} onClose={() => setOpen(false)} closeAfterTransition={false}>
-        <DialogContent className='flex items-center flex-col text-center sm:pbs-16 sm:pbe-6 sm:pli-16'>
-          <i className='ri-error-warning-line text-[88px] mbe-6 text-warning' />
-          <Wrapper
-            {...(type === 'suspend-account' && {
-              className: 'flex flex-col items-center gap-2'
-            })}
-          >
-            <Typography variant='h4'>
-              {type === 'delete-account' && 'Are you sure you want to deactivate your account?'}
-              {type === 'unsubscribe' && 'Tem certeza que deseha finalizar a sua inscrição neste plano?'}
-              {type === 'suspend-account' && 'Are you sure?'}
-              {type === 'delete-order' && 'Are you sure?'}
-              {type === 'delete-customer' && 'Are you sure?'}
-            </Typography>
-            {type === 'suspend-account' && (
-              <Typography color='text.primary'>You won&#39;t be able to revert user!</Typography>
-            )}
-            {type === 'delete-order' && (
-              <Typography color='text.primary'>You won&#39;t be able to revert order!</Typography>
-            )}
-            {type === 'delete-customer' && (
-              <Typography color='text.primary'>You won&#39;t be able to revert customer!</Typography>
-            )}
-          </Wrapper>
-        </DialogContent>
-        <DialogActions className='justify-center pbs-0 sm:pbe-16 sm:pli-16'>
-          <Button variant='contained' onClick={() => handleConfirmation(true)}>
-            {type === 'suspend-account'
-              ? 'SIM, Suspend User!'
-              : type === 'delete-order'
-                ? 'Yes, Delete Order!'
-                : type === 'delete-customer'
-                  ? 'Yes, Delete Customer!'
-                  : 'Sim'}
-          </Button>
-          <Button
-            variant='outlined'
-            color='secondary'
-            onClick={() => {
-              handleConfirmation(false)
-            }}
-          >
-            Cancelar
-          </Button>
-        </DialogActions>
-      </Dialog>
+    <Dialog
+      open={open}
+      onClose={!loading ? onCancel : undefined}
+      maxWidth='sm'
+      fullWidth
+      PaperProps={{
+        style: {
+          borderRadius: 12
+        }
+      }}
+    >
+      <DialogTitle sx={{ textAlign: 'center', pt: 3, pb: 1 }}>
+        {/* Ícone */}
+        <Box sx={{ mb: 2 }}>{icon || getDefaultIcon()}</Box>
 
-      {/* Delete Account Dialog */}
-      <Dialog open={secondDialog} onClose={handleSecondDialogClose} closeAfterTransition={false}>
-        <DialogContent className='flex items-center flex-col text-center sm:pbs-16 sm:pbe-6 sm:pli-16'>
-          <i
-            className={classnames('text-[88px] mbe-6', {
-              'ri-checkbox-circle-line': userInput,
-              'text-success': userInput,
-              'ri-close-circle-line': !userInput,
-              'text-error': !userInput
-            })}
-          />
-          <Typography variant='h4' className='mbe-2'>
-            {userInput
-              ? `${type === 'delete-account' ? 'Deactivated' : type === 'unsubscribe' ? 'Cancelamento' : type === 'delete-order' || 'delete-customer' ? 'Deleted' : 'Suspended!'}`
-              : 'Operação cancelada'}
+        {/* Título */}
+        <Typography variant='h6' component='div' fontWeight='600'>
+          {title}
+        </Typography>
+      </DialogTitle>
+
+      <DialogContent sx={{ textAlign: 'center', px: 3, py: 2 }}>
+        {/* Mensagem principal */}
+        <Typography variant='body1' sx={{ mb: subtitle ? 1 : 0 }}>
+          {message}
+        </Typography>
+
+        {/* Mensagem adicional */}
+        {subtitle && (
+          <Typography variant='body2' color='text.secondary'>
+            {subtitle}
           </Typography>
-          <Typography color='text.primary'>
-            {userInput ? (
-              <>
-                {type === 'delete-account' && 'Your account has been deactivated successfully.'}
-                {type === 'unsubscribe' && 'A sua solicitação de cancelamento do plano foi bem sucedida'}
-                {type === 'suspend-account' && 'User has been suspended.'}
-                {type === 'delete-order' && 'Your order deleted successfully.'}
-                {type === 'delete-customer' && 'Your customer removed successfully.'}
-              </>
-            ) : (
-              <>
-                {type === 'delete-account' && 'Account Deactivation Cancelled!'}
-                {type === 'unsubscribe' && 'Você cancelou esta ação!!'}
-                {type === 'suspend-account' && 'Cancelled Suspension :)'}
-                {type === 'delete-order' && 'Order Deletion Cancelled'}
-                {type === 'delete-customer' && 'Customer Deletion Cancelled'}
-              </>
-            )}
-          </Typography>
-        </DialogContent>
-        <DialogActions className='justify-center pbs-0 sm:pbe-16 sm:pli-16'>
-          <Button variant='contained' color='success' onClick={handleSecondDialogClose}>
-            Ok
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ justifyContent: 'center', gap: 2, px: 3, pb: 3 }}>
+        {/* Botão Cancelar */}
+        <Button onClick={onCancel} variant='outlined' disabled={loading} sx={{ minWidth: 100 }}>
+          {cancelText}
+        </Button>
+
+        {/* Botão Confirmar */}
+        <Button
+          onClick={onConfirm}
+          variant='contained'
+          color={getButtonColor()}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={16} /> : undefined}
+          sx={{ minWidth: 100 }}
+        >
+          {loading ? 'Processando...' : confirmText}
+        </Button>
+      </DialogActions>
+    </Dialog>
   )
 }
 
-export default ConfirmationDialog
+// Hook para facilitar o uso
+export function useConfirmDialog() {
+  const [open, setOpen] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+
+  const openDialog = React.useCallback(() => {
+    setOpen(true)
+  }, [])
+
+  const closeDialog = React.useCallback(() => {
+    if (!loading) {
+      setOpen(false)
+    }
+  }, [loading])
+
+  const setLoadingState = React.useCallback((isLoading: boolean) => {
+    setLoading(isLoading)
+  }, [])
+
+  return {
+    open,
+    loading,
+    openDialog,
+    closeDialog,
+    setLoading: setLoadingState
+  }
+}

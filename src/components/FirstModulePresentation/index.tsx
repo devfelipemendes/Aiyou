@@ -439,7 +439,7 @@ export const FirstModulePresentation: React.FC<InstructionSwiperProps> = ({
                             }
                           }}
                         >
-                          <Typography variant='subtitle2' fontWeight='600' sx={{ mb: 1 }}>
+                          <Typography variant='h5' fontWeight='600' sx={{ mb: 1 }}>
                             💡 Dicas importantes:
                           </Typography>
                           <Box component='ul' sx={{ m: 0, pl: 2 }}>

@@ -1,4 +1,4 @@
-// src/api/endpoints/Projects/createProject.ts
+// src/api/endpoints/Projects/project.ts
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 // 🎯 TIPOS PARA O REQUEST DE CRIAÇÃO
@@ -18,45 +18,94 @@ export type UpdateProjectRequest = {
   image?: File
 }
 
+// 🎯 TIPOS PARA O REQUEST DE DELETE
+export type DeleteProjectRequest = {
+  id: string // ID do projeto a ser deletado
+}
+
+// 🎯 TIPOS PARA A RESPONSE DE DELETE
+export type DeleteProjectResponse = {
+  message: string
+  status: number
+}
+
+// 🎯 TIPOS PARA UM PROJETO INDIVIDUAL
+export type Project = {
+  id: string
+  user_id: string
+  name: string
+  description: string
+  img_url: string | null
+  created_at: string
+  updated_at: string
+}
+
+// 🎯 TIPOS PARA A RESPONSE DE GET (listagem)
+export type GetProjectsResponse = {
+  message: string
+  status: number
+  data: Project[]
+}
+
+// 🎯 TIPOS PARA A RESPONSE DE CREATE
+export type CreateProjectResponse = {
+  message: string
+  status: number
+  data: Project
+}
+
 // 🎯 TIPOS PARA A RESPONSE DE UPDATE
 export type UpdateProjectResponse = {
   message: string
   status: number
-  data: {
-    id: string
-    user_id: string
-    name: string
-    description: string
-    img_url: string
-    created_at: string
-    updated_at: string
-  }
-}
-
-// 🎯 TIPOS PARA A RESPONSE (baseado na resposta real que você mostrou)
-export type CreateProjectResponse = {
-  message: string
-  status: number
-  data: {
-    id: string
-    user_id: string
-    name: string
-    description: string
-    img_url: string
-    created_at: string
-    updated_at: string
-  }
+  data: Project
 }
 
 // 🎯 TIPO PARA ERROS (estrutura real do backend)
-type CreateProjectError = {
+type ProjectError = {
   status: number
   message: string
 }
 
-// 🎯 API ENDPOINT
+// 🎯 API ENDPOINTS
 export const projectApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
+    // 🎯 NOVO ENDPOINT - GET PROJECTS (listagem)
+    getProjects: builder.query<GetProjectsResponse, void>({
+      query: () => ({
+        url: '/project',
+        method: 'GET',
+        headers: {
+          Accept: 'application/json'
+        }
+      }),
+
+      transformResponse: (response: GetProjectsResponse) => {
+        console.log('🔍 DEBUG - Estrutura da resposta GET:', response)
+        const count = response?.data?.length || 0
+
+        console.log('✅ Projetos carregados:', count, count === 1 ? 'projeto' : 'projetos')
+
+        return response
+      },
+
+      transformErrorResponse: (response: any): ProjectError => {
+        console.error('❌ Erro ao carregar projetos:', response)
+
+        return {
+          status: response.status || 500,
+          message: response?.data?.message || response?.message || 'Erro ao carregar projetos'
+        }
+      },
+
+      // 🎯 TAG PARA CACHE E INVALIDAÇÃO
+      providesTags: result =>
+        result
+          ? [...result.data.map(({ id }) => ({ type: 'Project' as const, id })), { type: 'Project', id: 'LIST' }]
+          : [{ type: 'Project', id: 'LIST' }]
+    }),
+
+    // 🎯 ENDPOINT EXISTENTE - CREATE PROJECT
     createProject: builder.mutation<CreateProjectResponse, CreateProjectRequest>({
       query: projectData => {
         // 🎯 SE TEM ARQUIVO, USAR FORMDATA
@@ -71,8 +120,6 @@ export const projectApi = apiSlice.injectEndpoints({
             url: '/project',
             method: 'POST',
             body: formData
-
-            // NÃO definir Content-Type, deixar o browser definir automaticamente para multipart/form-data
           }
         }
 
@@ -93,12 +140,18 @@ export const projectApi = apiSlice.injectEndpoints({
       },
 
       transformResponse: (response: CreateProjectResponse) => {
-        console.log('✅ Projeto criado com sucesso:', response)
+        console.log('🔍 DEBUG - Estrutura da resposta CREATE:', response)
+
+        if (response?.data?.name) {
+          console.log('✅ Projeto criado com sucesso:', response?.data?.name)
+        } else {
+          console.log('✅ Projeto criado com sucesso!')
+        }
 
         return response
       },
 
-      transformErrorResponse: (response: any): CreateProjectError => {
+      transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao criar projeto:', response)
 
         return {
@@ -107,23 +160,20 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 INVALIDAR CACHE SE TIVER LISTAGEM DE PROJETOS FUTURAMENTE
-      invalidatesTags: ['Project']
+      // 🎯 INVALIDAR CACHE PARA RE-FETCH AUTOMÁTICO
+      invalidatesTags: [{ type: 'Project', id: 'LIST' }]
     }),
 
-    // 🎯 NOVO ENDPOINT DE UPDATE
+    // 🎯 ENDPOINT EXISTENTE - UPDATE PROJECT
     updateProject: builder.mutation<UpdateProjectResponse, UpdateProjectRequest>({
       query: ({ id, ...projectData }) => {
         // 🎯 SE TEM ARQUIVO, USAR FORMDATA
         if (projectData.image) {
           const formData = new FormData()
 
-          // Adicionar campos apenas se foram fornecidos
           if (projectData.name) formData.append('name', projectData.name)
           if (projectData.description) formData.append('description', projectData.description)
           formData.append('image', projectData.image)
-
-          // 🎯 MÉTODO SPOOFING PARA PUT COM FORMDATA
           formData.append('_method', 'PUT')
 
           return {
@@ -152,12 +202,18 @@ export const projectApi = apiSlice.injectEndpoints({
       },
 
       transformResponse: (response: UpdateProjectResponse) => {
-        console.log('✅ Projeto atualizado com sucesso:', response)
+        console.log('🔍 DEBUG - Estrutura da resposta UPDATE:', response)
+
+        if (response?.data?.name) {
+          console.log('✅ Projeto atualizado com sucesso:', response?.data?.name)
+        } else {
+          console.log('✅ Projeto atualizado com sucesso!')
+        }
 
         return response
       },
 
-      transformErrorResponse: (response: any): CreateProjectError => {
+      transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao atualizar projeto:', response)
 
         return {
@@ -166,11 +222,52 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 INVALIDAR CACHE APÓS UPDATE
-      invalidatesTags: (result, error, arg) => ['Project', { type: 'Project', id: arg.id }]
+      // 🎯 INVALIDAR CACHE ESPECÍFICO E LISTA
+      invalidatesTags: (result, error, arg) => [
+        { type: 'Project', id: arg.id },
+        { type: 'Project', id: 'LIST' }
+      ]
+    }),
+
+    // 🎯 NOVO ENDPOINT - DELETE PROJECT
+    deleteProject: builder.mutation<DeleteProjectResponse, DeleteProjectRequest>({
+      query: ({ id }) => ({
+        url: `/project/${id}`,
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json'
+        }
+      }),
+
+      transformResponse: (response: DeleteProjectResponse) => {
+        console.log('🔍 DEBUG - Estrutura da resposta DELETE:', response)
+        console.log('✅ Projeto deletado com sucesso!')
+
+        return response
+      },
+
+      transformErrorResponse: (response: any): ProjectError => {
+        console.error('❌ Erro ao deletar projeto:', response)
+
+        return {
+          status: response.status || 500,
+          message: response?.data?.message || response?.message || 'Erro ao deletar projeto'
+        }
+      },
+
+      // 🎯 INVALIDAR CACHE PARA REMOVER DA LISTA
+      invalidatesTags: (result, error, arg) => [
+        { type: 'Project', id: arg.id },
+        { type: 'Project', id: 'LIST' }
+      ]
     })
   })
 })
 
 // 🎯 EXPORT DOS HOOKS
-export const { useCreateProjectMutation, useUpdateProjectMutation } = projectApi
+export const {
+  useGetProjectsQuery, // 🆕 Hook para GET
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation // 🆕 Hook para DELETE
+} = projectApi
