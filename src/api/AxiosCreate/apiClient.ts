@@ -36,7 +36,6 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       // Redirecionar para login ou renovar token
       Cookies.remove('token') // Limpa o token inválido
-      console.error('Token inválido ou expirado. Redirecionando para a página de login.')
 
       // window.location.href = '/login'Redireciona para a página de login
     }

@@ -185,6 +185,7 @@ const CardMonitorOptimized = memo<ChatMonitorOptimizedProps>(props => {
         '&:hover': { background: theme.palette.text.secondary }
       }
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [modeTheme, theme.palette.divider, theme.palette.text.secondary, callOperator]
   )
 

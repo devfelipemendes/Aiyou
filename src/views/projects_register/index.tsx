@@ -20,11 +20,11 @@ import { styled } from '@mui/material/styles'
 
 import StepperWrapper from '@core/styles/stepper'
 import StepperCustomDot from '@components/stepper-dot'
-import StepCreateFunction from './StepCreateFunctions'
+
 import StepReviewProject from './StepReviewConfigs'
 
 import StepCreateProject from './StepCreateProject'
-import StepCreateAssistent from './StepCreateAssistent'
+import StepCreateAssistant from './StepCreateAssistant'
 
 // Vars
 const steps = [
@@ -62,16 +62,14 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
           onNextStep={handleNext} // ✅ Passa a prop correta
         />
       ) : step === 1 ? (
-        <StepCreateAssistent />
+        <StepCreateAssistant />
       ) : step === 2 ? (
         <StepReviewProject
           activeStep={0}
           handleNext={function (): void {
             throw new Error('Function not implemented.')
           }}
-          handlePrev={function (): void {
-            throw new Error('Function not implemented.')
-          }}
+          handlePrev={handlePrev}
           steps={[]}
         />
       ) : (

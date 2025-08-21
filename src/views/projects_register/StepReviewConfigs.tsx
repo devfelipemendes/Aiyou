@@ -173,14 +173,6 @@ const StepReviewProject = ({ handleNext, handlePrev }: Props) => {
     }
   }, [projectData])
 
-  // Handlers
-  // const toggleAssistantExpansion = () => {
-  //   // setExpandedAssistants(prev => ({
-  //   //   ...prev,
-  //   //   [assistantId]: !prev[assistantId]
-  //   // }))
-  // }
-
   const toggleFunctionExpansion = (functionId: string) => {
     setExpandedFunctions(prev => ({
       ...prev,
