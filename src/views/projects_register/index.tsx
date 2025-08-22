@@ -25,6 +25,7 @@ import StepReviewProject from './StepReviewConfigs'
 
 import StepCreateProject from './StepCreateProject'
 import StepCreateAssistant from './StepCreateAssistant'
+import StepCreateApi from './StepCreateApi'
 
 // Vars
 const steps = [
@@ -33,11 +34,19 @@ const steps = [
     subtitle: 'Criar projeto'
   },
   {
-    title: 'Cadastrar funções',
-    subtitle: 'Cadastro das funções'
+    title: 'Assistente',
+    subtitle: 'Crie e vincule um assistente ao projeto'
   },
   {
-    title: 'Visualização',
+    title: "Suas Api's",
+    subtitle: 'Cadastro de funções externas'
+  },
+  {
+    title: 'Seus Endpoints',
+    subtitle: 'Visualize a ordem dos seus projetos'
+  },
+  {
+    title: 'Visualização geral',
     subtitle: 'Visualize a ordem dos seus projetos'
   }
 ]
@@ -62,18 +71,26 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
           onNextStep={handleNext} // ✅ Passa a prop correta
         />
       ) : step === 1 ? (
-        <StepCreateAssistant />
+        <StepCreateAssistant onNextStep={handleNext} />
       ) : step === 2 ? (
+        <StepCreateApi />
+      ) : step === 3 ? (
+        <StepCreateProject />
+      ) : step === 4 ? (
         <StepReviewProject
           activeStep={0}
           handleNext={function (): void {
             throw new Error('Function not implemented.')
           }}
-          handlePrev={handlePrev}
+          handlePrev={function (): void {
+            throw new Error('Function not implemented.')
+          }}
           steps={[]}
         />
       ) : (
-        <StepCreateProject />
+        <Typography variant='h6' className='text-center'>
+          Etapa não encontrada
+        </Typography>
       )}
     </>
   )

@@ -1,19 +1,5 @@
 // MUI Imports
-import { useState, useCallback, useMemo, useEffect } from 'react'
-
-// 🎯 IMPORTANTE: A API de assistentes retorna uma estrutura agrupada por projeto:
-// {
-//   "data": [
-//     {
-//       "project_name": "test",
-//       "project_id": "xxx",
-//       "assistants": [{ "id": "yyy", "name": "Assistente" }]
-//     }
-//   ]
-// }
-//
-// O RTK Query processa e "achata" esses dados para facilitar o uso na UI,
-// transformando em uma lista simples de assistentes com project_name incluído.
+import { useState, useCallback, useMemo } from 'react'
 
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
@@ -28,10 +14,6 @@ import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import Skeleton from '@mui/material/Skeleton'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardActions from '@mui/material/CardActions'
-import Chip from '@mui/material/Chip'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import Select from '@mui/material/Select'
@@ -41,7 +23,6 @@ import * as v from 'valibot'
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
-// 🎯 IMPORTAR NOSSAS APIs
 import {
   useGetAssistantsQuery,
   useCreateAssistantMutation,
@@ -55,11 +36,9 @@ import {
 import { useGetProjectsQuery, type Project } from '@/api/endpoints/Projects/project'
 
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
+import AssistantCard from '@/components/CardAssistant'
 
-// 🎯 INTERFACE LOCAL PARA UI (baseado nos dados processados)
-export interface UIAssistant extends ProcessedAssistant {
-  // Pode adicionar campos UI específicos aqui se necessário
-}
+export interface UIAssistant extends ProcessedAssistant {}
 
 interface AssistantManagerProps {
   onNextStep?: () => void
@@ -67,7 +46,6 @@ interface AssistantManagerProps {
   finishButtonText?: string
 }
 
-// 🎯 SCHEMA DE VALIDAÇÃO
 const AssistantSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, 'Nome do assistente é obrigatório')),
   project_id: v.pipe(v.string(), v.minLength(1, 'Projeto é obrigatório'))
@@ -82,7 +60,6 @@ export default function StepCreateAssistant({
 }: AssistantManagerProps = {}) {
   const theme = useTheme()
 
-  // 🎯 API HOOKS
   const {
     data: assistantsResponse,
     isLoading: isLoadingAssistants,
@@ -97,15 +74,12 @@ export default function StepCreateAssistant({
   const [updateAssistant, { isLoading: isUpdating }] = useUpdateAssistantMutation()
   const [deleteAssistant] = useDeleteAssistantMutation()
 
-  // 🎯 ESTADOS GERAIS
   const [isCreatingAssistant, setIsCreatingAssistant] = useState(false)
   const [editingAssistant, setEditingAssistant] = useState<UIAssistant | null>(null)
   const [assistantToDelete, setAssistantToDelete] = useState<UIAssistant | null>(null)
 
-  // 🎯 DIALOG DE CONFIRMAÇÃO
   const confirmDialog = useConfirmDialog()
 
-  // 🎯 FORMULÁRIOS
   const createForm = useForm<AssistantFormData>({
     resolver: valibotResolver(AssistantSchema),
     defaultValues: {
@@ -124,7 +98,6 @@ export default function StepCreateAssistant({
     mode: 'onChange'
   })
 
-  // 🎯 ASSISTENTES E PROJETOS PROCESSADOS
   const assistants: UIAssistant[] = useMemo(() => {
     if (!assistantsResponse?.data) return []
 
@@ -137,7 +110,6 @@ export default function StepCreateAssistant({
     return projectsResponse.data
   }, [projectsResponse])
 
-  // 🎯 VALIDAÇÕES DE FORMULÁRIO
   const isCreateFormValid = useMemo(() => {
     return createForm.formState.isValid
   }, [createForm.formState.isValid])
@@ -146,7 +118,6 @@ export default function StepCreateAssistant({
     return editForm.formState.isValid
   }, [editForm.formState.isValid])
 
-  // 🎯 HANDLE FINAL SUBMIT
   const handleFinalSubmit = useCallback(() => {
     const finalData = {
       assistants: assistants,
@@ -160,7 +131,6 @@ export default function StepCreateAssistant({
     }
   }, [assistants, onNextStep])
 
-  // 🎯 TOGGLE FORMULÁRIO DE CRIAÇÃO
   const handleToggleCreateForm = useCallback(() => {
     setIsCreatingAssistant(prev => !prev)
 
@@ -169,7 +139,6 @@ export default function StepCreateAssistant({
     }
   }, [createForm, isCreatingAssistant])
 
-  // 🎯 MODAL DE EDIÇÃO
   const handleOpenEditModal = useCallback(
     (assistant: UIAssistant) => {
       setEditingAssistant(assistant)
@@ -187,7 +156,6 @@ export default function StepCreateAssistant({
     editForm.reset()
   }, [editForm])
 
-  // 🎯 SUBMIT CRIAÇÃO
   const handleCreateSubmit = useCallback(
     async (data: AssistantFormData) => {
       try {
@@ -331,69 +299,22 @@ export default function StepCreateAssistant({
     setAssistantToDelete(null)
   }, [confirmDialog])
 
+  // 🎯 CHAT HANDLER (placeholder - você pode implementar depois)
+  const handleChatAssistant = useCallback((assistant: UIAssistant) => {
+    console.log('Iniciar chat com assistente:', assistant.name)
+
+    // TODO: Implementar navegação para chat
+  }, [])
+
   // 🎯 LOADING SKELETON
   const renderLoadingSkeleton = () => (
     <Grid container spacing={3}>
       {[1, 2, 3].map(item => (
         <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item}>
-          <Skeleton variant='rounded' height={250} />
+          <Skeleton variant='rounded' height={400} />
         </Grid>
       ))}
     </Grid>
-  )
-
-  // 🎯 ASSISTANT CARD COMPONENT
-  const AssistantCard = ({ assistant }: { assistant: UIAssistant }) => (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box display='flex' justifyContent='space-between' alignItems='flex-start' mb={2}>
-          <Typography variant='h6' component='h3' noWrap>
-            {assistant.name}
-          </Typography>
-          <Chip size='small' label='Ativo' color='success' />
-        </Box>
-
-        <Typography variant='body2' color='text.secondary' gutterBottom>
-          <strong>Projeto:</strong> {assistant.project_name}
-        </Typography>
-
-        <Typography variant='body2' color='text.secondary' gutterBottom>
-          <strong>ID:</strong> {assistant.id}
-        </Typography>
-
-        <Typography variant='body2' color='text.secondary'>
-          <strong>Cliente:</strong> {assistant.client_id}
-        </Typography>
-
-        {assistant.functions && assistant.functions.length > 0 && (
-          <Box mt={2}>
-            <Chip size='small' label={`${assistant.functions.length} funções`} variant='outlined' color='primary' />
-          </Box>
-        )}
-      </CardContent>
-
-      <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
-        <Button
-          size='small'
-          variant='outlined'
-          onClick={() => handleOpenEditModal(assistant)}
-          disabled={isUpdating || confirmDialog.loading}
-          startIcon={<i className='ri-edit-line' />}
-        >
-          Editar
-        </Button>
-        <Button
-          size='small'
-          variant='outlined'
-          color='error'
-          onClick={() => handleDeleteAssistant(assistant.id)}
-          disabled={isUpdating || confirmDialog.loading}
-          startIcon={<i className='ri-delete-bin-line' />}
-        >
-          Deletar
-        </Button>
-      </CardActions>
-    </Card>
   )
 
   // 🎯 ERROR STATE
@@ -528,7 +449,16 @@ export default function StepCreateAssistant({
           <Grid container spacing={3}>
             {assistants.map(assistant => (
               <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={assistant.id}>
-                <AssistantCard assistant={assistant} />
+                <AssistantCard
+                  assistant={assistant}
+                  onEdit={handleOpenEditModal}
+                  onRemove={handleDeleteAssistant}
+                  onChat={handleChatAssistant}
+                  isUpdating={isUpdating || confirmDialog.loading}
+                  height={350}
+                  backgroundColor={theme.palette.primary.main}
+                  backgroundImage='/images/iaImages/headerLogo.png'
+                />
               </Grid>
             ))}
           </Grid>

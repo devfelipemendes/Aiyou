@@ -36,7 +36,7 @@ import {
   type UpdateProjectRequest
 } from '@/api/endpoints/Projects/project'
 import ImageDropzone from '@/components/dropDonwLogo'
-import ProjectCard from '@/components/cardProject'
+import ProjectCard from '@/components/CardProject'
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
 
@@ -682,6 +682,7 @@ export default function StepCreateProject({
                   onRemove={id => handleDeleteProject(id)}
                   isUpdating={isUpdating || confirmDialog.loading}
                   backgroundColor={theme.palette.primary.main}
+                  backgroundImage='/images/iaImages/projects.png'
                 />
               </Grid>
             ))}
