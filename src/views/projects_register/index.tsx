@@ -26,6 +26,7 @@ import StepReviewProject from './StepReviewConfigs'
 import StepCreateProject from './StepCreateProject'
 import StepCreateAssistant from './StepCreateAssistant'
 import StepCreateApi from './StepCreateApi'
+import StepCreateEndpoints from './StepCreateEndpoints'
 
 // Vars
 const steps = [
@@ -75,7 +76,7 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
       ) : step === 2 ? (
         <StepCreateApi />
       ) : step === 3 ? (
-        <StepCreateProject />
+        <StepCreateEndpoints />
       ) : step === 4 ? (
         <StepReviewProject
           activeStep={0}

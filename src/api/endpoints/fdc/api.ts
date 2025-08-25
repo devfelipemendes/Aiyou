@@ -1,6 +1,7 @@
+import { toast } from 'react-toastify'
+
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
-// 🎯 TIPOS PARA O REQUEST DE CRIAÇÃO
 export type CreateApiRequest = {
   name: string
   description: string
@@ -8,28 +9,24 @@ export type CreateApiRequest = {
   token: string
 }
 
-// 🎯 TIPOS PARA O REQUEST DE UPDATE
 export type UpdateApiRequest = {
-  id: string // ID da API a ser atualizada
+  id: string
   name: string
   description: string
   url: string
   token: string
 }
 
-// 🎯 TIPOS PARA O REQUEST DE DELETE
 export type DeleteApiRequest = {
-  id: string // ID da API a ser deletada
+  id: string
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE DELETE (pode ser vazia com status 204)
 export type DeleteApiResponse = {
   message: string
   status: number
-  data?: any // Opcional, pois pode ser vazio com status 204
+  data?: any
 }
 
-// 🎯 TIPOS PARA UMA API INDIVIDUAL (baseado na resposta real do backend)
 export type Api = {
   id: string
   name: string
@@ -41,47 +38,40 @@ export type Api = {
   updated_at: string
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE GET (listagem) - estrutura real do backend
 export type GetApisResponse = {
   message: string
   status: number
   data: Api[]
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE CREATE (estrutura real do backend)
 export type CreateApiResponse = {
   message: string
   status: number
   data: Api
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE UPDATE
 export type UpdateApiResponse = {
   message: string
   status: number
   data: Api
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE GET SINGLE
 export type GetSingleApiResponse = {
   message: string
   status: number
   data: Api
 }
 
-// 🎯 TIPO PARA ERROS (estrutura real do backend)
 type ApiError = {
   status: number
   message: string
 }
 
-// 🎯 API ENDPOINTS
 export const apiApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    // 🎯 GET APIS (listagem)
     getApis: builder.query<GetApisResponse, void>({
       query: () => ({
-        url: '/v1/api',
+        url: '/api',
         method: 'GET',
         headers: {
           Accept: 'application/json'
@@ -89,15 +79,10 @@ export const apiApi = apiSlice.injectEndpoints({
       }),
 
       transformResponse: (response: GetApisResponse) => {
-        console.log('🔍 DEBUG - APIs carregadas:', response.data.length, 'itens')
-        console.log('🔍 DEBUG - Primeira API:', response.data[0]?.name)
-
         return response
       },
 
       transformErrorResponse: (response: any): ApiError => {
-        console.error('❌ Erro ao carregar APIs:', response)
-
         return {
           status: response.status || 500,
           message: response?.data?.message || response?.message || 'Erro ao carregar APIs'
@@ -110,7 +95,6 @@ export const apiApi = apiSlice.injectEndpoints({
           : [{ type: 'Api', id: 'LIST' }]
     }),
 
-    // 🎯 GET SINGLE API
     getSingleApi: builder.query<GetSingleApiResponse, string>({
       query: id => ({
         url: `/api/${id}`,
@@ -121,8 +105,6 @@ export const apiApi = apiSlice.injectEndpoints({
       }),
 
       transformResponse: (response: GetSingleApiResponse) => {
-        console.log('🔍 DEBUG - API única carregada:', response.data.name, 'ID:', response.data.id)
-
         return response
       },
 
@@ -138,7 +120,6 @@ export const apiApi = apiSlice.injectEndpoints({
       providesTags: (result, error, id) => [{ type: 'Api', id }]
     }),
 
-    // 🎯 CREATE API
     createApi: builder.mutation<CreateApiResponse, CreateApiRequest>({
       query: data => ({
         url: '/api',
@@ -151,21 +132,14 @@ export const apiApi = apiSlice.injectEndpoints({
       }),
 
       transformResponse: (response: any, meta: any) => {
-        console.log('🔍 DEBUG - Resposta RAW do CREATE API:', response)
-        console.log('🔍 DEBUG - Meta do CREATE:', meta)
-        console.log('🔍 DEBUG - Status HTTP:', meta?.response?.status)
-
         const httpStatus = meta?.response?.status
 
-        // ✅ STATUS 201/200 com dados (estrutura padrão)
         if (response && response.data && response.message) {
-          console.log('✅ CREATE estrutura padrão detectada (status', httpStatus, ')')
-          console.log('✅ API criada:', response.data.name, 'ID:', response.data.id)
+          toast.success('API criada com sucesso: ' + response.data.name)
 
           return response
         }
 
-        // ⚠️ STATUS 201/200 mas sem estrutura padrão (dados diretos)
         if (httpStatus === 201 || httpStatus === 200) {
           console.log('⚠️ CREATE dados diretos detectados (status', httpStatus, ')')
 
@@ -175,18 +149,16 @@ export const apiApi = apiSlice.injectEndpoints({
             data: response.id ? response : response.data || response
           }
 
-          console.log('✅ API criada (normalizada):', normalizedResponse.data.name)
+          toast.success('API criada com sucesso: ' + normalizedResponse.data.name)
 
           return normalizedResponse
         }
 
-        // ❌ Outros casos são considerados erro
-        console.error('❌ CREATE falhou - Status:', httpStatus, 'Response:', response)
         throw new Error(response?.message || 'Erro na criação da API')
       },
 
       transformErrorResponse: (response: any): ApiError => {
-        console.error('❌ Erro detalhado CREATE API:', response)
+        toast.error('Erro ao criar API: ' + (response?.data?.message || response?.message || 'Erro desconhecido'))
 
         return {
           status: response.status || 500,
@@ -197,7 +169,6 @@ export const apiApi = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Api', id: 'LIST' }]
     }),
 
-    // 🎯 UPDATE API
     updateApi: builder.mutation<UpdateApiResponse, UpdateApiRequest>({
       query: ({ id, ...data }) => ({
         url: `/api/${id}`,
@@ -210,42 +181,129 @@ export const apiApi = apiSlice.injectEndpoints({
       }),
 
       transformResponse: (response: any, meta: any) => {
-        console.log('🔍 DEBUG - Resposta RAW do UPDATE API:', response)
-        console.log('🔍 DEBUG - Meta do UPDATE:', meta)
-        console.log('🔍 DEBUG - Status HTTP:', meta?.response?.status)
-
         const httpStatus = meta?.response?.status
 
-        // ✅ STATUS 200 com dados (estrutura padrão)
-        if (response && response.data && response.message) {
-          console.log('✅ UPDATE estrutura padrão detectada (status', httpStatus, ')')
-          console.log('✅ API atualizada:', response.data.name, 'ID:', response.data.id)
+        try {
+          if (response && response.data && response.message && response.status) {
+            toast.success('API atualizada com sucesso: ' + (response.data.name || response.data.id))
 
-          return response
-        }
-
-        // ⚠️ STATUS 200 mas sem estrutura padrão (dados diretos)
-        if (httpStatus === 200) {
-          console.log('⚠️ UPDATE dados diretos detectados (status', httpStatus, ')')
-
-          const normalizedResponse = {
-            message: 'Updated',
-            status: httpStatus,
-            data: response.id ? response : response.data || response
+            return response as UpdateApiResponse
           }
 
-          console.log('✅ API atualizada (normalizada):', normalizedResponse.data.name)
+          if (response && response.message && response.status && response.id) {
+            toast.success('API atualizada com sucesso: ' + (response.name || response.id))
 
-          return normalizedResponse
+            const normalizedResponse: UpdateApiResponse = {
+              message: response.message,
+              status: response.status,
+              data: {
+                id: response.id,
+                name: response.name || 'Nome não informado',
+                description: response.description || 'Descrição não informada',
+                url: response.url || '',
+                token: response.token || '',
+                user_id: response.user_id || '',
+                created_at: response.created_at || new Date().toISOString(),
+                updated_at: response.updated_at || new Date().toISOString()
+              }
+            }
+
+            console.log('✅ [UPDATE API] Response normalizada:', normalizedResponse)
+
+            return normalizedResponse
+          }
+
+          if ((httpStatus === 200 || response?.status === 200) && response) {
+            toast.success('API atualizada com sucesso: ' + (response.name || response.id || 'ID desconhecido'))
+
+            if (response.id) {
+              const normalizedResponse: UpdateApiResponse = {
+                message: response.message || 'Updated',
+                status: 200,
+                data: {
+                  id: response.id,
+                  name: response.name || 'Nome não informado',
+                  description: response.description || 'Descrição não informada',
+                  url: response.url || '',
+                  token: response.token || '',
+                  user_id: response.user_id || '',
+                  created_at: response.created_at || new Date().toISOString(),
+                  updated_at: response.updated_at || new Date().toISOString()
+                }
+              }
+
+              return normalizedResponse
+            }
+
+            return response.message
+              ? response
+              : {
+                  message: 'Updated',
+                  status: 200,
+                  data: response
+                }
+          }
+
+          if (httpStatus >= 200 && httpStatus < 300) {
+            toast.success('API atualizada com sucesso: ' + (response.name || response.id || 'ID desconhecido'))
+
+            return {
+              message: 'Updated',
+              status: httpStatus,
+              data: response
+            }
+          }
+
+          if (response && response.message === 'Updated') {
+            toast.success('API atualizada com sucesso: ' + (response.name || response.id || 'ID desconhecido'))
+
+            if (response.id) {
+              const normalizedResponse: UpdateApiResponse = {
+                message: 'Updated',
+                status: response.status || 200,
+                data: {
+                  id: response.id,
+                  name: response.name || 'Nome não informado',
+                  description: response.description || 'Descrição não informada',
+                  url: response.url || '',
+                  token: response.token || '',
+                  user_id: response.user_id || '',
+                  created_at: response.created_at || new Date().toISOString(),
+                  updated_at: response.updated_at || new Date().toISOString()
+                }
+              }
+
+              return normalizedResponse
+            }
+
+            return {
+              message: 'Updated',
+              status: response.status || 200,
+              data: response
+            }
+          }
+
+          if (httpStatus >= 400) {
+            toast.error('Erro ao atualizar API: ' + (response?.message || `Erro HTTP ${httpStatus}`))
+            throw new Error(response?.message || `Erro HTTP ${httpStatus}`)
+          }
+
+          console.log('✅ [UPDATE API] Fallback - considerando sucesso')
+
+          return {
+            message: 'Updated',
+            status: httpStatus || response?.status || 200,
+            data: response
+          }
+        } catch (error) {
+          toast.error('Erro ao atualizar API: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
+
+          throw error
         }
-
-        // ❌ Outros casos são considerados erro
-        console.error('❌ UPDATE falhou - Status:', httpStatus, 'Response:', response)
-        throw new Error(response?.message || 'Erro na atualização da API')
       },
 
       transformErrorResponse: (response: any): ApiError => {
-        console.error('❌ Erro detalhado UPDATE API:', response)
+        toast.error('Erro ao atualizar API: ' + (response?.data?.message || response?.message || 'Erro desconhecido'))
 
         return {
           status: response.status || 500,
@@ -259,7 +317,6 @@ export const apiApi = apiSlice.injectEndpoints({
       ]
     }),
 
-    // 🎯 DELETE API
     deleteApi: builder.mutation<DeleteApiResponse, DeleteApiRequest>({
       query: ({ id }) => ({
         url: `/api/${id}`,
@@ -270,43 +327,74 @@ export const apiApi = apiSlice.injectEndpoints({
       }),
 
       transformResponse: (response: any, meta: any) => {
-        console.log('🔍 DEBUG - Resposta RAW do DELETE API:', response)
-        console.log('🔍 DEBUG - Meta do DELETE:', meta)
-        console.log('🔍 DEBUG - Status HTTP:', meta?.response?.status)
-
         const httpStatus = meta?.response?.status
 
-        // ✅ STATUS 204 (No Content) - padrão para DELETE
-        if (httpStatus === 204) {
-          console.log('✅ DELETE bem-sucedido (status 204 - No Content)')
+        try {
+          if (httpStatus === 204) {
+            toast.info('API deletada com sucesso')
+
+            return {
+              message: 'API deletada com sucesso',
+              status: 204,
+              data: null
+            }
+          }
+
+          if (
+            (response === null || response === undefined || response === '') &&
+            (httpStatus === undefined || httpStatus === null)
+          ) {
+            toast.info('API deletada com sucesso')
+
+            return {
+              message: 'API deletada com sucesso',
+              status: 204,
+              data: null
+            }
+          }
+
+          if (httpStatus === 200) {
+            toast.info('API deletada com sucesso')
+
+            return response?.message
+              ? response
+              : {
+                  message: 'API deletada com sucesso',
+                  status: 200,
+                  data: response
+                }
+          }
+
+          if (httpStatus >= 200 && httpStatus < 300) {
+            toast.info('API deletada com sucesso')
+
+            return {
+              message: 'API deletada com sucesso',
+              status: httpStatus,
+              data: response || null
+            }
+          }
+
+          if (httpStatus >= 400) {
+            toast.error('Erro ao deletar API: ' + (response?.message || `Erro HTTP ${httpStatus}`))
+            throw new Error(response?.message || `Erro HTTP ${httpStatus}`)
+          }
+
+          toast.info('API deletada com sucesso')
 
           return {
-            message: 'Deleted',
-            status: 204,
-            data: null
+            message: 'API deletada com sucesso',
+            status: httpStatus || 204,
+            data: response || null
           }
+        } catch (error) {
+          toast.error('Erro ao deletar API: ' + (error instanceof Error ? error.message : 'Erro desconhecido'))
+          throw error
         }
-
-        // ✅ STATUS 200 com dados
-        if (httpStatus === 200 && response) {
-          console.log('✅ DELETE bem-sucedido (status 200 com dados)')
-
-          return response.message
-            ? response
-            : {
-                message: 'Deleted',
-                status: 200,
-                data: response
-              }
-        }
-
-        // ❌ Outros casos são considerados erro
-        console.error('❌ DELETE falhou - Status:', httpStatus, 'Response:', response)
-        throw new Error(response?.message || 'Erro ao deletar API')
       },
 
       transformErrorResponse: (response: any): ApiError => {
-        console.error('❌ Erro detalhado DELETE API:', response)
+        toast.error('Erro ao deletar API: ' + (response?.data?.message || response?.message || 'Erro desconhecido'))
 
         return {
           status: response.status || 500,
@@ -314,15 +402,17 @@ export const apiApi = apiSlice.injectEndpoints({
         }
       },
 
-      invalidatesTags: (result, error, { id }) => [
-        { type: 'Api', id },
-        { type: 'Api', id: 'LIST' }
-      ]
+      invalidatesTags: (result, error, { id }) => {
+        return [
+          { type: 'Api', id },
+          { type: 'Api', id: 'LIST' }
+        ]
+      }
     })
-  })
+  }),
+  overrideExisting: true
 })
 
-// 🎯 EXPORT DOS HOOKS
 export const {
   useGetApisQuery,
   useGetSingleApiQuery,

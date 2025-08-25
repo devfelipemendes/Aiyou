@@ -25,7 +25,6 @@ import * as v from 'valibot'
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
-// 🎯 IMPORTAR NOSSAS APIs E COMPONENTES
 import {
   useGetProjectsQuery,
   useCreateProjectMutation,
@@ -100,7 +99,6 @@ const onboardingSteps: StepData[] = [
   }
 ]
 
-// 🎯 INTERFACE LOCAL PARA UI
 export interface UIProject extends Project {
   status?: 'pending' | 'success' | 'error'
   imageFile?: File | null | undefined
@@ -112,7 +110,6 @@ interface ProjectManagerProps {
   finishButtonText?: string
 }
 
-// 🎯 SCHEMA DE VALIDAÇÃO
 const ProjectSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, 'Nome do projeto é obrigatório')),
   description: v.pipe(
@@ -133,7 +130,6 @@ export default function StepCreateProject({
 }: ProjectManagerProps = {}) {
   const theme = useTheme()
 
-  // 🎯 API HOOKS
   const {
     data: projectsResponse,
     isLoading: isLoadingProjects,
@@ -148,23 +144,18 @@ export default function StepCreateProject({
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation()
   const [deleteProject] = useDeleteProjectMutation()
 
-  // 🎯 ESTADOS GERAIS
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [editingProject, setEditingProject] = useState<UIProject | null>(null)
   const [projectToDelete, setProjectToDelete] = useState<UIProject | null>(null)
 
-  // 🎯 DIALOG DE CONFIRMAÇÃO
   const confirmDialog = useConfirmDialog()
 
-  // 🎯 ESTADOS DO FORMULÁRIO DE CRIAÇÃO
   const [createImageFile, setCreateImageFile] = useState<File | null>(null)
   const [createImageMode, setCreateImageMode] = useState<'file' | 'url'>('file')
 
-  // 🎯 ESTADOS DO FORMULÁRIO DE EDIÇÃO
   const [editImageFile, setEditImageFile] = useState<File | null>(null)
   const [editImageMode, setEditImageMode] = useState<'file' | 'url'>('file')
 
-  // 🎯 FORMULÁRIOS
   const createForm = useForm<ProjectFormData>({
     resolver: valibotResolver(ProjectSchema),
     defaultValues: {
@@ -187,7 +178,6 @@ export default function StepCreateProject({
     mode: 'onChange'
   })
 
-  // 🎯 PROJETOS PROCESSADOS
   const projects: UIProject[] = useMemo(() => {
     if (!projectsResponse?.data) return []
 
@@ -197,7 +187,6 @@ export default function StepCreateProject({
     }))
   }, [projectsResponse])
 
-  // 🎯 VALIDAÇÕES DE FORMULÁRIO
   const isCreateFormValid = useMemo(() => {
     const baseValid = createForm.formState.isValid
 
@@ -218,7 +207,6 @@ export default function StepCreateProject({
     }
   }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
 
-  // 🎯 HANDLE FINAL SUBMIT
   const handleFinalSubmit = useCallback(() => {
     const finalData = {
       projects: projects,
@@ -233,7 +221,6 @@ export default function StepCreateProject({
     }
   }, [projects, onNextStep])
 
-  // 🎯 HANDLERS DE IMAGEM - CRIAR
   const handleCreateImageChange = useCallback((file: File | null) => {
     setCreateImageFile(file)
   }, [])
@@ -252,7 +239,6 @@ export default function StepCreateProject({
     [createForm]
   )
 
-  // 🎯 HANDLERS DE IMAGEM - EDITAR
   const handleEditImageChange = useCallback((file: File | null) => {
     setEditImageFile(file)
   }, [])
@@ -268,8 +254,6 @@ export default function StepCreateProject({
     [editForm]
   )
 
-  // 🎯 TOGGLE FORMULÁRIO DE CRIAÇÃO
-  // ✅ CORRIGIR
   const handleToggleCreateForm = useCallback(() => {
     setIsCreatingProject(prev => !prev)
 
@@ -281,7 +265,6 @@ export default function StepCreateProject({
     }
   }, [createForm, isCreatingProject])
 
-  // 🎯 MODAL DE EDIÇÃO
   const handleOpenEditModal = useCallback(
     (project: UIProject) => {
       setEditingProject(project)
@@ -311,7 +294,6 @@ export default function StepCreateProject({
     setEditImageMode('file')
   }, [editForm])
 
-  // 🎯 SUBMIT CRIAÇÃO
   const handleCreateSubmit = useCallback(
     async (data: ProjectFormData) => {
       try {
@@ -347,7 +329,6 @@ export default function StepCreateProject({
           return
         }
 
-        // Sucesso - resetar form
         createForm.reset()
         setIsCreatingProject(false)
         setCreateImageFile(null)
@@ -362,7 +343,6 @@ export default function StepCreateProject({
     [createProject, createForm, createImageMode, createImageFile]
   )
 
-  // 🎯 SUBMIT EDIÇÃO
   const handleEditSubmit = useCallback(
     async (data: ProjectFormData) => {
       if (!editingProject) return
@@ -401,7 +381,6 @@ export default function StepCreateProject({
           return
         }
 
-        // Sucesso - fechar modal
         handleCloseEditModal()
         console.log('✅ Projeto atualizado com sucesso!')
       } catch (error: any) {
@@ -415,12 +394,10 @@ export default function StepCreateProject({
   // 🎯 DELETE PROJECT
   const handleDeleteProject = useCallback(
     (id: string) => {
-      // Encontrar o projeto completo
       const project = projects.find(p => p.id === id)
 
       if (!project) return
 
-      // Definir projeto a ser deletado e abrir dialog
       setProjectToDelete(project)
       confirmDialog.openDialog()
     },
@@ -444,7 +421,6 @@ export default function StepCreateProject({
 
       console.log('✅ Projeto deletado com sucesso!')
 
-      // Fechar dialog e limpar estado
       confirmDialog.closeDialog()
       setProjectToDelete(null)
     } catch (error: any) {
@@ -485,7 +461,6 @@ export default function StepCreateProject({
     setModalOpen(!completed)
   }, [])
 
-  // 🎯 LOADING SKELETON
   const renderLoadingSkeleton = () => (
     <Grid container spacing={3}>
       {[1, 2, 3].map(item => (
@@ -496,7 +471,6 @@ export default function StepCreateProject({
     </Grid>
   )
 
-  // 🎯 ERROR STATE
   if (isErrorProjects) {
     return (
       <Box sx={{ mx: 'auto', p: 3 }}>
@@ -516,7 +490,6 @@ export default function StepCreateProject({
 
   return (
     <Box sx={{ mx: 'auto', p: 3 }}>
-      {/* 🎯 HEADER */}
       <Box sx={{ mb: 3 }}>
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
           <Box className='flex items-center gap-2'>
@@ -544,7 +517,6 @@ export default function StepCreateProject({
         </Box>
       </Box>
 
-      {/* 🎯 FORMULÁRIO DE CRIAÇÃO */}
       <Collapse in={isCreatingProject}>
         <Box sx={{ mb: 3 }}>
           <Typography variant='h6' gutterBottom>
@@ -553,7 +525,6 @@ export default function StepCreateProject({
 
           <form onSubmit={createForm.handleSubmit(handleCreateSubmit)}>
             <Grid container spacing={3}>
-              {/* Imagem */}
               <Grid size={{ xs: 12 }}>
                 <FormControl component='fieldset' sx={{ width: '100%' }}>
                   <FormLabel component='legend' sx={{ mb: 2 }}>
@@ -601,7 +572,6 @@ export default function StepCreateProject({
                 </FormControl>
               </Grid>
 
-              {/* Nome */}
               <Grid size={{ xs: 12 }}>
                 <Controller
                   name='name'
@@ -621,7 +591,6 @@ export default function StepCreateProject({
                 />
               </Grid>
 
-              {/* Descrição */}
               <Grid size={{ xs: 12 }}>
                 <Controller
                   name='description'
@@ -640,13 +609,11 @@ export default function StepCreateProject({
                         createForm.formState.errors.description?.message || `${field.value?.length || 0}/255 caracteres`
                       }
                       placeholder='Ex: Plataforma completa de e-commerce'
-                      inputProps={{ maxLength: 255 }}
                     />
                   )}
                 />
               </Grid>
 
-              {/* Botões */}
               <Grid size={{ xs: 12 }}>
                 <Box display='flex' gap={2} justifyContent='flex-end'>
                   <Button variant='outlined' onClick={handleToggleCreateForm} disabled={isCreating}>
@@ -668,7 +635,6 @@ export default function StepCreateProject({
         </Box>
       </Collapse>
 
-      {/* 🎯 LISTA DE PROJETOS */}
       {isLoadingProjects ? (
         renderLoadingSkeleton()
       ) : projects.length > 0 ? (
@@ -721,14 +687,12 @@ export default function StepCreateProject({
         </>
       )}
 
-      {/* 🎯 MODAL DE EDIÇÃO */}
       <Dialog open={!!editingProject} onClose={handleCloseEditModal} maxWidth='md' fullWidth>
         <DialogTitle>Editar Projeto: {editingProject?.name}</DialogTitle>
 
         <DialogContent>
           <form onSubmit={editForm.handleSubmit(handleEditSubmit)} id='edit-form'>
             <Grid container spacing={3} sx={{ mt: 1 }}>
-              {/* Nome */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name='name'
@@ -747,7 +711,6 @@ export default function StepCreateProject({
                 />
               </Grid>
 
-              {/* Descrição */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name='description'
@@ -763,13 +726,11 @@ export default function StepCreateProject({
                       helperText={
                         editForm.formState.errors.description?.message || `${field.value?.length || 0}/255 caracteres`
                       }
-                      inputProps={{ maxLength: 255 }}
                     />
                   )}
                 />
               </Grid>
 
-              {/* Imagem */}
               <Grid size={{ xs: 12 }}>
                 <FormControl component='fieldset' sx={{ width: '100%' }}>
                   <FormLabel component='legend' sx={{ mb: 2 }}>
@@ -838,7 +799,6 @@ export default function StepCreateProject({
         </DialogActions>
       </Dialog>
 
-      {/* 🎯 DIALOG DE CONFIRMAÇÃO DELETE */}
       <ConfirmDialog
         open={confirmDialog.open}
         loading={confirmDialog.loading}
@@ -855,8 +815,8 @@ export default function StepCreateProject({
         <FirstModulePresentation
           open={modalOpen}
           steps={onboardingSteps}
-          onFinaly={handleOnboardingComplete} // Save to cookies when completed
-          onClose={handleModalClose} // Close without saving
+          onFinaly={handleOnboardingComplete}
+          onClose={handleModalClose}
           size='large'
           variant='default'
           allowCloseOnlyAtEnd={true}

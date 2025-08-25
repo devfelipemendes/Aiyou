@@ -222,7 +222,7 @@ const ListTable = ({
         <div className='w-full flex flex-col gap-4 xs:flex-row sm:w-auto items-center'>
           {hasExport && (
             <Button
-              color='secondary'
+              color='inherit'
               variant='outlined'
               startIcon={<i className='ri-upload-2-line text-xl' />}
               className='is-full sm:is-auto'
