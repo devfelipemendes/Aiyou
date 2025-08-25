@@ -65,6 +65,8 @@ export const apiSlice = createApi({
     'ProtocolHistory',
     'ProtocolHistoryItem',
     'Assistant',
-    'Api'
+    'Api',
+    'Task',
+    'HttpMethod'
   ]
 })
