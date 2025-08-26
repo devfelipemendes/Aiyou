@@ -1,7 +1,7 @@
 'use client'
 
 // React Imports
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 
 // MUI Imports
 import {
@@ -85,6 +85,14 @@ interface TempParameter {
   default_value?: string | null
 }
 
+interface UrlVariable {
+  id: string
+  placeholder: string
+  name: string
+  type: 'String' | 'Number' | 'Boolean' | 'Array' | 'Object'
+  position: number
+}
+
 type Props = {
   onNextStep?: () => void
 }
@@ -120,10 +128,13 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const [tempParamReturns, setTempParamReturns] = useState<string[]>([])
   const [isAddingParameter, setIsAddingParameter] = useState(false)
   const [newParamReturn, setNewParamReturn] = useState('')
+  const [urlVariables, setUrlVariables] = useState<UrlVariable[]>([])
+  const [urlError, setUrlError] = useState<string>('')
+  const [currentEndpoint, setCurrentEndpoint] = useState<string>('')
 
   // Dados
   const tasks = tasksResponse?.data || []
-  const apis = apisResponse?.data || []
+  const apis = useMemo(() => apisResponse?.data || [], [apisResponse?.data])
   const methods = methodsResponse?.data || []
   const isLoading = loadingTasks || loadingApis || loadingMethods
 
@@ -155,11 +166,96 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     }
   })
 
+  // Funções para URLs variáveis
+  const parseUrlVariables = useCallback((url: string): UrlVariable[] => {
+    const regex = /\{\{([^}]+)\}\}/g
+    const variables: UrlVariable[] = []
+    let match
+
+    while ((match = regex.exec(url)) !== null) {
+      const fullMatch = match[0]
+      const content = match[1]
+
+      if (content !== 'var') {
+        setUrlError(`Erro: "${fullMatch}" não é válido. Use apenas "{{var}}" como placeholder.`)
+
+        return []
+      }
+
+      variables.push({
+        id: `url_var_${Date.now()}_${match.index}`,
+        placeholder: fullMatch,
+        name: '',
+        type: 'String',
+        position: match.index
+      })
+    }
+
+    setUrlError('')
+
+    return variables
+  }, [])
+
+  const handleEndpointChange = useCallback(
+    (newEndpoint: string) => {
+      setCurrentEndpoint(newEndpoint)
+      const variables = parseUrlVariables(newEndpoint)
+
+      setUrlVariables(variables)
+      taskForm.setValue('endpoint', newEndpoint)
+    },
+    [parseUrlVariables, taskForm]
+  )
+
+  const handleAddVariable = useCallback(() => {
+    const newValue = currentEndpoint + '{{var}}'
+
+    handleEndpointChange(newValue)
+  }, [currentEndpoint, handleEndpointChange])
+
+  const handleVariableNameChange = useCallback((variableId: string, newName: string) => {
+    setUrlVariables(prev =>
+      prev.map(variable => (variable.id === variableId ? { ...variable, name: newName } : variable))
+    )
+  }, [])
+
+  const handleVariableTypeChange = useCallback(
+    (variableId: string, newType: 'String' | 'Number' | 'Boolean' | 'Array' | 'Object') => {
+      setUrlVariables(prev =>
+        prev.map(variable => (variable.id === variableId ? { ...variable, type: newType } : variable))
+      )
+    },
+    []
+  )
+
+  const generateUrlPreview = useCallback(() => {
+    if (!currentEndpoint || urlVariables.length === 0) {
+      return currentEndpoint
+    }
+
+    let preview = currentEndpoint
+
+    urlVariables.forEach(variable => {
+      if (variable.name.trim()) {
+        preview = preview.replace('{{var}}', `{{${variable.name}}}`)
+      }
+    })
+
+    const selectedApiId = taskForm.getValues('api_id')
+    const selectedApi = apis.find(api => api.id === selectedApiId)
+    const baseUrl = selectedApi ? selectedApi.url : 'https://api.exemplo.com'
+
+    return `${baseUrl}${preview}`
+  }, [currentEndpoint, urlVariables, taskForm, apis])
+
   // Handlers Modal
   const handleOpenModal = useCallback(() => {
     setEditingTask(null)
     setTempParameters([])
     setTempParamReturns([])
+    setUrlVariables([])
+    setUrlError('')
+    setCurrentEndpoint('')
     taskForm.reset()
     setIsModalOpen(true)
   }, [taskForm])
@@ -169,6 +265,9 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     setEditingTask(null)
     setTempParameters([])
     setTempParamReturns([])
+    setUrlVariables([])
+    setUrlError('')
+    setCurrentEndpoint('')
     setIsAddingParameter(false)
     taskForm.reset()
     parameterForm.reset()
@@ -177,6 +276,12 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const handleEditTask = useCallback(
     (task: Task) => {
       setEditingTask(task)
+      setCurrentEndpoint(task.endpoint)
+
+      const existingVariables = parseUrlVariables(task.endpoint)
+
+      setUrlVariables(existingVariables)
+
       taskForm.reset({
         name: task.name,
         description: task.description,
@@ -187,12 +292,11 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
         variable: task.variable
       })
 
-      // TODO: Carregar parâmetros existentes
       setTempParameters([])
       setTempParamReturns([])
       setIsModalOpen(true)
     },
-    [taskForm]
+    [taskForm, parseUrlVariables]
   )
 
   // Handlers Parâmetros
@@ -233,11 +337,37 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
       try {
-        const payload = {
-          ...data,
-          active: false,
-          working: false,
-          Parameters: tempParameters.map(p => ({
+        const unnamedVariables = urlVariables.filter(v => !v.name.trim())
+
+        if (unnamedVariables.length > 0) {
+          toast.error('Defina nomes para todas as variáveis da URL')
+
+          return
+        }
+
+        let finalEndpoint = currentEndpoint
+
+        urlVariables.forEach(variable => {
+          if (variable.name.trim()) {
+            finalEndpoint = finalEndpoint.replace('{{var}}', `{{${variable.name}}}`)
+          }
+        })
+
+        const urlParameters = urlVariables.map(variable => ({
+          name: variable.name,
+          description: `Valor da variável ${variable.name}`,
+          type: variable.type,
+          required: true,
+          in_api: false,
+          is_header: false,
+          is_subparameter: false,
+          paip_id: null,
+          default_value: null
+        }))
+
+        const allParameters = [
+          ...urlParameters,
+          ...tempParameters.map(p => ({
             name: p.name,
             description: p.description,
             type: p.type,
@@ -247,7 +377,15 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             is_subparameter: p.is_subparameter,
             paip_id: null,
             default_value: p.default_value
-          })),
+          }))
+        ]
+
+        const payload = {
+          ...data,
+          endpoint: finalEndpoint,
+          active: true,
+          working: true,
+          Parameters: allParameters,
           ParamReturns: tempParamReturns
         }
 
@@ -263,7 +401,17 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
         console.error('Erro:', error)
       }
     },
-    [editingTask, tempParameters, tempParamReturns, createTask, updateTask, handleCloseModal, refetch]
+    [
+      editingTask,
+      urlVariables,
+      currentEndpoint,
+      tempParameters,
+      tempParamReturns,
+      createTask,
+      updateTask,
+      handleCloseModal,
+      refetch
+    ]
   )
 
   const handleDeleteTask = useCallback(
@@ -278,7 +426,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     [deleteTask, refetch]
   )
 
-  // Colunas da tabela (sua estrutura original)
+  // Colunas da tabela
   const columnHelper = createColumnHelper<Task>()
 
   const columns = useMemo<ColumnDef<Task, any>[]>(
@@ -366,9 +514,26 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
         )
       })
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [methods, handleEditTask, handleDeleteTask]
+    [columnHelper, methods, handleEditTask, handleDeleteTask]
   )
+
+  // Effects
+  useEffect(() => {
+    const hasUrlVariables = urlVariables.length > 0
+
+    taskForm.setValue('variable', hasUrlVariables)
+  }, [urlVariables.length, taskForm])
+
+  useEffect(() => {
+    const currentFormEndpoint = taskForm.getValues('endpoint')
+
+    if (currentFormEndpoint && currentFormEndpoint !== currentEndpoint) {
+      setCurrentEndpoint(currentFormEndpoint)
+      const variables = parseUrlVariables(currentFormEndpoint)
+
+      setUrlVariables(variables)
+    }
+  }, [taskForm, currentEndpoint, parseUrlVariables])
 
   return (
     <Box>
@@ -455,8 +620,8 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
           </Typography>
 
           <form onSubmit={taskForm.handleSubmit(handleSubmit)}>
-            {/* Dados básicos */}
             <Grid container spacing={3}>
+              {/* Dados básicos */}
               <Grid size={{ xs: 12 }}>
                 <Typography variant='subtitle1' className='mb-2'>
                   Dados do Endpoint
@@ -519,25 +684,91 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 8 }}>
-                <Controller
-                  name='endpoint'
-                  control={taskForm.control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='URL do Endpoint'
-                      required
-                      placeholder='https://api.exemplo.com/endpoint'
-                      error={!!taskForm.formState.errors.endpoint}
-                      helperText={taskForm.formState.errors.endpoint?.message}
-                    />
-                  )}
-                />
+              {/* Sistema de URL com variáveis */}
+              <Grid size={{ xs: 12 }}>
+                <Typography variant='subtitle2' className='mb-2'>
+                  URL do Endpoint
+                </Typography>
+
+                <Box className='mb-2'>
+                  <TextField
+                    value={currentEndpoint}
+                    onChange={e => handleEndpointChange(e.target.value)}
+                    fullWidth
+                    placeholder='/api/endpoint/path'
+                    error={!!urlError}
+                    helperText={urlError || 'Digite a URL do endpoint. Use {{var}} para variáveis dinâmicas.'}
+                  />
+                  <Box className='flex justify-between items-center mt-1'>
+                    <Button
+                      variant='outlined'
+                      size='small'
+                      onClick={handleAddVariable}
+                      startIcon={<i className='ri-add-line' />}
+                    >
+                      Adicionar Variável
+                    </Button>
+                    {urlVariables.length > 0 && (
+                      <Typography variant='caption' color='text.secondary'>
+                        {urlVariables.length} variável{urlVariables.length !== 1 ? 'eis' : ''} encontrada
+                        {urlVariables.length !== 1 ? 's' : ''}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Configuração das variáveis */}
+                {urlVariables.length > 0 && (
+                  <Paper className='p-3 mb-2'>
+                    <Typography variant='subtitle2' className='mb-2'>
+                      Configurar Variáveis da URL
+                    </Typography>
+                    <Box className='space-y-2'>
+                      {urlVariables.map((variable, index) => (
+                        <Box key={variable.id} className='flex gap-2 items-center'>
+                          <Typography variant='body2' className='min-w-16'>
+                            #{index + 1}:
+                          </Typography>
+                          <TextField
+                            value={variable.name}
+                            onChange={e => handleVariableNameChange(variable.id, e.target.value)}
+                            placeholder='Nome da variável'
+                            size='small'
+                            required
+                            className='flex-1'
+                          />
+                          <FormControl size='small' className='min-w-24'>
+                            <Select
+                              value={variable.type}
+                              onChange={e => handleVariableTypeChange(variable.id, e.target.value as any)}
+                            >
+                              <MenuItem value='String'>String</MenuItem>
+                              <MenuItem value='Number'>Number</MenuItem>
+                              <MenuItem value='Boolean'>Boolean</MenuItem>
+                              <MenuItem value='Array'>Array</MenuItem>
+                              <MenuItem value='Object'>Object</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Paper>
+                )}
+
+                {/* Preview da URL */}
+                {(currentEndpoint || urlVariables.length > 0) && (
+                  <Paper className='p-2 bg-gray-50'>
+                    <Typography variant='caption' className='block mb-1'>
+                      Preview da URL Final:
+                    </Typography>
+                    <Typography variant='body2' fontFamily='monospace' className='break-all'>
+                      {generateUrlPreview()}
+                    </Typography>
+                  </Paper>
+                )}
               </Grid>
 
-              <Grid size={{ xs: 12, md: 4 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name='method_id'
                   control={taskForm.control}
@@ -552,6 +783,25 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                         ))}
                       </Select>
                     </FormControl>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Controller
+                  name='variable'
+                  control={taskForm.control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={urlVariables.length > 0 || field.value}
+                          onChange={field.onChange}
+                          disabled={urlVariables.length > 0}
+                        />
+                      }
+                      label={`Possui variáveis na URL ${urlVariables.length > 0 ? `(${urlVariables.length} detectadas)` : ''}`}
+                    />
                   )}
                 />
               </Grid>
@@ -571,19 +821,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       placeholder='Como a IA deve tratar a resposta...'
                       error={!!taskForm.formState.errors.instruction}
                       helperText={taskForm.formState.errors.instruction?.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <Controller
-                  name='variable'
-                  control={taskForm.control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={<Switch checked={field.value} onChange={field.onChange} />}
-                      label='Possui parâmetros variáveis na URL'
                     />
                   )}
                 />
@@ -763,7 +1000,11 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
               <Button type='button' onClick={handleCloseModal}>
                 Cancelar
               </Button>
-              <Button type='submit' variant='contained' disabled={!taskForm.formState.isValid}>
+              <Button
+                type='submit'
+                variant='contained'
+                disabled={!taskForm.formState.isValid || !!urlError || urlVariables.some(v => !v.name.trim())}
+              >
                 {editingTask ? 'Atualizar' : 'Cadastrar'}
               </Button>
             </Box>
