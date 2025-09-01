@@ -21,7 +21,6 @@ import {
   CircularProgress,
   FormControlLabel,
   Switch,
-  IconButton,
   Paper
 } from '@mui/material'
 import Grid from '@mui/material/Grid2'
@@ -47,6 +46,8 @@ import {
 } from '@/api/endpoints/task/task'
 import { useGetApisQuery } from '@/api/endpoints/fdc/api'
 import { useGetMethodsQuery } from '@/api/endpoints/method/method'
+import ParameterFormRecursive from '@/components/ParameterFormRecursive'
+import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 
 // Schemas
 const TaskSchema = v.object({
@@ -73,7 +74,7 @@ const ParameterSchema = v.object({
 type TaskFormData = v.InferInput<typeof TaskSchema>
 type ParameterFormData = v.InferInput<typeof ParameterSchema>
 
-interface TempParameter {
+export interface TempParameter {
   id: string
   name: string
   description: string
@@ -83,6 +84,7 @@ interface TempParameter {
   is_header: boolean
   is_subparameter: boolean
   default_value?: string | null
+  data?: TempParameter[]
 }
 
 interface UrlVariable {
@@ -102,13 +104,13 @@ const modalStyle = {
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '95%',
-  maxWidth: 1000,
+  width: '70%',
+
   bgcolor: 'background.paper',
   borderRadius: 2,
   boxShadow: 24,
   p: 4,
-  maxHeight: '90vh',
+  maxHeight: '98vh',
   overflow: 'auto'
 }
 
@@ -131,6 +133,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const [urlVariables, setUrlVariables] = useState<UrlVariable[]>([])
   const [urlError, setUrlError] = useState<string>('')
   const [currentEndpoint, setCurrentEndpoint] = useState<string>('')
+  const [parentParamId, setParentParamId] = useState<string | null>(null)
 
   // Dados
   const tasks = tasksResponse?.data || []
@@ -159,7 +162,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
       description: '',
       type: 'String',
       required: false,
-      in_api: true,
+      in_api: false,
       is_header: false,
       is_subparameter: false,
       default_value: ''
@@ -201,7 +204,13 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
       setCurrentEndpoint(newEndpoint)
       const variables = parseUrlVariables(newEndpoint)
 
-      setUrlVariables(variables)
+      setUrlVariables(prev => {
+        return variables.map(v => {
+          const existing = prev.find(p => p.placeholder === v.placeholder && p.position === v.position)
+
+          return existing ? { ...v, name: existing.name, type: existing.type } : v
+        })
+      })
       taskForm.setValue('endpoint', newEndpoint)
     },
     [parseUrlVariables, taskForm]
@@ -229,9 +238,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   )
 
   const generateUrlPreview = useCallback(() => {
-    if (!currentEndpoint || urlVariables.length === 0) {
-      return currentEndpoint
-    }
+    if (!currentEndpoint) return ''
 
     let preview = currentEndpoint
 
@@ -305,15 +312,27 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
       const newParam: TempParameter = {
         id: `temp_${Date.now()}`,
         ...data,
-        default_value: data.default_value || null
+        default_value: data.default_value || null,
+        data: []
       }
 
-      setTempParameters(prev => [...prev, newParam])
+      if (parentParamId) {
+        setTempParameters(prev => addParamRecursive(prev, parentParamId, newParam))
+      } else {
+        const updated = setTempParameters(prev => [...prev, newParam])
+
+        console.log('✅ Novo parâmetro raiz cadastrado:', newParam)
+        console.log('📦 Estado atualizado (raiz):', updated)
+
+        return updated
+      }
+
       parameterForm.reset()
       setIsAddingParameter(false)
+      setParentParamId(null)
       toast.success('Parâmetro adicionado')
     },
-    [parameterForm]
+    [parameterForm, parentParamId]
   )
 
   const handleRemoveParameter = useCallback((id: string) => {
@@ -332,6 +351,23 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const handleRemoveParamReturn = useCallback((name: string) => {
     setTempParamReturns(prev => prev.filter(r => r !== name))
   }, [])
+
+  const mapParams = useCallback(
+    (params: TempParameter[]): any[] =>
+      params.map(p => ({
+        name: p.name,
+        description: p.description,
+        type: p.type,
+        required: p.required,
+        in_api: p.in_api,
+        is_header: p.is_header,
+        is_subparameter: p.is_subparameter,
+        paip_id: null,
+        default_value: p.default_value,
+        data: p.data && p.data.length > 0 ? mapParams(p.data) : undefined
+      })),
+    []
+  )
 
   // Handler Submit
   const handleSubmit = useCallback(
@@ -365,20 +401,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
           default_value: null
         }))
 
-        const allParameters = [
-          ...urlParameters,
-          ...tempParameters.map(p => ({
-            name: p.name,
-            description: p.description,
-            type: p.type,
-            required: p.required,
-            in_api: p.in_api,
-            is_header: p.is_header,
-            is_subparameter: p.is_subparameter,
-            paip_id: null,
-            default_value: p.default_value
-          }))
-        ]
+        const allParameters = [...urlParameters, ...mapParams(tempParameters)]
 
         const payload = {
           ...data,
@@ -407,12 +430,27 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
       currentEndpoint,
       tempParameters,
       tempParamReturns,
+      mapParams,
       createTask,
       updateTask,
       handleCloseModal,
       refetch
     ]
   )
+
+  const addParamRecursive = (params: TempParameter[], parentId: string, newParam: TempParameter): TempParameter[] => {
+    return params.map(p => {
+      if (p.id === parentId) {
+        return { ...p, data: [...(p.data || []), newParam] }
+      }
+
+      if (p.data && p.data.length > 0) {
+        return { ...p, data: addParamRecursive(p.data, parentId, newParam) }
+      }
+
+      return p
+    })
+  }
 
   const handleDeleteTask = useCallback(
     async (id: string) => {
@@ -535,6 +573,16 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     }
   }, [taskForm, currentEndpoint, parseUrlVariables])
 
+  useEffect(() => {
+    const selectedApiId = taskForm.watch('api_id')
+    const selectedApi = apis.find(api => api.id === selectedApiId)
+
+    if (selectedApi) {
+      // apenas força rerender do preview
+      setCurrentEndpoint(prev => prev || '')
+    }
+  }, [taskForm.watch('api_id'), apis])
+
   return (
     <Box>
       <CardHeader title='Gerenciar Endpoints' subheader='Cadastre e configure os endpoints das suas APIs' />
@@ -615,18 +663,14 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
       {/* Modal */}
       <Modal open={isModalOpen} onClose={handleCloseModal}>
         <Box sx={modalStyle}>
-          <Typography variant='h6' className='mb-4'>
-            {editingTask ? 'Editar Endpoint' : 'Cadastrar Endpoint'}
+          <Typography variant='h6'>{editingTask ? 'Editar Endpoint' : 'Cadastrar Endpoint'}</Typography>
+          <Typography variant='subtitle2' className='mb-4'>
+            {editingTask ? 'Edição dos dados do endpoint' : 'Cadastrar dados de Endpoint'}
           </Typography>
 
           <form onSubmit={taskForm.handleSubmit(handleSubmit)}>
             <Grid container spacing={3}>
               {/* Dados básicos */}
-              <Grid size={{ xs: 12 }}>
-                <Typography variant='subtitle1' className='mb-2'>
-                  Dados do Endpoint
-                </Typography>
-              </Grid>
 
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
@@ -644,6 +688,9 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                     />
                   )}
                 />
+                <Typography variant='subtitle1' className='mt-1'>
+                  O nome que será cadastrado será usado para identificar o endpoint nas funcionalidades do sistema
+                </Typography>
               </Grid>
 
               <Grid size={{ xs: 12, md: 6 }}>
@@ -663,6 +710,9 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                     </FormControl>
                   )}
                 />
+                <Typography variant='subtitle1' className='mt-1'>
+                  Selecione a API que deseja utilizar
+                </Typography>
               </Grid>
 
               <Grid size={{ xs: 12 }}>
@@ -682,6 +732,9 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                     />
                   )}
                 />
+                <Typography variant='subtitle1' className='mt-1'>
+                  Determine como a será descrição de identificação para este endpoint
+                </Typography>
               </Grid>
 
               {/* Sistema de URL com variáveis */}
@@ -697,14 +750,18 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                     fullWidth
                     placeholder='/api/endpoint/path'
                     error={!!urlError}
-                    helperText={urlError || 'Digite a URL do endpoint. Use {{var}} para variáveis dinâmicas.'}
+                    helperText={urlError}
                   />
+                  <Typography
+                    variant='subtitle1'
+                    className='mt-1'
+                  >{`Digite a URL do endpoint. Use {{var}} para variáveis dinâmicas.`}</Typography>
                   <Box className='flex justify-between items-center mt-1'>
                     <Button
-                      variant='outlined'
+                      variant='contained'
                       size='small'
                       onClick={handleAddVariable}
-                      startIcon={<i className='ri-add-line' />}
+                      endIcon={<i className='ri-add-line' />}
                     >
                       Adicionar Variável
                     </Button>
@@ -756,52 +813,42 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                 )}
 
                 {/* Preview da URL */}
-                {(currentEndpoint || urlVariables.length > 0) && (
-                  <Paper className='p-2 bg-gray-50'>
-                    <Typography variant='caption' className='block mb-1'>
+                {(currentEndpoint || urlVariables.length > 0 || taskForm.watch('endpoint') !== '') && (
+                  <Paper className='p-2 bg-black'>
+                    <Typography variant='caption' className='block mb-1 text-gray-400'>
                       Preview da URL Final:
                     </Typography>
-                    <Typography variant='body2' fontFamily='monospace' className='break-all'>
+                    <Typography variant='body2' fontFamily='monospace' className='break-all text-yellow-400'>
                       {generateUrlPreview()}
                     </Typography>
                   </Paper>
                 )}
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name='method_id'
                   control={taskForm.control}
+                  rules={{ required: true }}
                   render={({ field }) => (
-                    <FormControl fullWidth required>
-                      <InputLabel>Método</InputLabel>
-                      <Select {...field} label='Método'>
-                        {methods.map(method => (
-                          <MenuItem key={method.id} value={method.id}>
-                            {method.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name='variable'
-                  control={taskForm.control}
-                  render={({ field }) => (
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={urlVariables.length > 0 || field.value}
-                          onChange={field.onChange}
-                          disabled={urlVariables.length > 0}
-                        />
-                      }
-                      label={`Possui variáveis na URL ${urlVariables.length > 0 ? `(${urlVariables.length} detectadas)` : ''}`}
-                    />
+                    <Grid container spacing={2}>
+                      {methods.map((item, index) => {
+                        return (
+                          <Grid size={{ xs: 4 }} key={index}>
+                            <CustomInputVertical
+                              type='radio'
+                              name={item.name}
+                              selected={field.value} // valor vindo do react-hook-form
+                              handleChange={(value: any) => field.onChange(value)} // atualiza o form
+                              data={{
+                                value: item.id,
+                                title: item.name
+                              }}
+                            />
+                          </Grid>
+                        )
+                      })}
+                    </Grid>
                   )}
                 />
               </Grid>
@@ -834,7 +881,14 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-between items-center mb-3'>
                   <Typography variant='subtitle1'>Parâmetros ({tempParameters.length})</Typography>
-                  <Button variant='outlined' size='small' onClick={() => setIsAddingParameter(!isAddingParameter)}>
+                  <Button
+                    variant='outlined'
+                    size='small'
+                    onClick={() => {
+                      setIsAddingParameter(!isAddingParameter)
+                      setParentParamId(null) // raiz
+                    }}
+                  >
                     {isAddingParameter ? 'Cancelar' : 'Adicionar Parâmetro'}
                   </Button>
                 </Box>
@@ -891,6 +945,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                               />
                             )}
                           />
+
                           <Controller
                             name='is_header'
                             control={parameterForm.control}
@@ -908,6 +963,16 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                               <FormControlLabel
                                 control={<Switch checked={field.value} onChange={field.onChange} size='small' />}
                                 label='Enviar na API'
+                              />
+                            )}
+                          />
+                          <Controller
+                            name='is_subparameter'
+                            control={parameterForm.control}
+                            render={({ field }) => (
+                              <FormControlLabel
+                                control={<Switch checked={field.value} onChange={field.onChange} size='small' />}
+                                label='Este parâmetro possui filhos?'
                               />
                             )}
                           />
@@ -935,30 +1000,24 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
               {/* Lista parâmetros */}
               {tempParameters.length > 0 && (
                 <Grid size={{ xs: 12 }}>
-                  <Box className='space-y-2 max-h-40 overflow-y-auto'>
-                    {tempParameters.map(param => (
-                      <Paper key={param.id} className='p-2'>
-                        <Box className='flex justify-between items-center'>
-                          <Box>
-                            <Box className='flex gap-2 items-center mb-1'>
-                              <Typography variant='body2' fontWeight={500}>
-                                {param.name}
-                              </Typography>
-                              <Chip label={param.type} size='small' />
-                              {param.required && <Chip label='Obrigatório' size='small' color='warning' />}
-                              {param.is_header && <Chip label='Header' size='small' color='secondary' />}
-                            </Box>
-                            <Typography variant='caption' color='text.secondary'>
-                              {param.description}
-                            </Typography>
-                          </Box>
-                          <IconButton size='small' color='error' onClick={() => handleRemoveParameter(param.id)}>
-                            <i className='ri-delete-line' />
-                          </IconButton>
-                        </Box>
-                      </Paper>
-                    ))}
-                  </Box>
+                  <ParameterFormRecursive
+                    parameters={tempParameters}
+                    onAdd={(parentId?: string) => {
+                      setIsAddingParameter(true)
+                      setParentParamId(parentId || null)
+                    }}
+                    onRemove={(id: string, parentId?: string) => {
+                      if (parentId) {
+                        setTempParameters(prev =>
+                          prev.map(p =>
+                            p.id === parentId ? { ...p, data: (p.data || []).filter(c => c.id !== id) } : p
+                          )
+                        )
+                      } else {
+                        setTempParameters(prev => prev.filter(p => p.id !== id))
+                      }
+                    }}
+                  />
                 </Grid>
               )}
 
