@@ -37,7 +37,6 @@ import { useGetProjectsQuery, type Project } from '@/api/endpoints/Projects/proj
 
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 import AssistantCard from '@/components/CardAssistant'
-import type { CustomInputVerticalData } from '@/@core/components/custom-inputs/types'
 
 export interface UIAssistant extends ProcessedAssistant {}
 
@@ -78,28 +77,6 @@ export default function StepCreateAssistant({
   const [isCreatingAssistant, setIsCreatingAssistant] = useState(false)
   const [editingAssistant, setEditingAssistant] = useState<UIAssistant | null>(null)
   const [assistantToDelete, setAssistantToDelete] = useState<UIAssistant | null>(null)
-
-  const data: CustomInputVerticalData[] = [
-    {
-      title: 'I am the Builder',
-      value: 'builder',
-      content: 'List property as Builder, list your project and get highest reach.',
-      asset: 'ri-home-6-line',
-      isSelected: true
-    },
-    {
-      title: 'I am the Owner',
-      value: 'owner',
-      content: 'Submit property as an Individual. Lease, Rent or Sell at the best price.',
-      asset: 'ri-user-3-line'
-    },
-    {
-      title: 'I am the broker',
-      value: 'broker',
-      content: 'Earn highest commission by listing your clients properties at the best price.',
-      asset: 'ri-money-dollar-circle-line'
-    }
-  ]
 
   const confirmDialog = useConfirmDialog()
 
