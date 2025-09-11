@@ -35,11 +35,25 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
           alt={name}
           className='is-[78px] bs-[78px] border-[5px] border-backgroundPaper absolute start-[11px] block-start-[-39px]'
         />
-        <div className='flex justify-between items-center flex-wrap gap-x-4 gap-y-2 mbe-5 mbs-[30px]'>
-          <div className='flex flex-col items-start'>
-            <Typography variant='h5'>{name}</Typography>
+        <div className='flex justify-between items-center flex-nowrap mbe-5 mbs-[30px]'>
+          <div className='flex flex-col items-start w-[40%] '>
+            <Typography
+              variant='h5'
+              title={name}
+              sx={{
+                display: '-webkit-box',
+                overflow: 'hidden',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: 2, // 🔥 Máximo de 2 linhas
+                textOverflow: 'ellipsis',
+                minHeight: '56px' // Ajusta altura conforme linha
+              }}
+            >
+              {name}
+            </Typography>
             <Typography variant='body2'>{location}</Typography>
           </div>
+
           <Button variant='contained' onClick={onClick}>
             Visualizar Assistente
           </Button>

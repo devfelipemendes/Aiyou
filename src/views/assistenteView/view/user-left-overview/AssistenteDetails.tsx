@@ -16,6 +16,7 @@ import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementCli
 
 import type { ThemeColor } from '@core/types'
 import CustomAvatar from '@core/components/mui/Avatar'
+import type { ProcessedAssistant } from '@/api/endpoints/assistant/assistant'
 
 // Vars
 const userData = {
@@ -28,7 +29,9 @@ const userData = {
   useAsBillingAddress: true
 }
 
-const AssistenteDetails = () => {
+const AssistenteDetails = ({ assistente }: { assistente: ProcessedAssistant | undefined }) => {
+  console.log('assistenteuserleft', assistente)
+
   const buttonProps = (children: string, color: ThemeColor, variant: ButtonProps['variant']): ButtonProps => ({
     children,
     color,
@@ -50,25 +53,23 @@ const AssistenteDetails = () => {
             <div className='flex items-center justify-around flex-wrap gap-4'>
               <div className='flex items-center gap-4'>
                 <CustomAvatar variant='rounded' color='primary' skin='light'>
-                  <i className='ri-check-line' />
+                  <i className='ri-briefcase-line' />
                 </CustomAvatar>
                 <div>
-                  <Typography variant='h5'>1.23k</Typography>
-                  <Typography>Atendimentos</Typography>
+                  <Typography>Projeto teste #3333333</Typography>
                 </div>
               </div>
               <div className='flex items-center gap-4'>
                 <CustomAvatar variant='rounded' color='primary' skin='light'>
-                  <i className='ri-star-smile-line' />
+                  <i className='ri-calendar-line' />
                 </CustomAvatar>
                 <div>
-                  <Typography variant='h5'>Projeto: Brasilia </Typography>
-                  <Typography>Campanha SDR Brasilia</Typography>
+                  <Typography>Criado em 22-22-2222</Typography>
                 </div>
               </div>
             </div>
           </div>
-          <div>
+          {/* <div>
             <Typography variant='h5'>Detalhes</Typography>
             <Divider className='mlb-4' />
             <div className='flex flex-col gap-2'>
@@ -86,7 +87,7 @@ const AssistenteDetails = () => {
                 <Typography color='text.primary'>{userData.numeroRegistrado}</Typography>
               </div>
             </div>
-          </div>
+          </div> */}
           <div className='flex gap-4 justify-center'>
             <OpenDialogOnElementClick
               element={Button}
@@ -94,9 +95,10 @@ const AssistenteDetails = () => {
               dialog={EditUserInfo}
               dialogProps={{ data: userData }}
             />
+
             <OpenDialogOnElementClick
               element={Button}
-              elementProps={buttonProps('Desinscrever', 'error', 'outlined')}
+              elementProps={buttonProps('Excluir', 'error', 'outlined')}
               dialog={ConfirmationDialog}
               dialogProps={{ type: 'suspend-account' }}
             />
