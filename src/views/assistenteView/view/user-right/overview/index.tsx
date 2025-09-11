@@ -2,9 +2,9 @@
 import Grid from '@mui/material/Grid2'
 
 // Component Imports
+
 import ProjectListTable from './ProjectListTable'
-import UserActivityTimeLine from './UserActivityTimeline'
-import InvoiceListTable from './InvoiceListTable'
+import TabConfigAssistent from '@/components/tabsConfigAssistent/TabConfigAssistent'
 
 // Data Imports
 
@@ -25,7 +25,7 @@ import InvoiceListTable from './InvoiceListTable'
   return res.json()
 } */
 
-const OverViewTab = async () => {
+const OverViewTab = () => {
   // Vars
 
   return (
@@ -33,11 +33,9 @@ const OverViewTab = async () => {
       <Grid size={{ xs: 12 }}>
         <ProjectListTable />
       </Grid>
+
       <Grid size={{ xs: 12 }}>
-        <UserActivityTimeLine />
-      </Grid>
-      <Grid size={{ xs: 12 }}>
-        <InvoiceListTable />
+        <TabConfigAssistent />
       </Grid>
     </Grid>
   )

@@ -35,9 +35,10 @@ import {
   type UpdateProjectRequest
 } from '@/api/endpoints/Projects/project'
 import ImageDropzone from '@/components/dropDonwLogo'
-import ProjectCard from '@/components/CardProject'
+
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
+import ProjectCard from '@/components/cardProject'
 
 const ONBOARDING_COOKIE_NAME = 'first_project_onboarding_completed'
 const COOKIE_EXPIRY_DAYS = 365
@@ -189,13 +190,19 @@ export default function StepCreateProject({
 
   const isCreateFormValid = useMemo(() => {
     const baseValid = createForm.formState.isValid
+    const imgUrl = createForm.watch('img_url')
+
+    console.log('baseValid:', baseValid)
+    console.log('createImageMode:', createImageMode)
+    console.log('createImageFile:', createImageFile)
+    console.log('img_url:', imgUrl)
 
     if (createImageMode === 'file') {
       return baseValid && createImageFile !== null
     } else {
-      return baseValid && createForm.watch('img_url')
+      return baseValid && !!imgUrl // força booleano
     }
-  }, [createForm.formState.isValid, createForm, createImageMode, createImageFile])
+  }, [createForm.formState.isValid, createImageMode, createImageFile, createForm.watch('img_url')])
 
   const isEditFormValid = useMemo(() => {
     const baseValid = editForm.formState.isValid

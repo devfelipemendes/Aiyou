@@ -26,6 +26,8 @@ import messagesReducer from './slices/messages'
 import clientHistoriesReducer from './slices/clientHistoriesSlice'
 import { soundNotificationMiddleware } from './midleware/soundNotificationMiddleware'
 
+import assistantsReducer from './slices/assistants'
+
 const persistConfig = {
   key: 'root',
   storage,
@@ -44,6 +46,8 @@ const rootReducer = combineReducers({
   messagesReducer,
   activeChats: activeChatsReducer,
   clientHistories: clientHistoriesReducer,
+  assistants: assistantsReducer,
+
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer
 })
