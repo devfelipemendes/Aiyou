@@ -67,10 +67,10 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(verticalNavOptions, theme)}
       >
+        <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
+          Painel
+        </MenuItem>
         <MenuSection label={'Principais'}>
-          <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
-            Painel
-          </MenuItem>
           <MenuItem href='/historico_interacoes' icon={<i className='ri-file-edit-line' />}>
             Histórico de interações
           </MenuItem>
@@ -82,6 +82,16 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           </MenuItem>
           <MenuItem href='/operador/monitoramento' icon={<i className='ri-customer-service-2-fill' />}>
             Operador
+          </MenuItem>
+        </MenuSection>
+        <MenuSection label={'Utilidades'}>
+          <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
+            Ingtegração API
+          </MenuItem>
+        </MenuSection>
+        <MenuSection label={'Gerenciamento'}>
+          <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
+            Financeiro
           </MenuItem>
         </MenuSection>
       </Menu>
