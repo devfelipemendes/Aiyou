@@ -68,6 +68,7 @@ export const apiSlice = createApi({
     'Api',
     'Task',
     'HttpMethod',
-    'CustomerInvoice'
+    'CustomerInvoice',
+    'Plan'
   ]
 })
