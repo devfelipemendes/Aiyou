@@ -122,7 +122,7 @@ const FinanceiroPage = () => {
     },
     {
       title: 'Standard Plan',
-      price: 100000,
+      price: 100,
       features: [
         'Campaign management',
         'Timeline with database',
