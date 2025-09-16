@@ -4,9 +4,8 @@ import Grid from '@mui/material/Grid2'
 import { Card, CardContent, CardHeader, Typography } from '@mui/material'
 
 import AssistenteDetails from '@/views/assistenteView/view/user-left-overview/AssistenteDetails'
-import TokensUsed from '@/views/assistenteView/view/user-left-overview/tokensUsed'
+
 import type { ProcessedAssistant } from '@/api/endpoints/assistant/assistant'
-import ChatCard from '@/components/chatCard/ChatCard'
 
 // Component Imports
 
