@@ -1,5 +1,7 @@
 import React from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import { useTheme, Avatar, Typography, Chip, Alert, IconButton, Tooltip } from '@mui/material'
 
 import type { UIProject } from '@/views/projects_register/StepCreateProject'
@@ -40,6 +42,7 @@ interface ProjectCardProps {
   height?: number
   backgroundImage?: string
   backgroundColor?: string
+  showEye?: boolean
 }
 
 export default function ProjectCard({
@@ -49,7 +52,8 @@ export default function ProjectCard({
   isUpdating = false,
   height = 400,
   backgroundImage,
-  backgroundColor = '#028175'
+  backgroundColor = '#028175',
+  showEye = false
 }: ProjectCardProps) {
   const theme = useTheme()
 
@@ -59,12 +63,16 @@ export default function ProjectCard({
   const avatarOffsetFromCenter = 10 // 10px abaixo do centro
   const centerPosition = topSectionHeight - avatarOffsetFromCenter
 
-  // Avatar responsivo: min 80px, escala com altura
+  // Avatar responsivo
   const avatarSize = Math.max(120, height * 0.2)
+  const navigate = useRouter()
+
+  const redirectViewProject = (idProject: string) => {
+    navigate.push(`/projetoss/detalhes_projeto?id=${idProject}`)
+  }
 
   return (
     <>
-      {/* Injetar CSS customizado */}
       <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
 
       <div
@@ -91,7 +99,6 @@ export default function ProjectCard({
             backgroundColor: theme.palette.background.paper
           }}
         >
-          {/* Conteúdo principal - deixa espaço para avatar + scroll */}
           <div
             className='mt-12 flex-1 overflow-y-auto flex flex-col justify-center pr-2 custom-scrollbar'
             style={{
@@ -147,7 +154,7 @@ export default function ProjectCard({
             )}
           </div>
 
-          {/* Actions - fixo na parte inferior */}
+          {/* Actions */}
           <div
             className='flex justify-center gap-2 mt-4 flex-shrink-0 border-t pt-3'
             style={{ borderColor: theme.palette.divider }}
@@ -166,6 +173,17 @@ export default function ProjectCard({
               </IconButton>
             </Tooltip>
 
+            {/* <OpenDialogOnElementClick
+                element={IconButton}
+                elementProps={{
+                  color: 'primary',
+                  size: 'small',
+                  children: <i className='ri-edit-line' />
+                }}
+                dialog={EditProjectDialog}
+                dialogProps={{ project: project }}
+              /> */}
+
             <Tooltip title='Remover projeto'>
               <IconButton
                 onClick={e => {
@@ -178,6 +196,14 @@ export default function ProjectCard({
                 <i className='ri-delete-bin-line' />
               </IconButton>
             </Tooltip>
+
+            {showEye && (
+              <Tooltip title='Visualizar Projeto'>
+                <IconButton onClick={() => redirectViewProject(project.id)} color='info' size='small'>
+                  <i className='ri-eye-line' />
+                </IconButton>
+              </Tooltip>
+            )}
 
             {project.img_url && (
               <Tooltip title='Ver imagem'>
@@ -196,7 +222,7 @@ export default function ProjectCard({
           </div>
         </div>
 
-        {/* Avatar posicionado no centro da divisão */}
+        {/* Avatar */}
         <div
           className='absolute left-1/2 z-10 transform -translate-x-1/2 -translate-y-1/2'
           style={{

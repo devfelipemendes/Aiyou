@@ -13,11 +13,9 @@ import UserRight from '@/views/assistenteView/view/user-right'
 import { useAppSelector } from '@/redux-store'
 
 // Dinâmicos
-const SecurityTab = dynamic(() => import('@views/assistenteView/view/user-right/security'))
-const BillingPlans = dynamic(() => import('@views/assistenteView/view/user-right/billing-plans'))
-const NotificationsTab = dynamic(() => import('@views/assistenteView/view/user-right/notifications'))
-const ConnectionsTab = dynamic(() => import('@views/assistenteView/view/user-right/connections'))
-const OverViewTab = dynamic(() => import('@views/assistenteView/view/user-right/overview'))
+const HomeTab = dynamic(() => import('@views/assistenteView/view/user-right/home'))
+const FunctionsTab = dynamic(() => import('@views/assistenteView/view/user-right/functionsTab'))
+const LinkedProject = dynamic(() => import('@/views/assistenteView/view/user-right/linkedProject'))
 
 const AssistentTabView = () => {
   const searchParams = useSearchParams()
@@ -36,11 +34,9 @@ const AssistentTabView = () => {
   // }
 
   const tabContentList: { [key: string]: ReactElement } = {
-    overview: <OverViewTab />,
-    'billing-plans': <BillingPlans />,
-    security: <SecurityTab />,
-    notifications: <NotificationsTab />,
-    connections: <ConnectionsTab />
+    hometab: <HomeTab />,
+    linkedProject: <LinkedProject />,
+    functions: <FunctionsTab />
   }
 
   console.log('assistente', assistente)

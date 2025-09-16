@@ -15,10 +15,7 @@ import FormControl from '@mui/material/FormControl'
 import FormLabel from '@mui/material/FormLabel'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
+
 import Skeleton from '@mui/material/Skeleton'
 import { useTheme } from '@mui/material'
 import * as v from 'valibot'
@@ -39,6 +36,7 @@ import ImageDropzone from '@/components/dropDonwLogo'
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
 import ProjectCard from '@/components/cardProject'
+import EditProjectDialog from '@/components/dialogs/edit-project/ProjectEditDialog'
 
 const ONBOARDING_COOKIE_NAME = 'first_project_onboarding_completed'
 const COOKIE_EXPIRY_DAYS = 365
@@ -122,7 +120,7 @@ const ProjectSchema = v.object({
   img_url: v.optional(v.pipe(v.string(), v.url('Deve ser uma URL válida')))
 })
 
-type ProjectFormData = v.InferInput<typeof ProjectSchema>
+export type ProjectFormData = v.InferInput<typeof ProjectSchema>
 
 export default function StepCreateProject({
   onNextStep,
@@ -208,9 +206,9 @@ export default function StepCreateProject({
     const baseValid = editForm.formState.isValid
 
     if (editImageMode === 'file') {
-      return baseValid && (editImageFile !== null || editingProject?.img_url)
+      return baseValid && (!!editImageFile || !!editingProject?.img_url)
     } else {
-      return baseValid && editForm.watch('img_url')
+      return baseValid && !!editForm.watch('img_url')
     }
   }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
 
@@ -694,117 +692,18 @@ export default function StepCreateProject({
         </>
       )}
 
-      <Dialog open={!!editingProject} onClose={handleCloseEditModal} maxWidth='md' fullWidth>
-        <DialogTitle>Editar Projeto: {editingProject?.name}</DialogTitle>
-
-        <DialogContent>
-          <form onSubmit={editForm.handleSubmit(handleEditSubmit)} id='edit-form'>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name='name'
-                  control={editForm.control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Nome do Projeto'
-                      required
-                      disabled={isUpdating}
-                      error={!!editForm.formState.errors.name}
-                      helperText={editForm.formState.errors.name?.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name='description'
-                  control={editForm.control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Descrição'
-                      required
-                      disabled={isUpdating}
-                      error={!!editForm.formState.errors.description}
-                      helperText={
-                        editForm.formState.errors.description?.message || `${field.value?.length || 0}/255 caracteres`
-                      }
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12 }}>
-                <FormControl component='fieldset' sx={{ width: '100%' }}>
-                  <FormLabel component='legend' sx={{ mb: 2 }}>
-                    Imagem do Projeto
-                  </FormLabel>
-
-                  <ToggleButtonGroup
-                    value={editImageMode}
-                    exclusive
-                    onChange={handleEditImageModeChange}
-                    sx={{ mb: 3 }}
-                    disabled={isUpdating}
-                  >
-                    <ToggleButton value='file'>📁 Upload de Arquivo</ToggleButton>
-                    <ToggleButton value='url'>🔗 URL da Imagem</ToggleButton>
-                  </ToggleButtonGroup>
-
-                  {editImageMode === 'file' ? (
-                    <Box display='flex' justifyContent='center' sx={{ mb: 2 }}>
-                      <ImageDropzone
-                        initialImage={editingProject?.img_url || undefined}
-                        onImageChange={handleEditImageChange}
-                        size='lg'
-                        placeholder='Imagem do projeto'
-                        maxSizeMB={10}
-                        disabled={isUpdating}
-                      />
-                    </Box>
-                  ) : (
-                    <Controller
-                      name='img_url'
-                      control={editForm.control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label='URL da Imagem'
-                          disabled={isUpdating}
-                          error={!!editForm.formState.errors.img_url}
-                          helperText={editForm.formState.errors.img_url?.message}
-                          placeholder='https://exemplo.com/imagem.jpg'
-                        />
-                      )}
-                    />
-                  )}
-                </FormControl>
-              </Grid>
-            </Grid>
-          </form>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={handleCloseEditModal} disabled={isUpdating}>
-            Cancelar
-          </Button>
-          <Button
-            type='submit'
-            form='edit-form'
-            variant='contained'
-            color='primary'
-            disabled={!isEditFormValid || isUpdating}
-            startIcon={isUpdating ? <CircularProgress size={16} /> : <i className='ri-check-line' />}
-          >
-            {isUpdating ? 'Atualizando...' : 'Salvar Alterações'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EditProjectDialog
+        editingProject={editingProject}
+        editForm={editForm}
+        editImageMode={editImageMode}
+        editImageFile={editImageFile}
+        isUpdating={isUpdating}
+        handleEditImageChange={handleEditImageChange}
+        handleEditImageModeChange={handleEditImageModeChange}
+        handleCloseEditModal={handleCloseEditModal}
+        handleEditSubmit={handleEditSubmit}
+        isEditFormValid={isEditFormValid}
+      />
 
       <ConfirmDialog
         open={confirmDialog.open}

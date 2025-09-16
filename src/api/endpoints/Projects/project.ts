@@ -38,6 +38,8 @@ export type Project = {
   img_url: string | null
   created_at: string
   updated_at: string
+  used_tokens: number
+  assistants?: any
 }
 
 // 🎯 TIPOS PARA A RESPONSE DE GET (listagem)
@@ -45,6 +47,13 @@ export type GetProjectsResponse = {
   message: string
   status: number
   data: Project[]
+}
+
+// 🎯 TIPO PARA A RESPONSE DE GET BY ID
+export type GetProjectByIdResponse = {
+  message: string
+  status: number
+  data: Project
 }
 
 // 🎯 TIPOS PARA A RESPONSE DE CREATE
@@ -98,17 +107,43 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 TAG PARA CACHE E INVALIDAÇÃO
       providesTags: result =>
         result
           ? [...result.data.map(({ id }) => ({ type: 'Project' as const, id })), { type: 'Project', id: 'LIST' }]
           : [{ type: 'Project', id: 'LIST' }]
     }),
 
+    // 🎯 NOVO ENDPOINT - GET PROJECT BY ID
+    getProjectById: builder.query<GetProjectByIdResponse, string>({
+      query: id => ({
+        url: `/project/${id}`,
+        method: 'GET',
+        headers: {
+          Accept: 'application/json'
+        }
+      }),
+
+      transformResponse: (response: GetProjectByIdResponse) => {
+        console.log('🔍 Projeto carregado pelo ID:', response)
+
+        return response
+      },
+
+      transformErrorResponse: (response: any): ProjectError => {
+        console.error('❌ Erro ao buscar projeto pelo ID:', response)
+
+        return {
+          status: response.status || 500,
+          message: response?.data?.message || response?.message || 'Erro ao buscar projeto'
+        }
+      },
+
+      providesTags: (result, error, id) => [{ type: 'Project', id }]
+    }),
+
     // 🎯 ENDPOINT EXISTENTE - CREATE PROJECT
     createProject: builder.mutation<CreateProjectResponse, CreateProjectRequest>({
       query: projectData => {
-        // 🎯 SE TEM ARQUIVO, USAR FORMDATA
         if (projectData.image) {
           const formData = new FormData()
 
@@ -123,7 +158,6 @@ export const projectApi = apiSlice.injectEndpoints({
           }
         }
 
-        // 🎯 SE TEM APENAS URL, USAR JSON
         return {
           url: '/project',
           method: 'POST',
@@ -141,12 +175,7 @@ export const projectApi = apiSlice.injectEndpoints({
 
       transformResponse: (response: CreateProjectResponse) => {
         console.log('🔍 DEBUG - Estrutura da resposta CREATE:', response)
-
-        if (response?.data?.name) {
-          console.log('✅ Projeto criado com sucesso:', response?.data?.name)
-        } else {
-          console.log('✅ Projeto criado com sucesso!')
-        }
+        console.log('✅ Projeto criado com sucesso:', response?.data?.name || '')
 
         return response
       },
@@ -160,14 +189,12 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 INVALIDAR CACHE PARA RE-FETCH AUTOMÁTICO
       invalidatesTags: [{ type: 'Project', id: 'LIST' }]
     }),
 
     // 🎯 ENDPOINT EXISTENTE - UPDATE PROJECT
     updateProject: builder.mutation<UpdateProjectResponse, UpdateProjectRequest>({
       query: ({ id, ...projectData }) => {
-        // 🎯 SE TEM ARQUIVO, USAR FORMDATA
         if (projectData.image) {
           const formData = new FormData()
 
@@ -178,12 +205,11 @@ export const projectApi = apiSlice.injectEndpoints({
 
           return {
             url: `/project/${id}`,
-            method: 'POST', // Laravel method spoofing
+            method: 'POST',
             body: formData
           }
         }
 
-        // 🎯 SE TEM APENAS DADOS JSON, USAR PUT NORMAL
         const updateData: any = {}
 
         if (projectData.name) updateData.name = projectData.name
@@ -203,12 +229,7 @@ export const projectApi = apiSlice.injectEndpoints({
 
       transformResponse: (response: UpdateProjectResponse) => {
         console.log('🔍 DEBUG - Estrutura da resposta UPDATE:', response)
-
-        if (response?.data?.name) {
-          console.log('✅ Projeto atualizado com sucesso:', response?.data?.name)
-        } else {
-          console.log('✅ Projeto atualizado com sucesso!')
-        }
+        console.log('✅ Projeto atualizado com sucesso:', response?.data?.name || '')
 
         return response
       },
@@ -222,7 +243,6 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 INVALIDAR CACHE ESPECÍFICO E LISTA
       invalidatesTags: (result, error, arg) => [
         { type: 'Project', id: arg.id },
         { type: 'Project', id: 'LIST' }
@@ -255,7 +275,6 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      // 🎯 INVALIDAR CACHE PARA REMOVER DA LISTA
       invalidatesTags: (result, error, arg) => [
         { type: 'Project', id: arg.id },
         { type: 'Project', id: 'LIST' }
@@ -266,8 +285,9 @@ export const projectApi = apiSlice.injectEndpoints({
 
 // 🎯 EXPORT DOS HOOKS
 export const {
-  useGetProjectsQuery, // 🆕 Hook para GET
+  useGetProjectsQuery,
+  useGetProjectByIdQuery, // 🆕 Hook para GET por ID
   useCreateProjectMutation,
   useUpdateProjectMutation,
-  useDeleteProjectMutation // 🆕 Hook para DELETE
+  useDeleteProjectMutation
 } = projectApi

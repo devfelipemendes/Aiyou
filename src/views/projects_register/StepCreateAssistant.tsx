@@ -9,10 +9,7 @@ import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Collapse from '@mui/material/Collapse'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
+
 import Skeleton from '@mui/material/Skeleton'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
@@ -37,6 +34,7 @@ import { useGetProjectsQuery, type Project } from '@/api/endpoints/Projects/proj
 
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 import AssistantCard from '@/components/CardAssistant'
+import EditAssistantDialog from '@/components/dialogs/edit-assistant/EditAssistantDialog'
 
 export interface UIAssistant extends ProcessedAssistant {}
 
@@ -51,7 +49,7 @@ const AssistantSchema = v.object({
   project_id: v.pipe(v.string(), v.minLength(1, 'Projeto é obrigatório'))
 })
 
-type AssistantFormData = v.InferInput<typeof AssistantSchema>
+export type AssistantFormData = v.InferInput<typeof AssistantSchema>
 
 export default function StepCreateAssistant({
   onNextStep,
@@ -497,75 +495,17 @@ export default function StepCreateAssistant({
       )}
 
       {/* 🎯 MODAL DE EDIÇÃO */}
-      <Dialog open={!!editingAssistant} onClose={handleCloseEditModal} maxWidth='sm' fullWidth>
-        <DialogTitle>Editar Assistente: {editingAssistant?.name}</DialogTitle>
-
-        <DialogContent>
-          <form onSubmit={editForm.handleSubmit(handleEditSubmit)} id='edit-assistant-form'>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              {/* Nome */}
-              <Grid size={{ xs: 12 }}>
-                <Controller
-                  name='name'
-                  control={editForm.control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Nome do Assistente'
-                      required
-                      disabled={isUpdating}
-                      error={!!editForm.formState.errors.name}
-                      helperText={editForm.formState.errors.name?.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              {/* Projeto */}
-              <Grid size={{ xs: 12 }}>
-                <Controller
-                  name='project_id'
-                  control={editForm.control}
-                  render={({ field }) => (
-                    <FormControl fullWidth required disabled={isUpdating || isLoadingProjects}>
-                      <InputLabel>Projeto</InputLabel>
-                      <Select {...field} label='Projeto' error={!!editForm.formState.errors.project_id}>
-                        {projects.map(project => (
-                          <MenuItem key={project.id} value={project.id}>
-                            {project.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {editForm.formState.errors.project_id && (
-                        <Typography variant='caption' color='error' sx={{ mt: 1, ml: 2 }}>
-                          {editForm.formState.errors.project_id.message}
-                        </Typography>
-                      )}
-                    </FormControl>
-                  )}
-                />
-              </Grid>
-            </Grid>
-          </form>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={handleCloseEditModal} disabled={isUpdating}>
-            Cancelar
-          </Button>
-          <Button
-            type='submit'
-            form='edit-assistant-form'
-            variant='contained'
-            color='primary'
-            disabled={!isEditFormValid || isUpdating}
-            startIcon={isUpdating ? <CircularProgress size={16} /> : <i className='ri-check-line' />}
-          >
-            {isUpdating ? 'Atualizando...' : 'Salvar Alterações'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EditAssistantDialog
+        open={!!editingAssistant}
+        assistant={editingAssistant}
+        editForm={editForm}
+        projects={projects}
+        onClose={handleCloseEditModal}
+        onSubmit={handleEditSubmit}
+        isUpdating={isUpdating}
+        isLoadingProjects={isLoadingProjects}
+        isFormValid={isEditFormValid}
+      />
 
       {/* 🎯 DIALOG DE CONFIRMAÇÃO DELETE */}
       <ConfirmDialog

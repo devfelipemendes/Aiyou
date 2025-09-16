@@ -15,13 +15,13 @@ import { TextField } from '@mui/material'
 import LoadingButton from '@mui/lab/LoadingButton'
 
 const TabConfigAssistent = () => {
-  const [value, setValue] = useState<string>('empresa')
+  const [value, setValue] = useState<string>('Empresa')
 
   const handleChange = (event: SyntheticEvent, newValue: string) => {
     setValue(newValue)
   }
 
-  const tabs = ['empresa', 'assistente', 'primeiro-contato', 'funcoes', 'especiais', 'etapa', 'despedida', 'notas']
+  const tabs = ['Empresa', 'Assistente', 'Primeiro contato', 'Funçoes', 'Especiais', 'Etapa', 'Despedida', 'Notas']
 
   return (
     <Card>

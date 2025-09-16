@@ -1,10 +1,9 @@
 // MUI Imports
 import Grid from '@mui/material/Grid2'
 
-// Component Imports
+import ClienteListTable from '@/views/assistenteView/view/user-right/home/ProjectListTable'
 
-import ProjectListTable from './ProjectListTable'
-import TabConfigAssistent from '@/components/tabsConfigAssistent/TabConfigAssistent'
+// Component Imports
 
 // Data Imports
 
@@ -25,20 +24,16 @@ import TabConfigAssistent from '@/components/tabsConfigAssistent/TabConfigAssist
   return res.json()
 } */
 
-const OverViewTab = () => {
+const InteractionsProject = () => {
   // Vars
 
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
-        <ProjectListTable />
-      </Grid>
-
-      <Grid size={{ xs: 12 }}>
-        <TabConfigAssistent />
+        <ClienteListTable />
       </Grid>
     </Grid>
   )
 }
 
-export default OverViewTab
+export default InteractionsProject
