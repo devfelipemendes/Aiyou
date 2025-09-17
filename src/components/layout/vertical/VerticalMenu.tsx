@@ -78,13 +78,16 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
             Assistentes
           </MenuItem>
           <MenuItem href='/projetos' icon={<i className='ri-folder-6-line' />}>
-            Projetos
+            Tab Inicio
           </MenuItem>
           <MenuItem href='/projetoss' icon={<i className='ri-folder-6-line' />}>
-            Projetosssss
+            Projetos
           </MenuItem>
-          <MenuItem href='/operador/monitoramento' icon={<i className='ri-customer-service-2-fill' />}>
-            Operador
+          <MenuItem href='/monitoramento' icon={<i className='ri-bar-chart-line' />}>
+            Monitoramento
+          </MenuItem>
+          <MenuItem href='/operadores/' icon={<i className='ri-customer-service-2-fill' />}>
+            Operadores
           </MenuItem>
         </MenuSection>
         <MenuSection label={'Utilidades'}>

@@ -38,6 +38,7 @@ type CreateAssistantFormData = v.InferInput<typeof createAssistantSchema>
 
 const CreateAssistant = ({ open, setOpen }: CreateAssistantProps) => {
   const { data: projectsData, error, isLoading } = useGetProjectsQuery()
+
   const [createAssistant, { isLoading: isLoadingCreateAssistant }] = useCreateAssistantMutation()
 
   const { handleSubmit, control, reset } = useForm<CreateAssistantFormData>({
@@ -62,6 +63,7 @@ const CreateAssistant = ({ open, setOpen }: CreateAssistantProps) => {
       }
 
       console.log('✅ Assistente criado:', response)
+
       handleClose()
     } catch (error) {
       toast.error('Erro ao criar assistente!')

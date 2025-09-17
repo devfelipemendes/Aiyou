@@ -96,7 +96,7 @@ const ProjectDetailsHeader = ({ data }: { data: GetProjectByIdResponse | undefin
       {/* Conteúdo principal */}
       <CardContent className='flex gap-6 justify-center flex-col md:flex-row md:items-start !pt-0'>
         {/* Avatar */}
-        <div className='flex-shrink-0 sticky top-0 rounded-md -mt-[45px] bg-backgroundPaper w-[120px] h-[120px] overflow-hidden'>
+        <div className='flex-shrink-0 sticky top-0 rounded-md -mt-[45px] bg-backgroundPaper w-[120px] h-[120px] overflow-hidden border-4 border-borderColor'>
           <img
             src={
               data?.data.img_url ||

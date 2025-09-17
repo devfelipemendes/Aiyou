@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useCallback } from 'react'
 
 import { useTheme } from '@mui/material/styles'
-import { Card, CardHeader, CardContent, Button, CircularProgress } from '@mui/material'
+import type { ButtonProps } from '@mui/material'
+import { Card, CardHeader, CardContent, Button, CircularProgress, CardActions } from '@mui/material'
 import Grid from '@mui/material/Grid2'
 
 import { useForm } from 'react-hook-form'
@@ -17,6 +18,9 @@ import {
 import ProjectCard from '@/components/cardProject'
 import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
 import EditProjectDialog from '@/components/dialogs/edit-project/ProjectEditDialog'
+import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
+
+import CreateProjectDialog from '@/components/dialogs/create-operator/CreateProjectDialog'
 
 export interface UIProject extends Project {
   status?: 'pending' | 'success' | 'error'
@@ -146,10 +150,19 @@ export default function ProjectList() {
     )
   }
 
+  const buttonProps: ButtonProps = {
+    variant: 'contained',
+    endIcon: <i className='ri-folder-6-line' />,
+    children: 'Cadastrar novo projeto'
+  }
+
   return (
     <>
       <Card>
         <CardHeader title='Projetos Cadastrados' />
+        <CardActions>
+          <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={CreateProjectDialog} />
+        </CardActions>
         <CardContent>
           <Grid container spacing={3}>
             {projects.map(project => (

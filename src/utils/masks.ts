@@ -97,6 +97,10 @@ export const unmaskValue = (value: string) => {
   return cleanedValue
 }
 
+export function formatNumberBR(number: number): string {
+  return new Intl.NumberFormat('pt-BR').format(number)
+}
+
 export const maskCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
