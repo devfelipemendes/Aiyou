@@ -2,50 +2,99 @@
 
 // MUI Imports
 
+import { useState } from 'react'
+
 import Grid from '@mui/material/Grid2'
 
 // Components Imports
 
-import CardStatWithImage from '@components/card-statistics/Character'
-import Transactions from '@views/dashboards/crm/Transactions'
+import type { SelectChangeEvent } from '@mui/material'
+import { FormControl, InputLabel, MenuItem, Select } from '@mui/material'
+
 import RevenueReport from '@views/dashboards/crm/RevenueReport'
 import CardWidgetsSalesOverview from '@views/dashboards/crm/SalesOverview'
 import ActivityTimeline from '@views/dashboards/crm/ActivityTimeline'
 import UpgradePlan from '@views/dashboards/crm/UpgradePlan'
 import MeetingSchedule from '@views/dashboards/crm/MeetingSchedule'
 import TotalSales from '@/views/dashboards/crm/TotalSales'
+import type { ThemeColor } from '@/@core/types'
+
+import { useGetDashboardQuery } from '@/api/endpoints/dashboard/dashboard'
+import { getCurrentMonth, getCurrentYear, getNameMonth, months } from '@/utils/utilDates'
+import EstatisticsDash from './EstatisticsDash'
+import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
+import AvailableSoon from '@/components/AvailableSoon'
+
+export type DataTypeEstatisticsDash = {
+  icon: string
+  stats: string
+  title: string
+  color: ThemeColor
+}
 
 const DashboardCRM = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [filters, setFilters] = useState({ year: getCurrentYear(), month: getCurrentMonth() })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [month, setMonth] = useState<string>(getNameMonth(getCurrentMonth()))
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data, isFetching, error, refetch } = useGetDashboardQuery(filters)
+
+  const handleChangeMonth = (event: SelectChangeEvent) => {
+    const selectedMonth = event.target.value
+
+    setMonth(months.find(m => m.value === selectedMonth)?.label || '')
+    setFilters(prev => ({ ...prev, month: selectedMonth }))
+  }
+
   return (
     <Grid container spacing={6}>
+      <Grid size={{ xs: 12, sm: 12 }}>
+        <FormControl fullWidth>
+          <InputLabel>Mês</InputLabel>
+          <Select value={filters.month} label='Mês' onChange={handleChangeMonth}>
+            {months.map(m => (
+              <MenuItem key={m.value} value={m.value}>
+                {m.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
       <Grid size={{ xs: 12 }} className='self-end'>
-        <Transactions />
+        <EstatisticsDash month={month} data={data} isLoading={isFetching} />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
-        <CardStatWithImage
-          stats='126'
+      <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end relative'>
+        <AvailableSoon />
+        <HorizontalWithBorderExample
+          isLoading={false}
+          color='primary'
+          icon='ri-mic-fill'
+          value='Em Desenvolvimento'
           title='Interações em voz'
-          trendNumber='15.6%'
-          chipColor='primary'
-          chipText={`Atendimentos do dia 0${new Date().getDate()}/${new Date().getMonth() + 1}`}
+          month={month}
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
-        <CardStatWithImage
-          stats='245'
-          trend='negative'
+        <HorizontalWithBorderExample
+          isLoading={isFetching}
+          color='info'
+          icon='ri-chat-3-line'
+          value={String(data?.data.total_protocols)}
           title='Interações em Texto'
-          trendNumber='20%'
-          chipText={`Atendimentos do dia 0${new Date().getDate()}/${new Date().getMonth() + 1}`}
+          month={month}
         />
       </Grid>
-      <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end'>
-        <CardStatWithImage
-          stats='25'
-          trend='negative'
+
+      <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end relative'>
+        <AvailableSoon />
+        <HorizontalWithBorderExample
+          isLoading={isFetching}
+          color='success'
+          icon='ri-user-3-line'
+          value='0'
           title='Interações com operador'
-          trendNumber='20%'
-          chipText={`Atendimentos do dia 0${new Date().getDate()}/${new Date().getMonth() + 1}`}
+          month={month}
         />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -54,7 +103,8 @@ const DashboardCRM = () => {
       <Grid size={{ xs: 12, sm: 6, md: 3 }}>
         <RevenueReport />
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }}>
+      <Grid className='relative' size={{ xs: 12, md: 6 }}>
+        <AvailableSoon />
         <CardWidgetsSalesOverview />
       </Grid>
       <Grid size={{ xs: 12, md: 12 }}>
