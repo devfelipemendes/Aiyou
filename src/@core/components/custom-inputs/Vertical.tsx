@@ -87,7 +87,7 @@ const CustomInputVertical = (props: CustomInputVerticalProps) => {
 
   const renderComponent = () => {
     return (
-      <Grid {...gridProps}>
+      <Grid {...gridProps} className='h-full'>
         <Root
           onClick={() => handleChange(value)}
           className={classnames({
@@ -97,8 +97,14 @@ const CustomInputVertical = (props: CustomInputVerticalProps) => {
           })}
         >
           {asset || null}
-          {content ? typeof content === 'string' ? <Content>{content}</Content> : content : null}
-          {title ? typeof title === 'string' ? <Title>{title}</Title> : title : null}
+          {title ? typeof title === 'string' ? <Title className='select-none'>{title}</Title> : title : null}
+          {content ? (
+            typeof content === 'string' ? (
+              <Content className='select-none'>{content}</Content>
+            ) : (
+              content
+            )
+          ) : null}
           {type === 'radio' ? (
             <RadioInput name={name} color={color} value={value} onChange={handleChange} checked={selected === value} />
           ) : (

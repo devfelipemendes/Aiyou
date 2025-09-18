@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, type ChangeEvent } from 'react'
 
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   Card,
   CardContent,
@@ -30,6 +29,10 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import { useGetPlansQuery } from '@/api/endpoints/plans/plans'
+import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
+import type { CustomInputVerticalData } from '@/@core/components/custom-inputs/types'
+import { AnimatedReveal } from '@/components/AnimetedReveal'
+import CreditCard from '@/components/CreditCard'
 
 // Custom styles para as dots do pagination
 const swiperPaginationStyles = `
@@ -74,8 +77,37 @@ interface PricingPlansModalProps {
   onClose: () => void
 }
 
+const data: CustomInputVerticalData[] = [
+  {
+    value: 'recorrencia',
+    title: 'Recorrência',
+    isSelected: true,
+    content:
+      'Ative a recorrencia no seu cartão de credito, e facilite a forma de pagemnto sem se preocupar com o vencimento',
+    asset: 'ri-bank-card-fill'
+  },
+  {
+    value: 'boleto',
+    title: 'Boleto',
+    content: 'Faça pagamento via boleto ou pix, com sua faltura gerada mensalmente',
+    asset: 'ri-barcode-line'
+  }
+]
+
 const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) => {
+  const initialSelected: string = data.filter(item => item.isSelected)[data.filter(item => item.isSelected).length - 1]
+    .value
+
   const [selectedPlan, setSelectedPlan] = useState<string>('')
+  const [selectedMethod, setSelectedMethod] = useState<string>(initialSelected)
+
+  const handleChange = (prop: string | ChangeEvent<HTMLInputElement>) => {
+    if (typeof prop === 'string') {
+      setSelectedMethod(prop)
+    } else {
+      setSelectedMethod((prop.target as HTMLInputElement).value)
+    }
+  }
 
   const { data: plansResponse, isLoading, error } = useGetPlansQuery()
 
@@ -197,7 +229,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     const getCardStyles = () => {
       const baseStyles = {
         height: '100%',
-        minHeight: '600px',
+        minHeight: '525px',
         position: 'relative' as const
       }
 
@@ -230,7 +262,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
           '&:hover': {
             borderColor: 'primary.main',
             transform: 'translateY(-4px)',
-            boxShadow: 3
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)'
           }
         }
       }
@@ -307,9 +339,27 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                 <Typography variant='h5' component='sup' sx={{ fontSize: '1.125rem', fontWeight: 'medium' }}>
                   R$
                 </Typography>
-                <Typography color='text.primary' sx={{ fontWeight: 'bold', fontSize: '3rem' }}>
-                  {plan.price}
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <Typography color='text.primary' sx={{ fontWeight: 'bold', fontSize: '3rem', lineHeight: 1 }}>
+                      {Math.floor(plan.price)}
+                    </Typography>
+                    {/* Renderizar centavos se houver */}
+                    {plan.price % 1 !== 0 && (
+                      <Typography
+                        component='sup'
+                        sx={{
+                          fontSize: '1.5rem',
+                          fontWeight: 'medium',
+                          color: 'text.primary',
+                          ml: 0.5
+                        }}
+                      >
+                        .{((plan.price % 1) * 100).toFixed(0).padStart(2, '0')}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
               </Box>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 <Typography variant='h6'>Por mês</Typography>
@@ -358,7 +408,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
               size='large'
               disabled={plan.current}
             >
-              {plan.current ? 'Plano Atual' : isSelected ? 'Quero este aqui!' : 'Escolha um plano'}
+              {plan.current ? 'Plano Atual' : isSelected ? 'Plano Selecionado' : 'Selecionar Plano'}
             </Button>
           </Box>
         </CardContent>
@@ -382,7 +432,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
         }
       }}
     >
-      <DialogTitle sx={{ m: 0, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ m: 0, p: 2, pl: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant='h5' component='div'>
           Escolha seu Plano
         </Typography>
@@ -395,9 +445,9 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
         >
           <i className='ri-close-fill' />
         </IconButton>
-      </DialogTitle>
+      </Box>
 
-      <DialogContent dividers sx={{ p: 10 }}>
+      <DialogContent sx={{ p: 10 }}>
         {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
             <CircularProgress />
@@ -457,60 +507,6 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                     <SwiperSlide key={plan.id}>{renderPlanCard(plan)}</SwiperSlide>
                   ))}
                 </Swiper>
-
-                <Box
-                  className='swiper-button-prev-custom'
-                  sx={{
-                    position: 'absolute',
-                    left: -20,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 40,
-                    height: 40,
-                    bgcolor: 'background.paper',
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 10,
-                    boxShadow: 2,
-                    '&:hover': {
-                      bgcolor: 'action.hover'
-                    }
-                  }}
-                >
-                  <Typography sx={{ fontSize: '1.2rem' }}>‹</Typography>
-                </Box>
-
-                <Box
-                  className='swiper-button-next-custom'
-                  sx={{
-                    position: 'absolute',
-                    right: -20,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: 40,
-                    height: 40,
-                    bgcolor: 'background.paper',
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 10,
-                    boxShadow: 2,
-                    '&:hover': {
-                      bgcolor: 'action.hover'
-                    }
-                  }}
-                >
-                  <Typography sx={{ fontSize: '1.2rem' }}>›</Typography>
-                </Box>
               </Box>
             ) : (
               <Grid container spacing={4}>
@@ -519,6 +515,65 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                     {renderPlanCard(plan)}
                   </Grid>
                 ))}
+                {selectedPlan && (
+                  <Grid size={{ xs: 12 }} className='mt-2'>
+                    <AnimatedReveal animation='slideInRight' duration={400} show={true}>
+                      <Divider className='pb-5' />
+                      <Grid container spacing={4} className='mb-0'>
+                        <Grid size={{ xs: 12 }}>
+                          <Box>
+                            <Typography variant='h5' component='div' className='pt-5'>
+                              Escolha o metodo de pagemento
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12 }} className='flex items-center justify-center gap-4'>
+                          {data.map((item, index) => {
+                            let asset
+
+                            if (item.asset && typeof item.asset === 'string') {
+                              asset = <i className={item.asset + ' text-[40px]'} />
+                            }
+
+                            return (
+                              <CustomInputVertical
+                                type='radio'
+                                key={index}
+                                data={{ ...item, asset }}
+                                selected={selectedMethod}
+                                name='custom-radios-icons'
+                                handleChange={handleChange}
+                                gridProps={{ size: { xs: 12, sm: 4 } }}
+                              />
+                            )
+                          })}
+                        </Grid>
+                      </Grid>
+                    </AnimatedReveal>
+                    {selectedMethod === 'boleto' && (
+                      <AnimatedReveal animation='slideInRight' duration={400} show={true}>
+                        <Box className='w-full flex items-center justify-center'>
+                          <Button
+                            component={Link}
+                            href='/front-pages/payment'
+                            variant={'contained'}
+                            color={'primary'}
+                            size='large'
+                          >
+                            Gerar boleto
+                          </Button>
+                        </Box>
+                      </AnimatedReveal>
+                    )}
+                    {selectedMethod === 'recorrencia' && (
+                      <AnimatedReveal animation='slideInRight' duration={400} show={true}>
+                        <Box className='w-full flex flex-col items-center justify-center pb-10'>
+                          <CreditCard />
+                        </Box>
+                      </AnimatedReveal>
+                    )}
+                  </Grid>
+                )}
               </Grid>
             )}
           </>

@@ -76,29 +76,6 @@ export default function HistoricoInteracoes() {
       <CardContent>
         <Grid container spacing={4}>
           <Grid size={{ xs: 12 }}>
-            <Grid container spacing={4}>
-              {data.map((item, index) => {
-                let asset
-
-                if (item.asset && typeof item.asset === 'string') {
-                  asset = <i className={item.asset + ' text-[40px]'} />
-                }
-
-                return (
-                  <CustomInputVertical
-                    type='radio'
-                    key={index}
-                    data={{ ...item, asset }}
-                    selected={selected}
-                    name='custom-radios-icons'
-                    handleChange={handleChange}
-                    gridProps={{ size: { xs: 12, sm: 4 } }}
-                  />
-                )
-              })}
-            </Grid>
-          </Grid>
-          <Grid size={{ xs: 12 }}>
             <ListTable
               exportFileName={``}
               loading={false}
