@@ -2,19 +2,18 @@
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
 import Button from '@mui/material/Button'
 import type { ButtonProps } from '@mui/material/Button'
 import Grid from '@mui/material/Grid'
 
 // Component Imports
 
-import { Building2, Mail, MapPinHouse, Phone } from 'lucide-react'
+import { Building2, IdCard, Mail, MapPinHouse, Phone } from 'lucide-react'
 
 import type { Theme as MuiTheme } from '@mui/material/styles'
 import { useTheme } from '@mui/material/styles'
 
-import { CardHeader, LinearProgress } from '@mui/material'
+import { Box, Divider } from '@mui/material'
 
 import EditUserInfo from '@components/dialogs/edit-user-info'
 import ConfirmationDialog from '@components/dialogs/confirmation-dialog'
@@ -24,6 +23,8 @@ import { getInitials } from '@/utils/getInitials'
 
 // Types
 import type { ThemeColor } from '@core/types'
+import type { GetOperatorByIdResponse } from '@/api/endpoints/operator/operator'
+import { maskCnpjCpf, maskTelefone } from '@/utils/masks'
 
 // Mock user data
 const userData = {
@@ -54,7 +55,7 @@ const userData = {
 //   { rating: 4, value: 40, title: 'Max Tokens' }
 // ]
 
-const OperatorDetails = ({ id }: { id?: any }) => {
+const OperatorDetails = ({ operator }: { operator: GetOperatorByIdResponse | undefined }) => {
   const buttonProps = (children: string, color: ThemeColor, variant: ButtonProps['variant']): ButtonProps => ({
     children,
     color,
@@ -63,7 +64,15 @@ const OperatorDetails = ({ id }: { id?: any }) => {
 
   const theme: MuiTheme = useTheme()
 
-  console.log('tema', theme)
+  console.log('operatoroperatoroperatoroperator', operator)
+
+  if (operator === undefined) {
+    return (
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography>Erro ao carregar operador. Tentar novamente</Typography>
+      </Box>
+    )
+  }
 
   return (
     <>
@@ -71,13 +80,12 @@ const OperatorDetails = ({ id }: { id?: any }) => {
         <CardContent className='flex flex-col gap-6 p-6'>
           {/* Header */}
           <div className='flex flex-col items-center gap-4'>
-            <CustomAvatar alt={userData.name} variant='rounded' className='text-[30px]' size={120}>
-              {getInitials(userData.name).toUpperCase()}
+            <CustomAvatar alt={operator?.data.user.name} variant='rounded' className='text-[30px]' size={120}>
+              {getInitials(operator?.data.user.name).toUpperCase()}
             </CustomAvatar>
-            <Typography variant='h5'>{userData.name}</Typography>
-            <Chip label={userData.status} color='success' size='small' variant='tonal' />
+            <Typography variant='h5'>{operator?.data.user.name}</Typography>
           </div>
-
+          <Divider orientation='horizontal' />
           {/* User Info Grid */}
           <Grid container spacing={3} className='mt-4'>
             <div className='flex flex-col gap-4 px-6'>
@@ -88,7 +96,16 @@ const OperatorDetails = ({ id }: { id?: any }) => {
                   <Typography className='font-medium inline' color='text.primary'>
                     E-mail:{' '}
                   </Typography>
-                  <Typography className='inline break-words'>{userData.email}</Typography>
+                  <Typography className='inline break-words'>{operator?.data.user.email}</Typography>
+                </div>
+              </div>
+              <div className='flex items-start gap-2'>
+                <IdCard color={theme.palette.primary.main} size={20} />
+                <div className='flex-1'>
+                  <Typography className='font-medium inline' color='text.primary'>
+                    CPF:{' '}
+                  </Typography>
+                  <Typography className='inline break-words'>{maskCnpjCpf(operator?.data.user.identifier)}</Typography>
                 </div>
               </div>
 
@@ -99,7 +116,9 @@ const OperatorDetails = ({ id }: { id?: any }) => {
                   <Typography className='font-medium inline' color='text.primary'>
                     Telefone:{' '}
                   </Typography>
-                  <Typography className='inline break-words'>{userData.phone_number}</Typography>
+                  <Typography className='inline break-words'>
+                    {maskTelefone(operator?.data.user.phone_number)}
+                  </Typography>
                 </div>
               </div>
 
@@ -110,18 +129,17 @@ const OperatorDetails = ({ id }: { id?: any }) => {
                   <Typography className='font-medium inline' color='text.primary'>
                     Cidade:{' '}
                   </Typography>
-                  <Typography className='inline break-words'>{userData.city}</Typography>
+                  <Typography className='inline break-words'>{operator?.data.user.city}</Typography>
                 </div>
               </div>
 
-              {/* Endereço */}
               <div className='flex items-start gap-2'>
                 <MapPinHouse color={theme.palette.primary.main} size={20} />
                 <div className='flex-1'>
                   <Typography className='font-medium inline' color='text.primary'>
-                    Endereço:{' '}
+                    Bairro:{' '}
                   </Typography>
-                  <Typography className='inline break-words'>{userData.address}</Typography>
+                  <Typography className='inline break-words'>{operator?.data.user.neighborhood}</Typography>
                 </div>
               </div>
             </div>

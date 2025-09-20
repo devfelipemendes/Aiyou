@@ -1,8 +1,12 @@
 // MUI Imports
+import { useEffect, useState } from 'react'
+
 import Grid from '@mui/material/Grid2'
 
 // import ProjectListTable from '../../assistenteView/view/user-right/home/ProjectListTable'
 import ActivityTimeline from '@/views/dashboards/crm/ActivityTimeline'
+import type { Activity } from '@/api/endpoints/activity/activity'
+import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
 
 // Component Imports
 
@@ -25,8 +29,21 @@ import ActivityTimeline from '@/views/dashboards/crm/ActivityTimeline'
   return res.json()
 } */
 
-const HomeProject = () => {
+const HomeProject = ({ id }: { id: string }) => {
   // Vars
+  const [dataFiltered_3, setDataFiltered_3] = useState<Activity[] | undefined>()
+
+  const { data: dataActivity, isLoading } = useGetActivitiesQuery({
+    subject_id: id,
+    subject_type: 'App\Models\Project',
+    sort: '-created_at'
+  })
+
+  useEffect(() => {
+    if (dataActivity?.data) {
+      setDataFiltered_3(dataActivity.data.slice(0, 3))
+    }
+  }, [dataActivity])
 
   return (
     <Grid container spacing={6}>
@@ -34,7 +51,7 @@ const HomeProject = () => {
         <ProjectListTable />
       </Grid> */}
       <Grid size={{ xs: 12 }}>
-        <ActivityTimeline />
+        <ActivityTimeline isLoading={isLoading} dataFiltered_3={dataFiltered_3 ?? []} />
       </Grid>
     </Grid>
   )

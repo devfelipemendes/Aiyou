@@ -5,6 +5,7 @@ import Grid from '@mui/material/Grid2'
 
 import ProjectListTable from './ProjectListTable'
 import TabConfigAssistent from '@/components/tabsConfigAssistent/TabConfigAssistent'
+import type { GetSingleAssistantResponse, useGetSingleAssistantQuery } from '@/api/endpoints/assistant/assistant'
 
 // Data Imports
 
@@ -25,7 +26,13 @@ import TabConfigAssistent from '@/components/tabsConfigAssistent/TabConfigAssist
   return res.json()
 } */
 
-const Home = () => {
+const Home = ({
+  data,
+  refetch
+}: {
+  data: GetSingleAssistantResponse | undefined
+  refetch: ReturnType<typeof useGetSingleAssistantQuery>['refetch']
+}) => {
   // Vars
 
   return (
@@ -35,7 +42,7 @@ const Home = () => {
       </Grid>
 
       <Grid size={{ xs: 12 }}>
-        <TabConfigAssistent />
+        <TabConfigAssistent data={data} refetch={refetch} />
       </Grid>
     </Grid>
   )

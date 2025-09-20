@@ -10,8 +10,9 @@ import { Card, CardContent, Divider } from '@mui/material'
 import CustomTabList from '@/@core/components/mui/TabList'
 import Apis from './Apis'
 import Comportamento from './Comportamento'
+import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
 
-const FunctionsTab = () => {
+const FunctionsTab = ({ data }: { data: GetSingleAssistantResponse | undefined }) => {
   const [value, setValue] = useState<string>('apis')
 
   const handleChange = (_event: SyntheticEvent, newValue: string) => {
@@ -41,7 +42,7 @@ const FunctionsTab = () => {
                 <Apis />
               </TabPanel>
               <TabPanel value='comportamento'>
-                <Comportamento />
+                <Comportamento data={data} />
               </TabPanel>
             </div>
           </div>

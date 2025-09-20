@@ -2,7 +2,7 @@
 
 // MUI Imports
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import Grid from '@mui/material/Grid2'
 
@@ -24,6 +24,8 @@ import { getCurrentMonth, getCurrentYear, getNameMonth, months } from '@/utils/u
 import EstatisticsDash from './EstatisticsDash'
 import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
 import AvailableSoon from '@/components/AvailableSoon'
+import type { Activity } from '@/api/endpoints/activity/activity'
+import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
 
 export type DataTypeEstatisticsDash = {
   icon: string
@@ -39,6 +41,18 @@ const DashboardCRM = () => {
   const [month, setMonth] = useState<string>(getNameMonth(getCurrentMonth()))
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isFetching, error, refetch } = useGetDashboardQuery(filters)
+
+  const [dataFiltered_3, setDataFiltered_3] = useState<Activity[] | undefined>()
+
+  const { data: dataActivity, isLoading } = useGetActivitiesQuery({
+    sort: '-created_at'
+  })
+
+  useEffect(() => {
+    if (dataActivity?.data) {
+      setDataFiltered_3(dataActivity.data.slice(0, 3))
+    }
+  }, [dataActivity])
 
   const handleChangeMonth = (event: SelectChangeEvent) => {
     const selectedMonth = event.target.value
@@ -92,28 +106,32 @@ const DashboardCRM = () => {
           isLoading={isFetching}
           color='success'
           icon='ri-user-3-line'
-          value='0'
+          value='Em Desenvolvimento'
           title='Interações com operador'
           month={month}
         />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+      <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
+        <AvailableSoon />
         <TotalSales />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+      <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
+        <AvailableSoon />
         <RevenueReport />
       </Grid>
       <Grid className='relative' size={{ xs: 12, md: 6 }}>
         <AvailableSoon />
         <CardWidgetsSalesOverview />
       </Grid>
-      <Grid size={{ xs: 12, md: 12 }}>
-        <ActivityTimeline />
+      <Grid className='relative' size={{ xs: 12, md: 12 }}>
+        <ActivityTimeline isLoading={isLoading} dataFiltered_3={dataFiltered_3 ?? []} />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 6 }}>
+      <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
+        <AvailableSoon />
         <MeetingSchedule />
       </Grid>
-      <Grid size={{ xs: 12, sm: 6, lg: 6 }}>
+      <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
+        <AvailableSoon />
         <UpgradePlan />
       </Grid>
     </Grid>

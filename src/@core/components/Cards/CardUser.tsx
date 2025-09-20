@@ -7,7 +7,7 @@ import CardContent from '@mui/material/CardContent'
 import Avatar from '@mui/material/Avatar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-import { useColorScheme } from '@mui/material'
+import { IconButton, Tooltip, useColorScheme } from '@mui/material'
 
 // Tipagem das props do componente
 interface CardUserProps {
@@ -57,6 +57,19 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
           <Button variant='contained' onClick={onClick}>
             Visualizar Assistente
           </Button>
+        </div>
+        <div className='flex w-full justify-center items-center'>
+          <Tooltip title='Remover projeto'>
+            <IconButton color='error' size='small'>
+              <i className='ri-delete-bin-line' />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title='Editar projeto'>
+            <IconButton color='primary' size='small'>
+              <i className='ri-edit-line' />
+            </IconButton>
+          </Tooltip>
         </div>
         <div className='flex justify-between items-center flex-wrap gap-x-4 gap-y-2'>
           <Typography variant='subtitle2' color='text.disabled'>

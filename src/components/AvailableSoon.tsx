@@ -3,11 +3,11 @@ import { Settings } from 'lucide-react'
 import { Typewriter } from 'react-simple-typewriter'
 
 const AvailableSoon = () => {
-  const fullText = 'Em Desenvolvimento...' // texto completo
+  const fullText = 'Desponível em breve...' // texto completo
 
   return (
     <Box
-      className='absolute inset-0 flex items-center justify-center gap-10 z-10 rounded-sm border border-warning'
+      className='absolute inset-0 flex items-center justify-center flex-wrap gap-10 z-10 rounded-sm border border-warning'
       style={{
         backgroundColor: 'rgba(75, 85, 99, 0.9)', // equivalente ao bg-gray-600/80
         opacity: 0.9, // aplica opacidade em tudo dentro do Box
@@ -15,13 +15,13 @@ const AvailableSoon = () => {
       }}
     >
       <Settings
-        size={40}
+        size={30}
         className='text-warning'
         style={{
           animation: 'spin 3s linear infinite' // rotação suave
         }}
       />
-      <Typography className='text-warning text-[25px]' style={{ minWidth: `${fullText.length}ch` }}>
+      <Typography className='text-warning text-[20px] text-center' style={{ minWidth: `${fullText.length}ch` }}>
         <Typewriter
           words={[fullText]}
           loop={0}

@@ -7,10 +7,12 @@ import dynamic from 'next/dynamic'
 
 import Grid from '@mui/material/Grid2'
 
+import { Box, CircularProgress, Typography } from '@mui/material'
+
 import UserLeftOverview from '@/views/assistenteView/view/user-left-overview'
 import UserRight from '@/views/assistenteView/view/user-right'
 
-import { useAppSelector } from '@/redux-store'
+import { useGetSingleAssistantQuery } from '@/api/endpoints/assistant/assistant'
 
 // Dinâmicos
 const HomeTab = dynamic(() => import('@views/assistenteView/view/user-right/home'))
@@ -22,29 +24,38 @@ const AssistentTabView = () => {
   const id = searchParams.get('id') || ''
 
   // Pegando assistente do Redux
-  const assistente = useAppSelector(state => state.assistants.list.find(a => a.id === id))
 
-  // Passando assistente para cada Tab
-  // const tabContentList: { [key: string]: ReactElement } = {
-  //   security: <SecurityTab assistente={assistente} />,
-  //   'billing-plans': <BillingPlans assistente={assistente} />,
-  //   notifications: <NotificationsTab assistente={assistente} />,
-  //   connections: <ConnectionsTab assistente={assistente} />,
-  //   overview: <OverViewTab assistente={assistente} />
-  // }
+  const { data, error, isLoading, refetch } = useGetSingleAssistantQuery(id)
 
   const tabContentList: { [key: string]: ReactElement } = {
-    hometab: <HomeTab />,
+    hometab: <HomeTab data={data} refetch={refetch} />,
     linkedProject: <LinkedProject />,
-    functions: <FunctionsTab />
+
+    functions: <FunctionsTab data={data} />
   }
 
-  console.log('assistente', assistente)
+  console.log('datadatadatad', data)
+
+  if (error) {
+    return (
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography>Erro ao carregar operador. Tentar novamente</Typography>
+      </Box>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
 
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12, lg: 4, md: 5 }}>
-        <UserLeftOverview assistente={assistente} />
+        <UserLeftOverview data={data} />
       </Grid>
       <Grid size={{ xs: 12, lg: 8, md: 7 }}>
         <UserRight tabContentList={tabContentList} />

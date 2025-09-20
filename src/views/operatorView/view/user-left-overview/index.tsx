@@ -2,14 +2,15 @@
 import Grid from '@mui/material/Grid2'
 
 import OperatorDetails from './OperatorDetails'
+import type { GetOperatorByIdResponse } from '@/api/endpoints/operator/operator'
 
 // Component Imports
 
-const UserLeftOverviewOperator = ({ id }: { id: any }) => {
+const UserLeftOverviewOperator = ({ operator }: { operator: GetOperatorByIdResponse | undefined }) => {
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
-        <OperatorDetails id={id} />
+        <OperatorDetails operator={operator} />
       </Grid>
     </Grid>
   )
