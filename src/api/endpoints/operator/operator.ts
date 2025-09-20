@@ -100,6 +100,45 @@ export type AddUserToProjectResponse = {
   status: number
   data?: Operator // opcional, dependendo do backend
 }
+export type GetOperatorByIdResponse = {
+  message: string
+  status: number
+  data: {
+    user: {
+      id: string
+      name: string
+      identifier: string
+      date: string
+      phone_number: string | null
+      whatsapp_number: string | null
+      is_juridic: boolean
+      cep?: string
+      uf?: string
+      city?: string
+      street?: string
+      number?: string
+      neighborhood?: string
+      complement?: string
+      email: string
+      email_verified_at: string | null
+      created_at: string
+      updated_at: string
+      customer_id?: string | null
+      subscription_id?: string | null
+      address?: string | null
+    }
+    project: {
+      id: string
+      user_id: string
+      name: string
+      img_url?: string
+      description?: string
+      created_at: string
+      updated_at: string
+      deleted_at?: string | null
+    }
+  }
+}
 
 /* ------------------------- 🎯 ERROR TYPE ------------------------- */
 type OperatorError = {
@@ -135,6 +174,27 @@ export const operatorApi = apiSlice.injectEndpoints({
         result
           ? [...result.data.map(({ id }) => ({ type: 'Operator' as const, id })), { type: 'Operator', id: 'LIST' }]
           : [{ type: 'Operator', id: 'LIST' }]
+    }),
+    getOperatorById: builder.query<GetOperatorByIdResponse, string>({
+      query: (project_operator_id: string) => ({
+        url: `/project/operator/${project_operator_id}`,
+        method: 'GET',
+        headers: { Accept: 'application/json' }
+      }),
+      transformResponse: (response: GetOperatorByIdResponse) => {
+        console.log('🔍 DEBUG - GET operator único:', response)
+
+        return response
+      },
+      transformErrorResponse: (response: any): OperatorError => {
+        console.error('❌ Erro ao carregar operador único:', response)
+
+        return {
+          status: response.status || 500,
+          message: response?.data?.message || response?.message || 'Erro ao carregar operador'
+        }
+      },
+      providesTags: (result, error, id) => [{ type: 'Operator', id }]
     }),
 
     // 🎯 CREATE OPERATOR
@@ -226,7 +286,12 @@ export const operatorApi = apiSlice.injectEndpoints({
 })
 
 /* ------------------------- 🎯 EXPORT HOOKS ------------------------- */
-export const { useGetOperatorsQuery, useCreateOperatorMutation, useDeleteOperatorMutation } = operatorApi
+export const {
+  useGetOperatorsQuery,
+  useGetOperatorByIdQuery, // 👈 export novo hook
+  useCreateOperatorMutation,
+  useDeleteOperatorMutation
+} = operatorApi
 
 /* ------------------------- 🎯 SELECTORS ------------------------- */
 export const selectOperatorsData = (state: any): OperatorInList[] =>

@@ -5,7 +5,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 
 import type { ButtonProps } from '@mui/material'
-import { Button, Card, CardActions, CardContent, CardHeader, CircularProgress, Typography } from '@mui/material'
+import { Box, Button, Card, CardActions, CardContent, CardHeader, CircularProgress, Typography } from '@mui/material'
 
 import Grid from '@mui/material/Grid2'
 
@@ -37,17 +37,17 @@ export default function Operadores() {
 
   if (error) {
     return (
-      <Card sx={{ p: 3 }}>
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Typography>Erro ao carregar projetos. Tentar novamente</Typography>
-      </Card>
+      </Box>
     )
   }
 
   if (isLoading) {
     return (
-      <Card sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <CircularProgress />
-      </Card>
+      </Box>
     )
   }
 

@@ -51,7 +51,15 @@ export type Assistant = {
   openai_id: string
   created_at: string
   updated_at: string
-  functions?: ApiFunction[] // Opcional para futuras expansões
+  about: string
+  company: string
+  first_contact: string
+  about_functions: string
+  special_conditions: string
+  steps: string
+  output_format: string
+  notes: string
+  phones: any[]
 }
 
 // Assistant no GET_ALL (estrutura simplificada dentro do projeto)

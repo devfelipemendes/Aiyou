@@ -15,6 +15,10 @@ import TimelineConnector from '@mui/lab/TimelineConnector'
 import MuiTimeline from '@mui/lab/Timeline'
 import type { TimelineProps } from '@mui/lab/Timeline'
 
+import { Box, CircularProgress } from '@mui/material'
+
+import type { Activity } from '@/api/endpoints/activity/activity'
+
 // Styled Timeline component
 const Timeline = styled(MuiTimeline)<TimelineProps>({
   paddingLeft: 0,
@@ -27,77 +31,126 @@ const Timeline = styled(MuiTimeline)<TimelineProps>({
   }
 })
 
-const ActivityTimeline = () => {
+function formatDateTime(isoString: string) {
+  const date = new Date(isoString)
+
+  const data = date.toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
+
+  const hora = date.toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+
+  return `${data} às ${hora}`
+}
+
+const getColorDot = (
+  event: string
+): 'inherit' | 'primary' | 'grey' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+  switch (event) {
+    case 'created':
+      return 'success' // verde
+    case 'updated':
+      return 'info' // azul
+    case 'deleted':
+      return 'error' // vermelho
+    default:
+      return 'grey' // cinza para outros
+  }
+}
+
+const getNameAction = (action: string): 'criou' | 'atualizou' | 'deletou' | 'grey' => {
+  switch (action) {
+    case 'created':
+      return 'criou' // verde
+    case 'updated':
+      return 'atualizou' // azul
+    case 'deleted':
+      return 'deletou' // vermelho
+    default:
+      return 'grey' // cinza para outros
+  }
+}
+
+const getSentenceActivity = (activity: Activity) => {
+  const sentence = `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} em ${activity.subject_type}`
+
+  return sentence
+}
+
+const ActivityTimeline = ({
+  dataFiltered_3,
+  isLoading
+}: {
+  dataFiltered_3: Activity[] | undefined
+  isLoading: boolean
+}) => {
   return (
     <Card>
-      <CardHeader title='Linha do tempo de atividades' />
-      <CardContent>
-        <Timeline>
-          <TimelineItem>
-            <TimelineSeparator>
-              <TimelineDot color='primary' />
-              <TimelineConnector />
-            </TimelineSeparator>
-            <TimelineContent>
-              <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Ajuste no Assistente Testinildo
-                </Typography>
-                <Typography variant='caption' color='text.disabled'>
-                  12 min atrás
-                </Typography>
-              </div>
-              <Typography className='mbe-2.5'>O operador testerson ajustou:</Typography>
-              <div className='flex items-center gap-2.5 is-fit plb-[5px] pli-2.5 rounded bg-actionHover'>
-                <Typography className='font-medium'>ajuste no prompt</Typography>
-              </div>
-            </TimelineContent>
-          </TimelineItem>
-          <TimelineItem>
-            <TimelineSeparator>
-              <TimelineDot color='success' />
-              <TimelineConnector />
-            </TimelineSeparator>
-            <TimelineContent>
-              <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Operador Testerson realizou 50 atendimentos bem sucedidos
-                </Typography>
-                <Typography variant='caption' color='text.disabled'>
-                  45 min atrás
-                </Typography>
-              </div>
-              <Typography className='mbe-2.5'>Testeson cumpriu 50 atividades @10:15am</Typography>
-              <div className='flex items-center gap-2.5'>
-                <Avatar src='/images/avatars/1.png' className='bs-8 is-8' />
-                <div className='flex flex-col flex-wrap gap-0.5'>
-                  <Typography variant='body2' className='font-medium'>
-                    Testerson Alves (Operador)
-                  </Typography>
-                  <Typography variant='body2'>Operador da TESTE LTDA</Typography>
-                </div>
-              </div>
-            </TimelineContent>
-          </TimelineItem>
-          <TimelineItem>
-            <TimelineSeparator>
-              <TimelineDot color='info' />
-              <TimelineConnector />
-            </TimelineSeparator>
-            <TimelineContent>
-              <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
-                <Typography className='font-medium' color='text.primary'>
-                  Cadastro de nova Campanha de voz
-                </Typography>
-                <Typography variant='caption' color='text.disabled'>
-                  2 Dias atrás
-                </Typography>
-              </div>
-              <Typography>Realizada o cadastro de uma campanha de voz para o dia 00/00/0000</Typography>
-            </TimelineContent>
-          </TimelineItem>
-        </Timeline>
-      </CardContent>
+      {isLoading ? (
+        <Box className='w-full h-full justify-center items-center flex'>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <CardHeader title='Linha do tempo de atividades' />
+          <CardContent>
+            {dataFiltered_3 && dataFiltered_3.length === 0 ? (
+              <Typography>Sem dados</Typography>
+            ) : (
+              <>
+                <Timeline>
+                  {dataFiltered_3?.map((activty: Activity) => {
+                    return (
+                      <TimelineItem key={activty.id}>
+                        <TimelineSeparator>
+                          <TimelineDot color={getColorDot(activty.event)} />
+                          <TimelineConnector />
+                        </TimelineSeparator>
+                        <TimelineContent>
+                          <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
+                            <Typography className='font-medium' color='text.primary'>
+                              {getSentenceActivity(activty)}
+                            </Typography>
+
+                            <Typography className=' flex flex-row text-wrap items-center gap-2'>
+                              <Typography variant='body1'>Atividade realizada em:</Typography>
+                              {formatDateTime(activty.created_at)}
+                            </Typography>
+                          </div>
+                          <Typography className=' flex flex-row text-wrap items-center gap-2'>
+                            <Typography variant='body1'>Nome:</Typography>
+                            {activty.properties.attributes.name ?? '-'}
+                          </Typography>
+                          <div className='flex items-center gap-2.5'>
+                            <Avatar
+                              src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
+                              className='bs-8 is-8'
+                            />
+                            <div className='flex flex-col flex-wrap gap-0.5'>
+                              <Typography className=' flex flex-row text-wrap items-center gap-2'>
+                                <Typography variant='body1'>Descrição:</Typography>
+                                {activty.properties.attributes.description ?? '-'}
+                              </Typography>
+                            </div>
+                          </div>
+                        </TimelineContent>
+                      </TimelineItem>
+                    )
+                  })}
+                </Timeline>
+              </>
+            )}
+          </CardContent>
+        </>
+      )}
     </Card>
   )
 }

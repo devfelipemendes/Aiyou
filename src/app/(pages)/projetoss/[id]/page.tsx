@@ -26,7 +26,7 @@ const ProjectTabView = () => {
   console.log(data)
 
   const tabContentList: { [key: string]: ReactElement } = {
-    home: <HomeProject />,
+    home: <HomeProject id={id} />,
     interactions: <InteractionsProject />,
     assistents: <AssistenstProject data={data} refetchProject={refetch} />,
     notifications: <NotificationsProject />

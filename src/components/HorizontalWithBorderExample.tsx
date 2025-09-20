@@ -53,7 +53,7 @@ const HorizontalWithBorderExample = ({ color, icon, value, title, month, isLoadi
           <CustomAvatar color={color} skin='light' variant='rounded'>
             <i className={icon} />
           </CustomAvatar>
-          <Typography variant='h4'>{isLoading ? <CircularProgress size={15} /> : value}</Typography>
+          <Typography variant='h4'>{isLoading ? <CircularProgress size={15} /> : (value ?? '0')}</Typography>
         </div>
         <div className='flex flex-col justify-center'>
           <Typography color='text.primary'>{title}</Typography>
