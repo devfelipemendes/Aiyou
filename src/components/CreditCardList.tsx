@@ -1,20 +1,7 @@
 // CreditCardList.tsx - Integrado com Modal de Edição
-import React, { useState, useCallback, useEffect, useMemo, type FC, type MouseEvent } from 'react'
+import React, { useState, useCallback, useMemo, type FC } from 'react'
 
-import {
-  Card,
-  CardContent,
-  Typography,
-  Box,
-  IconButton,
-  Radio,
-  Menu,
-  MenuItem,
-  Fade,
-  CircularProgress,
-  Alert,
-  Button
-} from '@mui/material'
+import { Card, CardContent, Typography, Box, Radio, CircularProgress, Alert, Button } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
 import {
@@ -22,7 +9,9 @@ import {
   useDeleteCreditCardMutation,
   type CreditCardListItem
 } from '@/api/endpoints/creditcard/creditcard'
-import CreditCardEditModal from './dialogs/credit-card-edit'
+
+import CreditCardCreateModal from './dialogs/credit-card-create'
+import { useUserMe } from '@/hooks/useUserMe'
 
 // ===== UTILITÁRIOS (mantidos do código anterior) =====
 export const getCardBrand = (cardNumber?: string): string => {
@@ -114,12 +103,12 @@ export interface CreditCardListProps {
   className?: string
 }
 
-// ===== STYLED COMPONENTS =====
 const StyledCard = styled(Card, {
   shouldForwardProp: prop => prop !== 'isSelected' && prop !== 'isSelectable'
 })<{ isSelected?: boolean; isSelectable?: boolean }>(({ theme, isSelected, isSelectable }) => ({
   position: 'relative',
   cursor: isSelectable ? 'pointer' : 'default',
+  width: '100%',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
   border: `2px solid ${isSelected ? theme.palette.primary.main : 'transparent'}`,
@@ -183,10 +172,7 @@ const CreditCardItem: FC<{
   onEdit?: (card: CreditCardListItem) => void
   onDelete?: (cardId: string) => void
   originalCard: CreditCardListItem
-}> = ({ card, isSelected, isSelectable, showActions, onSelect, onEdit, onDelete, originalCard }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const open = Boolean(anchorEl)
-
+}> = ({ card, isSelected, isSelectable, showActions, onSelect, onDelete }) => {
   const brandIcon = getCardBrandIcon(card.brand)
   const brandColor = getCardBrandColor(card.brand)
 
@@ -196,24 +182,9 @@ const CreditCardItem: FC<{
     }
   }, [isSelectable, onSelect, card.id])
 
-  const handleMenuClick = useCallback((event: MouseEvent<HTMLElement>) => {
-    event.stopPropagation()
-    setAnchorEl(event.currentTarget)
-  }, [])
-
-  const handleMenuClose = useCallback(() => {
-    setAnchorEl(null)
-  }, [])
-
-  const handleEdit = useCallback(() => {
-    onEdit?.(originalCard)
-    handleMenuClose()
-  }, [onEdit, originalCard, handleMenuClose])
-
   const handleDelete = useCallback(() => {
     onDelete?.(card.id)
-    handleMenuClose()
-  }, [onDelete, card.id, handleMenuClose])
+  }, [onDelete, card.id])
 
   return (
     <StyledCard isSelected={isSelected} isSelectable={isSelectable} onClick={handleClick} variant='outlined'>
@@ -232,31 +203,12 @@ const CreditCardItem: FC<{
 
       {/* Menu de ações */}
       {showActions && (
-        <Box className='card-actions' sx={{ position: 'absolute', top: 12, right: isSelectable ? 56 : 12, zIndex: 2 }}>
-          <IconButton
-            size='small'
-            onClick={handleMenuClick}
-            sx={{
-              bgcolor: 'background.paper',
-              boxShadow: 1,
-              '&:hover': {
-                bgcolor: 'action.hover'
-              }
-            }}
-          >
-            <i className='ri-more-2-line' />
-          </IconButton>
-
-          <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose} TransitionComponent={Fade}>
-            <MenuItem onClick={handleEdit}>
-              <i className='ri-edit-line mr-2' />
-              Editar
-            </MenuItem>
-            <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-              <i className='ri-delete-bin-line mr-2' />
-              Excluir
-            </MenuItem>
-          </Menu>
+        <Box
+          className='card-actions'
+          sx={{ position: 'absolute', top: 12, right: isSelectable ? 56 : 12, zIndex: 2 }}
+          onClick={handleDelete}
+        >
+          <i className='ri-delete-bin-line mr-2 text-error' />
         </Box>
       )}
 
@@ -317,7 +269,6 @@ const CreditCardItem: FC<{
   )
 }
 
-// ===== HOOK PARA ADAPTAÇÃO DOS DADOS =====
 const useAdaptCards = (apiCards?: CreditCardListItem[] | null): AdaptedCreditCard[] => {
   return useMemo(() => {
     if (!apiCards || !Array.isArray(apiCards)) {
@@ -346,21 +297,20 @@ const useAdaptCards = (apiCards?: CreditCardListItem[] | null): AdaptedCreditCar
   }, [apiCards])
 }
 
-// ===== COMPONENTE PRINCIPAL =====
 const CreditCardList: FC<CreditCardListProps> = ({
   selectedCardId,
   onCardSelect,
-  onCardEdit,
   onCardDelete,
   showActions = true,
-  selectable = true,
-  className
+  selectable = true
 }) => {
-  const [editingCard, setEditingCard] = useState<CreditCardListItem | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false)
 
   // RTK Query
   const { data: response, isLoading, error, refetch } = useGetCreditCardsQuery()
   const [deleteCreditCard] = useDeleteCreditCardMutation()
+
+  const { user } = useUserMe()
 
   // Adaptar dados de forma segura
   const adaptedCards = useAdaptCards(response?.data)
@@ -385,22 +335,16 @@ const CreditCardList: FC<CreditCardListProps> = ({
     [deleteCreditCard, response?.data]
   )
 
-  const handleEditCard = useCallback((card: CreditCardListItem) => {
-    setEditingCard(card)
+  const handleOpenCreateModal = () => {
+    setShowCreateModal(true)
+    console.log('🔄 Abrindo modal de criação de cartão')
+  }
 
-    // Chama o callback externo se existir
-  }, [])
-
-  const handleCloseEditModal = useCallback(() => {
-    setEditingCard(null)
-  }, [])
-
-  const handleEditSuccess = useCallback(() => {
-    // O RTK Query vai automaticamente atualizar a lista via cache invalidation
-    // Mas podemos forçar um refetch se necessário
-    refetch()
-    console.log('✅ Cartão editado com sucesso!')
-  }, [refetch])
+  // ===== HANDLER PARA FECHAR MODAL =====
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false)
+    console.log('🔄 Fechando modal de criação de cartão')
+  }
 
   // ===== ESTADOS DE LOADING/ERROR =====
   if (isLoading) {
@@ -455,38 +399,43 @@ const CreditCardList: FC<CreditCardListProps> = ({
   // ===== RENDER PRINCIPAL =====
   return (
     <>
-      <Box className={className}>
+      <Box className={'width-full'}>
+        <Box className='flex justify-between items-center mb-4 w-full'>
+          <Typography variant='h5' className='mb-4'>
+            Selecione o cartão que deseja usar na recorrencia
+          </Typography>
+          <Button
+            variant='contained'
+            color='success'
+            type='submit'
+            onClick={handleOpenCreateModal}
+            endIcon={<i className='ri-check-line' />}
+          >
+            Cadastrar novo cartão
+          </Button>
+        </Box>
         {adaptedCards.map((card, index) => (
-          <Box key={card.id} sx={{ mb: 2 }}>
+          <Box key={card.id} sx={{ mb: 2, width: '100%' }}>
             <CreditCardItem
               card={card}
               isSelected={selectedCardId === card.id}
               isSelectable={selectable}
               showActions={showActions}
               onSelect={onCardSelect}
-              onEdit={handleEditCard}
+              onEdit={handleOpenCreateModal}
               onDelete={onCardDelete || handleDeleteCard}
               originalCard={response!.data[index]}
             />
           </Box>
         ))}
-
-        {/* Debug Info (apenas em desenvolvimento) */}
-        {process.env.NODE_ENV === 'development' && response && (
-          <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-            <Typography variant='caption' component='pre'>
-              {JSON.stringify({ count: adaptedCards.length, firstCard: adaptedCards[0] }, null, 2)}
-            </Typography>
-          </Box>
-        )}
       </Box>
-
-      {/* Modal de Edição */}
-      <CreditCardEditModal
-        open={!!editingCard}
-        onClose={handleCloseEditModal}
-        card={editingCard}
-        onSuccess={handleEditSuccess}
+      <CreditCardCreateModal
+        open={showCreateModal}
+        onClose={handleCloseCreateModal}
+        userId={user?.id ?? ''}
+        onSuccess={() => {
+          setShowCreateModal(false)
+        }}
       />
     </>
   )

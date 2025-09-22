@@ -45,7 +45,7 @@ export type UpdateCreditCardRequest = {
   security_code?: string
   card_number?: string
   date?: string
-  active?: string
+  active?: boolean
 }
 
 // 🎯 TIPOS PARA O REQUEST DE DELETE
@@ -307,7 +307,7 @@ export const creditCardApi = apiSlice.injectEndpoints({
         console.error('❌ Erro ao deletar cartão de crédito:', response)
 
         // 🎯 Toast de erro
-        const errorMessage = response?.data?.message || response?.message || 'Erro ao excluir cartão de crédito'
+        const errorMessage = response?.data?.error || response?.message || 'Erro ao excluir cartão de crédito'
 
         toast.error(errorMessage, {
           position: 'top-right',

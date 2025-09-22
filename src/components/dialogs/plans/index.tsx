@@ -552,7 +552,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                     </AnimatedReveal>
                     {selectedMethod === 'boleto' && (
                       <AnimatedReveal animation='slideInRight' duration={400} show={true}>
-                        <Box className='w-full flex items-center justify-center'>
+                        <Box className='w-full flex items-center justify-center pt-10'>
                           <Button
                             component={Link}
                             href='/front-pages/payment'
@@ -567,7 +567,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                     )}
                     {selectedMethod === 'recorrencia' && (
                       <AnimatedReveal animation='slideInRight' duration={400} show={true}>
-                        <Box className='w-full flex flex-col items-center justify-center pb-10'>
+                        <Box className='w-full pt-10'>
                           <CreditCard />
                         </Box>
                       </AnimatedReveal>

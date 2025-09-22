@@ -102,7 +102,8 @@ const CreditCardSchema = v.object({
       return brand === 'amex' ? value.length === 4 : value.length === 3
     }, 'CVV inválido para este tipo de cartão')
   ),
-  plan: v.union([v.literal('basic'), v.literal('standard'), v.literal('enterprise')], 'Plano inválido')
+  plan: v.union([v.literal('basic'), v.literal('standard'), v.literal('enterprise')], 'Plano inválido'),
+  active: v.boolean()
 })
 
 export type CreditCardFormData = v.InferInput<typeof CreditCardSchema>

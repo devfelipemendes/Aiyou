@@ -1,4 +1,4 @@
-// CreditCard.tsx - Componente principal corrigido
+// CreditCard.tsx - Componente principal com ConfirmDialog
 import React, { useState, useCallback } from 'react'
 
 import { Box } from '@mui/material'
@@ -7,6 +7,7 @@ import Grid from '@mui/material/Grid2'
 
 import CreditCardForm from './CreditCardForm'
 import CreditCardList from './CreditCardList'
+import ConfirmDialog, { useConfirmDialog } from './dialogs/confirmation-dialog'
 import {
   useCreateCreditCardMutation,
   useUpdateCreditCardMutation,
@@ -18,6 +19,7 @@ import type { CreditCardFormData } from '@/hooks/useCreditCardForm'
 
 const CreditCard: React.FC = () => {
   const [selectedCardId, setSelectedCardId] = useState<string>('1')
+  const [cardToDelete, setCardToDelete] = useState<CreditCardListItem | null>(null)
 
   // RTK Query hooks
   const { data: response } = useGetCreditCardsQuery()
@@ -25,7 +27,14 @@ const CreditCard: React.FC = () => {
   const [updateCreditCard] = useUpdateCreditCardMutation()
   const [deleteCreditCard] = useDeleteCreditCardMutation()
 
-  // Handlers otimizados com useCallback
+  const { data: creditCards } = useGetCreditCardsQuery(undefined, {
+    skip: false
+  })
+
+  // Hook do ConfirmDialog
+  const confirmDialog = useConfirmDialog()
+
+  // ===== HANDLERS =====
   const handleSubmitCard = useCallback(
     async (data: CreditCardFormData) => {
       try {
@@ -36,7 +45,7 @@ const CreditCard: React.FC = () => {
           security_code: data.cvv,
           card_number: data.cardNumber.replace(/\D/g, ''),
           date: data.expiryDate,
-          active: 'true'
+          active: true
         }).unwrap()
 
         toast.success('Cartão cadastrado com sucesso!')
@@ -56,7 +65,7 @@ const CreditCard: React.FC = () => {
     async (card: CreditCardListItem) => {
       try {
         await updateCreditCard({
-          id: card.id.toString(), // Garantir que seja string
+          id: card.id.toString(),
           name: card.name,
           card_name: card.card_name
         }).unwrap()
@@ -67,42 +76,100 @@ const CreditCard: React.FC = () => {
     [updateCreditCard]
   )
 
+  // ===== NOVO HANDLE DE DELETE COM CONFIRM DIALOG =====
   const handleDeleteCard = useCallback(
-    async (cardId: string) => {
+    (cardId: string) => {
       const card = response?.data?.find(c => c.id.toString() === cardId)
 
-      if (!window.confirm(`Excluir cartão "${card?.card_name || 'este cartão'}"?`)) {
+      if (!card) {
+        toast.error('Cartão não encontrado!')
+
         return
       }
 
-      try {
-        await deleteCreditCard(cardId).unwrap()
-      } catch (error) {
-        console.error('Erro ao excluir cartão:', error)
-      }
+      // Guardar o cartão que será deletado
+      setCardToDelete(card)
+
+      // Abrir dialog de confirmação
+      confirmDialog.openDialog()
     },
-    [deleteCreditCard, response?.data]
+    [response?.data, confirmDialog]
   )
 
-  return (
-    <Grid container spacing={4}>
-      <Grid size={{ xs: 12 }}>
-        <CreditCardForm onSubmit={handleSubmitCard} isSubmitting={isCreating} />
-      </Grid>
+  // ===== CONFIRMAR DELETE =====
+  const handleConfirmDelete = async () => {
+    if (!cardToDelete) return
 
-      <Grid size={{ xs: 12 }}>
+    confirmDialog.setLoading(true)
+
+    try {
+      await deleteCreditCard(cardToDelete.id.toString()).unwrap()
+
+      toast.success(`Cartão "${cardToDelete.card_name}" excluído com sucesso!`)
+
+      // Se o cartão excluído estava selecionado, limpar seleção
+      if (selectedCardId === cardToDelete.id.toString()) {
+        setSelectedCardId('')
+      }
+
+      // Fechar dialog e limpar estado
+      confirmDialog.closeDialog()
+      setCardToDelete(null)
+    } catch (error: any) {
+      confirmDialog.setLoading(false) // Manter dialog aberto em caso de erro
+      handleCancelDelete()
+    } finally {
+      confirmDialog.setLoading(false)
+    }
+  }
+
+  // ===== CANCELAR DELETE =====
+  const handleCancelDelete = () => {
+    setCardToDelete(null)
+    confirmDialog.closeDialog()
+  }
+
+  return (
+    <>
+      {creditCards?.data.length === 0 ? (
+        <Grid container spacing={4}>
+          <Grid size={{ xs: 12 }}>
+            <CreditCardForm onSubmit={handleSubmitCard} isSubmitting={isCreating} />
+          </Grid>
+        </Grid>
+      ) : (
         <Box className='w-full'>
           <CreditCardList
             selectedCardId={selectedCardId}
             onCardSelect={handleCardSelect}
             onCardEdit={handleUpdateCard}
-            onCardDelete={handleDeleteCard}
+            onCardDelete={handleDeleteCard} // Agora usa o ConfirmDialog
             selectable={true}
             showActions={true}
+            className='w-full'
           />
         </Box>
-      </Grid>
-    </Grid>
+      )}
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        loading={confirmDialog.loading}
+        type='error'
+        title='Excluir Cartão de Crédito'
+        message={
+          cardToDelete
+            ? `Tem certeza que deseja excluir o cartão "${cardToDelete.card_name}"?`
+            : 'Tem certeza que deseja excluir este cartão?'
+        }
+        subtitle='Esta ação não pode ser desfeita. O cartão será removido permanentemente da sua conta.'
+        confirmText='Sim, Excluir'
+        cancelText='Cancelar'
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        icon={<i className='ri-bank-card-line' style={{ fontSize: '48px', color: '#d32f2f' }} />}
+      />
+    </>
   )
 }
 
