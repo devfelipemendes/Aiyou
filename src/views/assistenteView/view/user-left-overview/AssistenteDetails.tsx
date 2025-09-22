@@ -57,6 +57,7 @@ const AssistenteDetails = ({ data }: { data: GetSingleAssistantResponse | undefi
             </div>
           </div>
           {/* <div>
+          {/* <div>
             <Typography variant='h5'>Detalhes</Typography>
             <Divider className='mlb-4' />
             <div className='flex flex-col gap-2'>

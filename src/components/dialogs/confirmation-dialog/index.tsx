@@ -124,7 +124,7 @@ export default function ConfirmDialog({
         </Typography>
       </DialogTitle>
 
-      <DialogContent sx={{ textAlign: 'center', px: 3, py: 2 }}>
+      <DialogContent sx={{ textAlign: 'center', px: 3, py: 8 }}>
         {/* Mensagem principal */}
         <Typography variant='body1' sx={{ mb: subtitle ? 1 : 0 }}>
           {message}

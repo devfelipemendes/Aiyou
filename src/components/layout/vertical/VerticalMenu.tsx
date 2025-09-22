@@ -71,6 +71,10 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           Painel
         </MenuItem>
         <MenuSection label={'Principais'}>
+        <MenuItem href='/painel' icon={<i className='ri-dashboard-horizontal-line' />}>
+          Painel
+        </MenuItem>
+        <MenuSection label={'Principais'}>
           <MenuItem href='/historico_interacoes' icon={<i className='ri-file-edit-line' />}>
             Histórico de interações
           </MenuItem>
@@ -88,6 +92,16 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           </MenuItem>
           <MenuItem href='/operadores/' icon={<i className='ri-customer-service-2-fill' />}>
             Operadores
+          </MenuItem>
+        </MenuSection>
+        <MenuSection label={'Utilidades'}>
+          <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
+            Ingtegração API
+          </MenuItem>
+        </MenuSection>
+        <MenuSection label={'Gerenciamento'}>
+          <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
+            Financeiro
           </MenuItem>
         </MenuSection>
         <MenuSection label={'Utilidades'}>

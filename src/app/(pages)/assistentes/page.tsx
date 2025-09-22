@@ -19,6 +19,7 @@ export default function Assitentes() {
   const navigate = useRouter()
 
   // Assitentes.tsx
+  // Assitentes.tsx
   const handleUserClick = (user: any) => {
     navigate.push(`/assistentes/detalhes_assistente?id=${user.id}`)
   }
@@ -63,6 +64,9 @@ export default function Assitentes() {
                 avatarSrc={user.avatarSrc}
                 name={user.name}
                 location={user.location}
+                projectName={user.project_name}
+                projectAvatarSrc={user.project_id}
+                onClick={() => handleUserClick(user)}
                 projectName={user.project_name}
                 projectAvatarSrc={user.project_id}
                 onClick={() => handleUserClick(user)}
