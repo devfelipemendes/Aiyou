@@ -3,8 +3,6 @@ import Grid from '@mui/material/Grid2'
 
 import { Card, CardContent, CardHeader, Typography } from '@mui/material'
 
-import { Card, CardContent, CardHeader, Typography } from '@mui/material'
-
 import AssistenteDetails from '@/views/assistenteView/view/user-left-overview/AssistenteDetails'
 import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
 
