@@ -177,7 +177,7 @@ export const operatorApi = apiSlice.injectEndpoints({
     }),
     getOperatorById: builder.query<GetOperatorByIdResponse, string>({
       query: (project_operator_id: string) => ({
-        url: `/project/operator/${project_operator_id}`,
+        url: `/project/operator/${project_operator_id}/show`,
         method: 'GET',
         headers: { Accept: 'application/json' }
       }),
