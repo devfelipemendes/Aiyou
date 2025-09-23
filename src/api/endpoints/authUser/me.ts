@@ -76,6 +76,7 @@ export type MeData = {
   user_permissions: UserPermission[]
   user: User
   projects: ProjectInMe[]
+  first_access: boolean
 }
 
 // 🎯 TIPOS PARA A RESPONSE DO GET /me
@@ -203,3 +204,5 @@ export const selectIsAdmin = createSelector([selectUserPermissions], permissions
 )
 
 export const selectIsOperator = createSelector([selectUser], user => user?.is_operator || false)
+
+export const selectFirstAccess = createSelector([selectMeData], meData => meData?.first_access || false)
