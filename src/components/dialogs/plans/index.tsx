@@ -515,64 +515,64 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                     {renderPlanCard(plan)}
                   </Grid>
                 ))}
-                {selectedPlan && (
-                  <Grid size={{ xs: 12 }} className='mt-2'>
-                    <AnimatedReveal animation='slideInRight' duration={400} show={true}>
-                      <Divider className='pb-5' />
-                      <Grid container spacing={4} className='mb-0'>
-                        <Grid size={{ xs: 12 }}>
-                          <Box>
-                            <Typography variant='h5' component='div' className='pt-5'>
-                              Escolha o metodo de pagemento
-                            </Typography>
-                          </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12 }} className='flex items-center justify-center gap-4'>
-                          {data.map((item, index) => {
-                            let asset
+              </Grid>
+            )}
+            {selectedPlan && (
+              <Grid size={{ xs: 12 }} className='mt-2'>
+                <AnimatedReveal animation='slideInRight' duration={400} show={true}>
+                  <Divider className='pb-5' />
+                  <Grid container spacing={4} className='mb-0'>
+                    <Grid size={{ xs: 12 }}>
+                      <Box>
+                        <Typography variant='h5' component='div' className='pt-5'>
+                          Escolha o metodo de pagemento
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12 }} className='flex items-center justify-center gap-4'>
+                      {data.map((item, index) => {
+                        let asset
 
-                            if (item.asset && typeof item.asset === 'string') {
-                              asset = <i className={item.asset + ' text-[40px]'} />
-                            }
+                        if (item.asset && typeof item.asset === 'string') {
+                          asset = <i className={item.asset + ' text-[40px]'} />
+                        }
 
-                            return (
-                              <CustomInputVertical
-                                type='radio'
-                                key={index}
-                                data={{ ...item, asset }}
-                                selected={selectedMethod}
-                                name='custom-radios-icons'
-                                handleChange={handleChange}
-                                gridProps={{ size: { xs: 12, sm: 4 } }}
-                              />
-                            )
-                          })}
-                        </Grid>
-                      </Grid>
-                    </AnimatedReveal>
-                    {selectedMethod === 'boleto' && (
-                      <AnimatedReveal animation='slideInRight' duration={400} show={true}>
-                        <Box className='w-full flex items-center justify-center pt-10'>
-                          <Button
-                            component={Link}
-                            href='/front-pages/payment'
-                            variant={'contained'}
-                            color={'primary'}
-                            size='large'
-                          >
-                            Gerar boleto
-                          </Button>
-                        </Box>
-                      </AnimatedReveal>
-                    )}
-                    {selectedMethod === 'recorrencia' && (
-                      <AnimatedReveal animation='slideInRight' duration={400} show={true}>
-                        <Box className='w-full pt-10'>
-                          <CreditCard />
-                        </Box>
-                      </AnimatedReveal>
-                    )}
+                        return (
+                          <CustomInputVertical
+                            type='radio'
+                            key={index}
+                            data={{ ...item, asset }}
+                            selected={selectedMethod}
+                            name='custom-radios-icons'
+                            handleChange={handleChange}
+                            gridProps={{ size: { xs: 12, sm: 4 } }}
+                          />
+                        )
+                      })}
+                    </Grid>
                   </Grid>
+                </AnimatedReveal>
+                {selectedMethod === 'boleto' && (
+                  <AnimatedReveal animation='slideInRight' duration={400} show={true}>
+                    <Box className='w-full flex items-center justify-center pt-10'>
+                      <Button
+                        component={Link}
+                        href='/front-pages/payment'
+                        variant={'contained'}
+                        color={'primary'}
+                        size='large'
+                      >
+                        Gerar boleto
+                      </Button>
+                    </Box>
+                  </AnimatedReveal>
+                )}
+                {selectedMethod === 'recorrencia' && (
+                  <AnimatedReveal animation='slideInRight' duration={400} show={true}>
+                    <Box className='w-full pt-10'>
+                      <CreditCard />
+                    </Box>
+                  </AnimatedReveal>
                 )}
               </Grid>
             )}
