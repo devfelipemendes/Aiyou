@@ -45,6 +45,29 @@ export type ProtocolFilters = {
   sort?: string // ex: "-created_at"
 }
 
+export type ProtocolMessage = {
+  id: string
+  content: string
+  message_type: string
+  audio_url: string | null
+  role: 'user' | 'assistant'
+  operator: boolean | null
+  operator_name: string | null
+  created_at: string
+}
+
+// Resposta do histórico
+export type GetProtocolHistoryResponse = {
+  data: ProtocolMessage[]
+  message?: string
+  status?: number
+}
+
+// Params
+export type ProtocolHistoryParams = {
+  protocol: string
+}
+
 // Error
 type ProtocolError = {
   status: number
@@ -91,9 +114,32 @@ export const protocolApi = apiSlice.injectEndpoints({
               { type: 'Protocol', id: 'LIST' }
             ]
           : [{ type: 'Protocol', id: 'LIST' }]
+    }),
+    getProtocolHistory: builder.query<GetProtocolHistoryResponse, ProtocolHistoryParams>({
+      query: ({ protocol }) => ({
+        url: `/chat/${protocol}/history`,
+        method: 'GET',
+        headers: { Accept: 'application/json' }
+      }),
+      transformResponse: (response: GetProtocolHistoryResponse) => {
+        console.log('🔍 DEBUG - GET protocol history:', response)
+
+        return response
+      },
+      transformErrorResponse: (response: any) => ({
+        status: response.status || 500,
+        message: response?.data?.message || response?.message || 'Erro ao carregar histórico'
+      }),
+      providesTags: (result, error, { protocol }) =>
+        result
+          ? [
+              ...result.data.map(msg => ({ type: 'ProtocolHistory' as const, id: msg.id })),
+              { type: 'ProtocolHistory', id: protocol }
+            ]
+          : [{ type: 'ProtocolHistory', id: protocol }]
     })
   })
 })
 
 /* ------------------------- 🎯 EXPORT HOOKS ------------------------- */
-export const { useGetProtocolsQuery } = protocolApi
+export const { useGetProtocolsQuery, useGetProtocolHistoryQuery } = protocolApi

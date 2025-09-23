@@ -2,11 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 
-import { useRouter } from 'next/navigation'
-
-// MUI Imports
-
 import Grid from '@mui/material/Grid2'
+import type { IconButtonProps } from '@mui/material'
 import { Box, CardContent, CardHeader, Chip, CircularProgress, IconButton, Typography } from '@mui/material'
 
 import type { ColumnDef } from '@tanstack/react-table'
@@ -18,6 +15,8 @@ import type { GetProtocolsResponse, Protocol } from '@/api/endpoints/protocols/p
 import { useGetProtocolsQuery } from '@/api/endpoints/protocols/protocols'
 
 import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
+import ChatLog_2 from '@/components/dialogs/chatComponent/ChatComponent'
+import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
 
 const getStatus = (status: string) => {
   switch (status) {
@@ -43,8 +42,6 @@ type ResultStatus = {
 
 export default function HistoricoInteracoes() {
   // States
-
-  const router = useRouter()
 
   const { data, error, isLoading } = useGetProtocolsQuery({
     sort: '-created_at'
@@ -107,19 +104,25 @@ export default function HistoricoInteracoes() {
       )
     }),
 
-    // Nova coluna "Detalhes"
-    columnHelper.accessor(
-      row => row.protocol, // qualquer campo existente, só para não quebrar o tipo
-      {
-        id: 'detalhes', // nome da coluna
-        header: 'Detalhes',
-        cell: ({ row }) => (
-          <IconButton size='small' onClick={() => router.push(`/historico-interacoes/${row.original.protocol}`)}>
-            <i className='ri-eye-line text-textSecondary' />
-          </IconButton>
+    columnHelper.accessor(row => row.protocol, {
+      id: 'detalhes',
+      header: 'Detalhes',
+      cell: ({ row }) => {
+        const buttonProps: IconButtonProps = {
+          color: 'primary',
+          children: <i className='ri-eye-line text-info' />
+        }
+
+        return (
+          <OpenDialogOnElementClick
+            element={IconButton}
+            elementProps={buttonProps}
+            dialog={ChatLog_2}
+            dialogProps={{ protocol: row.original.protocol }}
+          />
         )
       }
-    )
+    })
   ]
 
   useEffect(() => {

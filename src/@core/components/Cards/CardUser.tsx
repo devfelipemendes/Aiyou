@@ -162,15 +162,14 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
         </div>
 
         <div className='flex w-full justify-center items-center'>
-          <Tooltip title='Remover projeto'>
-            <IconButton color='error' size='small' onClick={handleDeleteAssistant}>
-              <i className='ri-delete-bin-line' />
+          <Tooltip title='Trocar de  Projetto'>
+            <IconButton color='warning' size='small' onClick={handleOpenEditModal}>
+              <i className='ri-edit-line' />
             </IconButton>
           </Tooltip>
-
-          <Tooltip title='Editar projeto'>
-            <IconButton color='primary' size='small' onClick={handleOpenEditModal}>
-              <i className='ri-edit-line' />
+          <Tooltip title='Remover Assistente'>
+            <IconButton color='error' size='small' onClick={handleDeleteAssistant}>
+              <i className='ri-delete-bin-line' />
             </IconButton>
           </Tooltip>
         </div>

@@ -17,7 +17,7 @@ import type { TimelineProps } from '@mui/lab/Timeline'
 
 import { Box, CircularProgress } from '@mui/material'
 
-import type { Activity } from '@/api/endpoints/activity/activity'
+import { activityApi, type Activity } from '@/api/endpoints/activity/activity'
 
 // Styled Timeline component
 const Timeline = styled(MuiTimeline)<TimelineProps>({
@@ -104,6 +104,10 @@ const ActivityTimeline = ({
   dataFiltered_3: Activity[] | undefined
   isLoading: boolean
 }) => {
+  const filteredNoUser = dataFiltered_3?.filter(activity => {
+    return activity.causer_id !== null
+  })
+
   return (
     <Card className='max-h-[350px] overflow-y-auto'>
       {isLoading ? (
@@ -114,12 +118,12 @@ const ActivityTimeline = ({
         <>
           <CardHeader title='Linha do tempo de atividades' />
           <CardContent>
-            {dataFiltered_3 && dataFiltered_3.length === 0 ? (
+            {filteredNoUser && filteredNoUser.length === 0 ? (
               <Typography>Sem dados</Typography>
             ) : (
               <>
                 <Timeline>
-                  {dataFiltered_3?.map((activty: Activity) => {
+                  {filteredNoUser?.map((activty: Activity) => {
                     return (
                       <TimelineItem key={activty.id}>
                         <TimelineSeparator>
