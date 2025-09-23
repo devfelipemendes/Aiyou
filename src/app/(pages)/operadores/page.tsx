@@ -2,8 +2,6 @@
 
 import React from 'react'
 
-import { useRouter } from 'next/navigation'
-
 import type { ButtonProps } from '@mui/material'
 import { Box, Button, Card, CardActions, CardContent, CardHeader, CircularProgress, Typography } from '@mui/material'
 
@@ -11,23 +9,17 @@ import Grid from '@mui/material/Grid2'
 
 import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
 
-import CardOperator from '@/components/CardOperator/CardOperator'
 import CreateOperatorDialog from '@/components/dialogs/create-operator/CreateOperatorDialog'
 
 import { useGetOperatorsQuery } from '@/api/endpoints/operator/operator'
+import CardTwo from '@/components/cardTwo/CardTwo'
 
 export default function Operadores() {
-  const navigate = useRouter()
-
-  const { data, isLoading, error } = useGetOperatorsQuery()
+  const { data, isLoading, error, refetch } = useGetOperatorsQuery()
 
   console.log('dataoperadorrrr', data)
 
   // Assitentes.tsx
-
-  const handleUserClick = (operator: any) => {
-    navigate.push(`/operadores/detalhes_operador?id=${operator.id}`)
-  }
 
   const buttonProps: ButtonProps = {
     variant: 'contained',
@@ -62,8 +54,8 @@ export default function Operadores() {
         <Grid container spacing={3}>
           {data?.data.map((operator: any) => {
             return (
-              <Grid key={operator.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <CardOperator onClick={() => handleUserClick(operator)} operator={operator} />
+              <Grid key={operator.id} size={{ xs: 12, sm: 12, md: 12, lg: 6 }}>
+                <CardTwo operator={operator} refetch={refetch} />
               </Grid>
             )
           })}

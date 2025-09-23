@@ -1,5 +1,4 @@
 // MUI Imports
-import { useRouter } from 'next/navigation'
 
 import Grid from '@mui/material/Grid2'
 
@@ -7,12 +6,15 @@ import type { ColumnDef } from '@tanstack/react-table'
 
 import { createColumnHelper } from '@tanstack/react-table'
 
+import type { IconButtonProps } from '@mui/material'
 import { Box, CardHeader, Chip, CircularProgress, IconButton, Typography } from '@mui/material'
 
 import ListTable from '@/components/ListTable'
 import type { Protocol } from '@/api/endpoints/protocols/protocols'
 import { useGetProtocolsQuery } from '@/api/endpoints/protocols/protocols'
 import type { GetProjectByIdResponse } from '@/api/endpoints/Projects/project'
+import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
+import ChatLog_2 from '@/components/dialogs/chatComponent/ChatComponent'
 
 const getStatus = (status: string) => {
   switch (status) {
@@ -38,8 +40,6 @@ const InteractionsProject = ({ data }: { data: GetProjectByIdResponse | undefine
     sort: '-created_at',
     project_id: data?.data.id
   })
-
-  const router = useRouter()
 
   const columnHelper = createColumnHelper<Protocol>()
 
@@ -67,18 +67,25 @@ const InteractionsProject = ({ data }: { data: GetProjectByIdResponse | undefine
     }),
 
     // Nova coluna "Detalhes"
-    columnHelper.accessor(
-      row => row.protocol, // qualquer campo existente, só para não quebrar o tipo
-      {
-        id: 'detalhes', // nome da coluna
-        header: 'Detalhes',
-        cell: ({ row }) => (
-          <IconButton size='small' onClick={() => router.push(`/historico-interacoes/${row.original.protocol}`)}>
-            <i className='ri-eye-line text-textSecondary' />
-          </IconButton>
+    columnHelper.accessor(row => row.protocol, {
+      id: 'detalhes',
+      header: 'Detalhes',
+      cell: ({ row }) => {
+        const buttonProps: IconButtonProps = {
+          color: 'primary',
+          children: <i className='ri-eye-line text-info' />
+        }
+
+        return (
+          <OpenDialogOnElementClick
+            element={IconButton}
+            elementProps={buttonProps}
+            dialog={ChatLog_2}
+            dialogProps={{ protocol: row.original.protocol }}
+          />
         )
       }
-    )
+    })
   ]
 
   return (
