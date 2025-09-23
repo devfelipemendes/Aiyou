@@ -1,15 +1,28 @@
-import CardHeader from '@mui/material/CardHeader'
+'use client'
 
-import Divider from '@mui/material/Divider'
+import { useState } from 'react'
+
+import {
+  Box,
+  Card,
+  CardHeader,
+  Divider,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  TablePagination,
+  IconButton
+} from '@mui/material'
 import Typography from '@mui/material/Typography'
-
-import type { IconButtonProps } from '@mui/material'
-import { Box, IconButton } from '@mui/material'
 
 import CustomAvatar from '@core/components/mui/Avatar'
 import OptionMenu from '@core/components/option-menu'
 import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
 import CreateAssistant from '@/components/dialogs/create-assistant'
+import { useGetTasksByAssistantQuery } from '@/api/endpoints/taskAssistant/taskAssistant'
 
 type DataType = {
   name: string
@@ -25,51 +38,99 @@ const data: DataType[] = [
   { name: 'Beverlie Krabbe', profession: 'Vue', totalCourses: 8, avatar: '/images/avatars/4.png' }
 ]
 
-// 🔥 Botão com fundo (estilo contained)
-const iconButtonProps: IconButtonProps = {
-  color: 'primary',
-  children: <i className='ri-key-2-line text-[28px]' />,
+// 🔥 Botão customizado
+const iconButtonProps = {
+  color: 'primary' as const,
+  children: <i className='ri-key-2-line text-[20px]' />,
   sx: {
     backgroundColor: 'primary.main',
     color: 'white',
     '&:hover': {
       backgroundColor: 'primary.dark'
     },
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     borderRadius: '8px'
   }
 }
 
 const Apis = () => {
-  return (
-    <Box sx={{ width: '100%' }}>
-      <CardHeader
-        title='Popular Instructors'
-        action={<OptionMenu iconClassName='text-textPrimary' options={['Refresh', 'Update', 'Share']} />}
-      />
-      <Divider />
-      <div className='flex justify-between plb-4 pli-5'>
-        <Typography variant='overline'>Apis</Typography>
-        <Typography variant='overline'>Ações</Typography>
-      </div>
-      <Divider />
+  // Estado de paginação
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(2) // 🔥 qtd de linhas por página
 
-      {data.map((item, i) => (
-        <div key={i} className='flex items-center gap-4'>
-          <CustomAvatar size={34} src={item.avatar} />
-          <div className='flex justify-between items-center is-full'>
-            <div className='flex flex-col gap-1 mt-5'>
-              <Typography className='font-medium' color='text.primary'>
-                {item.name}
-              </Typography>
-              <Typography>{item.profession}</Typography>
-            </div>
-            <OpenDialogOnElementClick element={IconButton} elementProps={iconButtonProps} dialog={CreateAssistant} />
-          </div>
-        </div>
-      ))}
-    </Box>
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10))
+    setPage(0)
+  }
+
+  // Paginação real: fatia do array
+  const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+
+  const {
+    data: dataTaskAssistant,
+    isLoading,
+    error
+  } = useGetTasksByAssistantQuery('d77ed7e3-e9f0-4886-bbb1-9fad8cfd15b2')
+
+  console.log('datataskassistant', dataTaskAssistant)
+
+  return (
+    <>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>id</TableCell>
+              <TableCell>criação</TableCell>
+              <TableCell>Expandir</TableCell>
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            {paginatedData.map((item, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <CustomAvatar size={34} src={item.avatar} />
+                </TableCell>
+                <TableCell>
+                  <Typography className='font-medium' color='text.primary'>
+                    {item.name}
+                  </Typography>
+                </TableCell>
+                <TableCell>{item.profession}</TableCell>
+                <TableCell>{item.totalCourses}</TableCell>
+                <TableCell align='right'>
+                  <OpenDialogOnElementClick
+                    element={IconButton}
+                    elementProps={iconButtonProps}
+                    dialog={CreateAssistant}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Componente de paginação */}
+      <TablePagination
+        className='mt-2'
+        component='div'
+        count={data.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[]} // 🔥 tira o seletor de "linhas por página"
+        labelRowsPerPage='' // 🔥 esconde o label
+        labelDisplayedRows={({ page, count }) => `Página ${page + 1} de ${Math.ceil(count / rowsPerPage)}`}
+      />
+    </>
   )
 }
 
