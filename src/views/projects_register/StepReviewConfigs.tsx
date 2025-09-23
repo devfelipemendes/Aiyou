@@ -17,6 +17,14 @@ import {
   CircularProgress
 } from '@mui/material'
 
+import { toast } from 'react-toastify'
+
+import { useCompleteFirstAccessMutation } from '@/api/endpoints/firstAccess/firstAcess'
+
+import { useAppDispatch } from '@/redux-store'
+
+import { completeFirstAccess as completeFirstAccessAction } from '@/redux-store/slices/firstAccessSlice'
+
 interface StepReviewProjectProps {
   onPrevStep: () => void
   onFinish: () => Promise<void>
@@ -28,7 +36,7 @@ interface StepReviewProjectProps {
 
 const StepReviewProject: React.FC<StepReviewProjectProps> = ({
   onPrevStep,
-  onFinish,
+
   projectData,
   assistantData,
   apiData,
@@ -36,6 +44,10 @@ const StepReviewProject: React.FC<StepReviewProjectProps> = ({
 }) => {
   const [isFinishing, setIsFinishing] = useState(false)
   const [expandedProject, setExpandedProject] = useState(true)
+
+  const [completeFirstAccess] = useCompleteFirstAccessMutation()
+
+  const dispatch = useAppDispatch()
 
   // Estatísticas do projeto
   const statistics = useMemo(() => {
@@ -53,13 +65,32 @@ const StepReviewProject: React.FC<StepReviewProjectProps> = ({
     }
   }, [apiData, endpointData, assistantData])
 
+  // Adicionar este import no topo
+
+  // Atualizar o método handleFinishProject
   const handleFinishProject = async () => {
     setIsFinishing(true)
 
     try {
-      await onFinish()
-    } catch (error) {
-      console.error('Erro ao finalizar:', error)
+      const response = await completeFirstAccess().unwrap()
+
+      console.log('🎯 Resposta da API firstAccess:', response)
+
+      // 3. ✅ ATUALIZAR REDUX PARA FECHAR O MODAL
+      dispatch(completeFirstAccessAction())
+
+      console.log('✅ Primeiro acesso concluído com sucesso!')
+
+      // 4. Mostrar mensagem de sucesso
+      toast.success('Configuração inicial concluída com sucesso!')
+    } catch (error: any) {
+      console.error('❌ Erro ao finalizar primeiro acesso:', error)
+
+      const errorMessage = error?.message || 'Erro ao finalizar configuração'
+
+      toast.error(errorMessage)
+
+      return
     } finally {
       setIsFinishing(false)
     }
@@ -75,6 +106,12 @@ const StepReviewProject: React.FC<StepReviewProjectProps> = ({
         <Typography variant='body1' color='text.secondary'>
           Revise as configurações finais antes de criar seu primeiro projeto
         </Typography>
+        <Alert severity='info' sx={{ mt: 3 }}>
+          <Typography variant='body2'>
+            💡 <strong>Dica:</strong> Após finalizar, você poderá acessar e gerenciar seus projetos na área principal do
+            sistema.
+          </Typography>
+        </Alert>
       </Box>
 
       {/* Estatísticas */}
@@ -208,14 +245,6 @@ const StepReviewProject: React.FC<StepReviewProjectProps> = ({
           {isFinishing ? 'Finalizando...' : 'Finalizar Projeto'}
         </Button>
       </Box>
-
-      {/* Informação sobre o fechamento do modal */}
-      <Alert severity='info' sx={{ mt: 3 }}>
-        <Typography variant='body2'>
-          💡 <strong>Dica:</strong> Após finalizar, você poderá acessar e gerenciar seus projetos na área principal do
-          sistema.
-        </Typography>
-      </Alert>
     </Box>
   )
 }

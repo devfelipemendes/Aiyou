@@ -20,7 +20,6 @@ import '@/app/globals.css'
 import '@assets/iconify-icons/generated-icons.css'
 import ReduxProvider from '@/redux-store/ReduxProvider'
 import { WebSocketAutoReconnectProvider } from '@/components/WebSocketAutoReconnectProvider'
-import FirstAccessModal from '@/components/dialogs/firstAccess'
 
 export const metadata = {
   title: 'Aiyou',

@@ -332,32 +332,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     parameterForm.reset()
   }, [taskForm, parameterForm])
 
-  const handleEditTask = useCallback(
-    (task: Task) => {
-      setEditingTask(task)
-      setCurrentEndpoint(task.endpoint)
-
-      const existingVariables = parseUrlVariables(task.endpoint)
-
-      setUrlVariables(existingVariables)
-
-      taskForm.reset({
-        name: task.name,
-        description: task.description,
-        endpoint: task.endpoint,
-        method_id: task.method_id,
-        api_id: task.api_id,
-        instruction: task.instruction,
-        variable: task.variable
-      })
-
-      setTempParameters([])
-      setTempParamReturns([])
-      setIsModalOpen(true)
-    },
-    [taskForm, parseUrlVariables]
-  )
-
   const handleShowPreviewJson = () => {
     setShowPreview(prev => !prev)
   }
@@ -563,94 +537,30 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     [deleteTask, refetch]
   )
 
-  // Colunas da tabela
-  const columnHelper = createColumnHelper<Task>()
+  const handleEditTask = useCallback(
+    (task: Task) => {
+      setEditingTask(task)
+      setCurrentEndpoint(task.endpoint)
 
-  const columns = useMemo<ColumnDef<Task, any>[]>(
-    () => [
-      columnHelper.accessor('name', {
-        header: 'Nome',
-        cell: (info: any) => <Typography variant='body2'>{info.getValue()}</Typography>
-      }),
-      columnHelper.accessor('description', {
-        header: 'Descrição',
-        cell: (info: any) => <Typography variant='body2'>{info.getValue()}</Typography>,
+      const existingVariables = parseUrlVariables(task.endpoint)
 
-        // Em mobile, esconder esta coluna se necessário
-        meta: {
-          hideBelow: 'md' // Se ListTable suportar
-        }
-      }),
-      columnHelper.accessor('endpoint', {
-        header: 'Endpoint',
-        cell: (info: any) => (
-          <Typography
-            variant='body2'
-            fontFamily='monospace'
-            sx={{
-              display: { xs: 'none', sm: 'block' } // Esconder em mobile muito pequeno
-            }}
-          >
-            {info.getValue()}
-          </Typography>
-        )
-      }),
+      setUrlVariables(existingVariables)
 
-      // Manter apenas colunas essenciais em mobile
-      columnHelper.accessor('method_id', {
-        header: 'Método',
-        cell: (info: any) => {
-          const method = methods.find(m => m.id === info.getValue())
-
-          return (
-            <Chip
-              label={method?.name || 'N/A'}
-              size='small'
-              color={
-                method?.name === 'GET'
-                  ? 'success'
-                  : method?.name === 'POST'
-                    ? 'primary'
-                    : method?.name === 'PUT'
-                      ? 'warning'
-                      : method?.name === 'DELETE'
-                        ? 'error'
-                        : 'default'
-              }
-            />
-          )
-        }
-      }),
-
-      // Actions sempre visível
-      columnHelper.display({
-        id: 'actions',
-        header: 'Ações',
-        cell: (params: any) => (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              size='small'
-              variant='outlined'
-              color='primary'
-              onClick={() => handleEditTask(params.row.original)}
-              sx={{ minWidth: 'auto', px: 1 }} // Botões menores
-            >
-              <i className='ri-edit-line' />
-            </Button>
-            <Button
-              size='small'
-              variant='outlined'
-              color='error'
-              onClick={() => handleDeleteTask(params.row.original.id)}
-              sx={{ minWidth: 'auto', px: 1 }}
-            >
-              <i className='ri-delete-bin-2-line' />
-            </Button>
-          </Box>
-        )
+      taskForm.reset({
+        name: task.name,
+        description: task.description,
+        endpoint: task.endpoint,
+        method_id: task.method_id,
+        api_id: task.api_id,
+        instruction: task.instruction,
+        variable: task.variable
       })
-    ],
-    [columnHelper, methods, handleEditTask, handleDeleteTask]
+
+      setTempParameters([])
+      setTempParamReturns([])
+      setIsModalOpen(true)
+    },
+    [taskForm, parseUrlVariables]
   )
 
   // Effects
@@ -682,9 +592,9 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   }, [taskForm.watch('api_id'), apis])
 
   return (
-    <Box sx={{ mx: 'auto', p: 3 }}>
+    <Box sx={{ mx: 'auto', width: '100%' }}>
       <CardHeader title='Gerenciar Endpoints' subheader='Cadastre e configure os endpoints das suas APIs' />
-      <CardContent>
+      <CardContent sx={{ width: '100%' }}>
         <Grid container spacing={4}>
           {/* Header com botão */}
           <Grid size={{ xs: 12 }}>
@@ -710,30 +620,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Grid>
           )}
 
-          {/* Tabela */}
-          {tasks.length > 0 && !isLoading && (
-            <Grid size={{ xs: 12 }}>
-              <Box
-                sx={{
-                  overflowX: 'auto', // ✅ Scroll horizontal em mobile
-                  '& table': {
-                    minWidth: '700px' // ✅ Largura mínima da tabela
-                  }
-                }}
-              >
-                <ListTable
-                  columns={columns}
-                  tableData={tasks}
-                  loading={false}
-                  exportFileName='endpoints-cadastrados'
-                  searchInputPlaceholder='Buscar endpoint...'
-                  headerTable={<CardHeader title={`Endpoints (${tasks.length})`} />}
-                  headerHasDivider
-                />
-              </Box>
-            </Grid>
-          )}
-
           {/* Empty State */}
           {tasks.length === 0 && !isLoading && (
             <Grid size={{ xs: 12 }}>
@@ -750,21 +636,19 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
           )}
 
           {/* Botão próximo */}
-          {tasks.length > 0 && onNextStep && (
-            <Grid size={{ xs: 12 }}>
-              <Box className='flex justify-end'>
-                <Button
-                  variant='contained'
-                  size='large'
-                  onClick={onNextStep}
-                  endIcon={<i className='ri-arrow-right-line' />}
-                >
-                  Próximo Passo
-                </Button>
-              </Box>
-            </Grid>
-          )}
         </Grid>
+        {tasks.length > 0 && (
+          <Box className='flex items-end '>
+            <Button
+              variant='contained'
+              size='small'
+              onClick={onNextStep}
+              endIcon={<i className='ri-arrow-right-line' />}
+            >
+              Finalizar cadatro de endpoints
+            </Button>
+          </Box>
+        )}
       </CardContent>
 
       {/* Modal */}

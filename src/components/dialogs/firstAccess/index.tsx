@@ -4,17 +4,25 @@
 import { useState, useEffect, forwardRef, type ReactElement, type Ref } from 'react'
 
 // MUI Imports
-import { Dialog, DialogContent, Stepper, Step, StepLabel, Typography, IconButton, Box, Slide } from '@mui/material'
+
+import Image from 'next/image'
+
+import { Dialog, DialogContent, Stepper, Step, StepLabel, Typography, Box, Slide } from '@mui/material'
 import type { TransitionProps } from '@mui/material/transitions'
 
-// Redux Imports
+import StepConnector from '@mui/material/StepConnector'
+
+import { styled } from '@mui/material/styles'
+
 import { useAppSelector, useAppDispatch } from '@/redux-store'
-import { closeModal, setCurrentStep, openModal } from '@/redux-store/slices/firstAccessSlice'
+import { closeModal, openModal } from '@/redux-store/slices/firstAccessSlice'
 import StepCreateProject from '@/views/projects_register/StepCreateProject'
 import StepCreateAssistant from '@/views/projects_register/StepCreateAssistant'
 import StepCreateApi from '@/views/projects_register/StepCreateApi'
 import StepCreateEndpoints from '@/views/projects_register/StepCreateEndpoints'
 import StepReviewProject from '@/views/projects_register/StepReviewConfigs'
+import StepperWrapper from '@/@core/styles/stepper'
+import StepperCustomDot from '@components/stepper-dot'
 
 // Component Imports
 
@@ -61,13 +69,25 @@ const FirstAccessModal = () => {
   const dispatch = useAppDispatch()
 
   // Estados do Redux
-  const { firstAccess, modalOpen, currentStep } = useAppSelector((state: any) => state.firstAccess)
+  const { firstAccess, modalOpen } = useAppSelector((state: any) => state.firstAccess)
 
   // Estados locais para dados do wizard
-  const [projectData, setProjectData] = useState<any>(null)
-  const [assistantData, setAssistantData] = useState<any>(null)
-  const [apiData, setApiData] = useState<any>(null)
-  const [endpointData, setEndpointData] = useState<any>(null)
+
+  const [activeStep, setActiveStep] = useState<number>(0)
+
+  const handleNext = () => {
+    if (activeStep !== steps.length - 1) {
+      setActiveStep(activeStep + 1)
+    } else {
+      alert('Submitted..!!')
+    }
+  }
+
+  const handlePrev = () => {
+    if (activeStep !== 0) {
+      setActiveStep(activeStep - 1)
+    }
+  }
 
   // Controla a abertura automática do modal
   useEffect(() => {
@@ -76,71 +96,71 @@ const FirstAccessModal = () => {
     }
   }, [firstAccess, modalOpen, dispatch])
 
-  // Navegação entre steps
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      dispatch(setCurrentStep(currentStep + 1))
-    }
-  }
-
-  const handlePrev = () => {
-    if (currentStep > 0) {
-      dispatch(setCurrentStep(currentStep - 1))
-    }
-  }
-
-  const handleFinishProject = async () => {
-    try {
-      alert('Projeto finalizado com sucesso!')
-    } catch (error) {
-      console.error('❌ Erro ao finalizar projeto:', error)
-    }
-  }
-
   const handleCloseAttempt = () => {
     if (!firstAccess) {
       dispatch(closeModal())
     }
   }
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return <StepCreateProject onNextStep={handleNext} />
-      case 1:
-        return <StepCreateAssistant onNextStep={handleNext} />
-      case 2:
-        return <StepCreateApi />
-      case 3:
-        return <StepCreateEndpoints />
-      case 4:
-        return (
-          <StepReviewProject
-            onPrevStep={handlePrev}
-            onFinish={handleFinishProject}
-            projectData={projectData}
-            assistantData={assistantData}
-            apiData={apiData}
-            endpointData={endpointData}
-          />
-        )
-      default:
-        return <Typography>Step não encontrado</Typography>
+  const ConnectorHeight = styled(StepConnector)(() => ({
+    '& .MuiStepConnector-line': {
+      minHeight: 20
     }
+  }))
+
+  const getStepContent = (step: number, handleNext: () => void, handlePrev: () => void) => {
+    return (
+      <>
+        <div className='mb-6 relative'>
+          <Image
+            src='/images/iaImages/icons.png'
+            alt={`Step ${step + 1} Header`}
+            width={800}
+            height={208}
+            className='w-full h-52 object-cover rounded-lg'
+            sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+            quality={85}
+          />
+        </div>
+
+        {step === 0 ? (
+          <StepCreateProject
+            onNextStep={handleNext} // ✅ Passa a prop correta
+          />
+        ) : step === 1 ? (
+          <StepCreateAssistant onNextStep={handleNext} />
+        ) : step === 2 ? (
+          <StepCreateApi onNextStep={handleNext} />
+        ) : step === 3 ? (
+          <StepCreateEndpoints onNextStep={handleNext} />
+        ) : step === 4 ? (
+          <StepReviewProject
+            projectData={[]}
+            assistantData={[]}
+            apiData={[]}
+            endpointData={[]}
+            onPrevStep={handlePrev}
+          />
+        ) : (
+          <Typography variant='h6' className='text-center'>
+            Etapa não encontrada
+          </Typography>
+        )}
+      </>
+    )
   }
 
   return (
     <Dialog
       open={modalOpen}
-      onClose={handleCloseAttempt} // Só fecha se firstAccess for false
-      maxWidth='lg'
-      fullWidth
+      onClose={handleCloseAttempt}
       TransitionComponent={Transition}
-      disableEscapeKeyDown={firstAccess} // Bloqueia ESC se firstAccess for true
+      disableEscapeKeyDown={firstAccess}
       sx={{
         '& .MuiDialog-paper': {
           minHeight: '80vh',
-          borderRadius: 2
+          borderRadius: 2,
+          minWidth: '90%'
         }
       }}
     >
@@ -155,46 +175,44 @@ const FirstAccessModal = () => {
           borderColor: 'divider'
         }}
       >
-        <Typography variant='h5' fontWeight='bold'>
-          🎯 Configuração Inicial do Projeto
+        <Typography variant='h5' fontWeight='bold' className='p-4'>
+          Bem-vindo ao Aiyou! Vamos começar criando seu primeiro projeto
         </Typography>
 
         {/* Botão fechar - só funciona se firstAccess for false */}
-        <IconButton
-          onClick={handleCloseAttempt}
-          disabled={firstAccess} // Desabilitado se firstAccess for true
-          sx={{
-            opacity: firstAccess ? 0.3 : 1,
-            cursor: firstAccess ? 'not-allowed' : 'pointer'
-          }}
-        >
-          <i className='ri-close-line' />
-        </IconButton>
       </Box>
 
-      {/* Stepper horizontal */}
-      <Box sx={{ p: 3, borderBottom: 1, borderColor: 'divider' }}>
-        <Stepper activeStep={currentStep} alternativeLabel>
-          {steps.map((step, index) => (
-            <Step key={index}>
-              <StepLabel>
-                <Box display='flex' flexDirection='column' alignItems='center'>
-                  <i className={step.icon} style={{ fontSize: 20, marginBottom: 4 }} />
-                  <Typography variant='caption' fontWeight='medium'>
-                    {step.title}
-                  </Typography>
-                  <Typography variant='caption' color='text.secondary'>
-                    {step.subtitle}
-                  </Typography>
-                </Box>
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-      </Box>
-
-      {/* Conteúdo do modal */}
-      <DialogContent sx={{ p: 0, minHeight: 500 }}>{renderStepContent()}</DialogContent>
+      <DialogContent sx={{ p: 0, minHeight: 500, display: 'flex', padding: 4, gap: 4 }}>
+        <StepperWrapper className='bs-full'>
+          <Stepper activeStep={activeStep} connector={<ConnectorHeight />} orientation='vertical'>
+            {steps.map((step, index) => {
+              return (
+                <Step key={index} onClick={() => setActiveStep(index)}>
+                  <StepLabel
+                    className='p-0'
+                    slots={{
+                      stepIcon: StepperCustomDot
+                    }}
+                  >
+                    <div className='step-label cursor-pointer'>
+                      <Typography className='step-number' color='text.primary'>{`0${index + 1}`}</Typography>
+                      <div>
+                        <Typography className='step-title' color='text.primary'>
+                          {step.title}
+                        </Typography>
+                        <Typography className='step-subtitle' color='text.primary'>
+                          {step.subtitle}
+                        </Typography>
+                      </div>
+                    </div>
+                  </StepLabel>
+                </Step>
+              )
+            })}
+          </Stepper>
+        </StepperWrapper>
+        <Box className='w-full flex flex-col'>{getStepContent(activeStep, handleNext, handlePrev)}</Box>
+      </DialogContent>
     </Dialog>
   )
 }

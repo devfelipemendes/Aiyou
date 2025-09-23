@@ -1,44 +1,54 @@
 // src/hooks/useFirstAccessCheck.ts
 import { useEffect } from 'react'
 
+import Cookies from 'js-cookie'
+
 import { useAppDispatch } from '@/redux-store'
 import { setFirstAccess, openModal } from '@/redux-store/slices/firstAccessSlice'
 import { useUserMe } from '@/hooks/useUserMe'
 
-// Hook para verificar firstAccess usando o useUserMe existente
 export const useFirstAccessCheck = () => {
   const dispatch = useAppDispatch()
 
-  // ✅ Usar o hook existente do projeto
-  const { user, isLoading, firstAccess } = useUserMe({ autoFetch: true })
+  // ✅ Verificar se tem token antes de fazer a query
+  const hasToken = !!Cookies.get('token')
+
+  // ✅ Só busca dados se tiver token
+  const { user, isLoading } = useUserMe({
+    autoFetch: hasToken
+  })
 
   useEffect(() => {
-    // Aguardar carregar os dados do usuário
+    // ✅ Só executa se tiver token
+    if (!hasToken) {
+      console.log('❌ Sem token - não verificando firstAccess')
+
+      return
+    }
+
+    console.log('🔄 useFirstAccessCheck - user:', user, 'isLoading:', isLoading)
+
     if (isLoading) return
 
     if (user) {
-      console.log('👤 Dados do usuário carregados:', user)
+      // ✅ TEMPORÁRIO: sempre true para testar
+      // Depois trocar por: user.firstAccess ou user.first_access
+      const hasFirstAccess = true // 🧪 TESTE
 
-      // ✅ Verificar se tem a propriedade firstAccess no user
-      const hasFirstAccess = firstAccess !== undefined ? firstAccess : true
+      console.log('👤 Usuário carregado. FirstAccess:', hasFirstAccess)
 
-      // Atualizar estado do Redux
       dispatch(setFirstAccess(hasFirstAccess))
 
-      // Se for primeiro acesso, abrir o modal automaticamente
       if (hasFirstAccess) {
-        console.log('🔓 Primeiro acesso detectado - abrindo modal')
+        console.log('🔓 Abrindo modal de primeiro acesso')
         dispatch(openModal())
-      } else {
-        console.log('✅ Usuário já completou o primeiro acesso')
       }
     } else if (!isLoading) {
-      // Se não tem usuário e não está carregando, assumir primeiro acesso
-      console.warn('⚠️ Usuário não encontrado - assumindo primeiro acesso')
+      console.warn('⚠️ Usuário não encontrado mas tem token')
       dispatch(setFirstAccess(true))
       dispatch(openModal())
     }
-  }, [user, isLoading, dispatch, firstAccess])
+  }, [user, isLoading, dispatch, hasToken])
 
-  return { user, isLoading }
+  return { user, isLoading, hasToken }
 }

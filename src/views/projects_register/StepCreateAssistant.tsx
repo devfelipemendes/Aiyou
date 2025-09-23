@@ -334,7 +334,7 @@ export default function StepCreateAssistant({
   }
 
   return (
-    <Box sx={{ mx: 'auto', p: 3 }}>
+    <Box sx={{ mx: 'auto', p: 3, width: '100%' }}>
       {/* 🎯 HEADER */}
       <Box sx={{ mb: 3 }}>
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
