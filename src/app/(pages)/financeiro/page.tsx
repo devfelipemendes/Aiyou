@@ -15,7 +15,6 @@ import Tab from '@mui/material/Tab'
 import Grid from '@mui/material/Grid2'
 
 import { useUserMe } from '@/hooks/useUserMe'
-import { useGetCustomerInvoicesQuery } from '@/api/endpoints/invoices/invoice'
 
 import PricingPlansModal from '@/components/dialogs/plans'
 
@@ -87,13 +86,8 @@ const TabPanel = (props: TabPanelProps) => {
 
 const FinanceiroPage = () => {
   const [tabValue, setTabValue] = useState(0)
-  const [planFree, setPlanFree] = useState(true)
+
   const { plan } = useUserMe()
-
-  const { data: response, isLoading, isError, error, refetch } = useGetCustomerInvoicesQuery({})
-
-  const invoices = response?.data.data || []
-  const pagination = response?.data || { totalCount: 0, hasMore: false }
 
   const [modalOpen, setModalOpen] = useState(false)
 

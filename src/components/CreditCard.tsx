@@ -1,12 +1,12 @@
 // CreditCard.tsx - Componente principal com ConfirmDialog
 import React, { useState, useCallback } from 'react'
 
-import { Box } from '@mui/material'
+import { Box, Button } from '@mui/material'
 import { toast } from 'react-toastify'
 import Grid from '@mui/material/Grid2'
 
 import CreditCardForm from './CreditCardForm'
-import CreditCardList from './CreditCardList'
+import CreditCardList, { getCardBrand } from './CreditCardList'
 import ConfirmDialog, { useConfirmDialog } from './dialogs/confirmation-dialog'
 import {
   useCreateCreditCardMutation,
@@ -16,16 +16,19 @@ import {
   type CreditCardListItem
 } from '@/api/endpoints/creditcard/creditcard'
 import type { CreditCardFormData } from '@/hooks/useCreditCardForm'
+import { useCreateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
 
 const CreditCard: React.FC = () => {
   const [selectedCardId, setSelectedCardId] = useState<string>('1')
   const [cardToDelete, setCardToDelete] = useState<CreditCardListItem | null>(null)
 
   // RTK Query hooks
-  const { data: response } = useGetCreditCardsQuery()
+
   const [createCreditCard, { isLoading: isCreating }] = useCreateCreditCardMutation()
   const [updateCreditCard] = useUpdateCreditCardMutation()
   const [deleteCreditCard] = useDeleteCreditCardMutation()
+
+  const [createUserPlan, { isLoading }] = useCreateUserPlanMutation()
 
   const { data: creditCards } = useGetCreditCardsQuery(undefined, {
     skip: false
@@ -38,6 +41,9 @@ const CreditCard: React.FC = () => {
   const handleSubmitCard = useCallback(
     async (data: CreditCardFormData) => {
       try {
+        const cardNumber = data.cardNumber.replace(/\D/g, '')
+        const cardBrand = getCardBrand(cardNumber) // Detectar bandeira
+
         await createCreditCard({
           user_id: 'current_user', // Substituir pela lógica de autenticação
           name: data.nameOnCard,
@@ -45,6 +51,8 @@ const CreditCard: React.FC = () => {
           security_code: data.cvv,
           card_number: data.cardNumber.replace(/\D/g, ''),
           date: data.expiryDate,
+          credit_card_brand: cardBrand,
+          priority: 0,
           active: true
         }).unwrap()
 
@@ -56,6 +64,18 @@ const CreditCard: React.FC = () => {
     },
     [createCreditCard]
   )
+
+  const handleCreatePlan = async (planId: string) => {
+    try {
+      await createUserPlan({
+        plan_id: planId,
+        subscription: true
+      }).unwrap()
+    } catch (error) {
+      console.error('Erro ao criar plano:', error)
+      toast.error('Erro ao criar plano. Tente novamente.')
+    }
+  }
 
   const handleCardSelect = useCallback((cardId: string) => {
     setSelectedCardId(cardId)
@@ -76,10 +96,9 @@ const CreditCard: React.FC = () => {
     [updateCreditCard]
   )
 
-  // ===== NOVO HANDLE DE DELETE COM CONFIRM DIALOG =====
   const handleDeleteCard = useCallback(
     (cardId: string) => {
-      const card = response?.data?.find(c => c.id.toString() === cardId)
+      const card = creditCards?.data?.find(c => c.id.toString() === cardId)
 
       if (!card) {
         toast.error('Cartão não encontrado!')
@@ -87,16 +106,13 @@ const CreditCard: React.FC = () => {
         return
       }
 
-      // Guardar o cartão que será deletado
       setCardToDelete(card)
 
-      // Abrir dialog de confirmação
       confirmDialog.openDialog()
     },
-    [response?.data, confirmDialog]
+    [creditCards?.data, confirmDialog]
   )
 
-  // ===== CONFIRMAR DELETE =====
   const handleConfirmDelete = async () => {
     if (!cardToDelete) return
 
@@ -105,25 +121,20 @@ const CreditCard: React.FC = () => {
     try {
       await deleteCreditCard(cardToDelete.id.toString()).unwrap()
 
-      toast.success(`Cartão "${cardToDelete.card_name}" excluído com sucesso!`)
-
-      // Se o cartão excluído estava selecionado, limpar seleção
       if (selectedCardId === cardToDelete.id.toString()) {
         setSelectedCardId('')
       }
 
-      // Fechar dialog e limpar estado
       confirmDialog.closeDialog()
       setCardToDelete(null)
     } catch (error: any) {
-      confirmDialog.setLoading(false) // Manter dialog aberto em caso de erro
+      confirmDialog.setLoading(false)
       handleCancelDelete()
     } finally {
       confirmDialog.setLoading(false)
     }
   }
 
-  // ===== CANCELAR DELETE =====
   const handleCancelDelete = () => {
     setCardToDelete(null)
     confirmDialog.closeDialog()
@@ -131,25 +142,35 @@ const CreditCard: React.FC = () => {
 
   return (
     <>
-      {creditCards?.data.length === 0 ? (
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12 }}>
-            <CreditCardForm onSubmit={handleSubmitCard} isSubmitting={isCreating} />
+      <Box className='w-full flex flex-col gap-6'>
+        {creditCards?.data.length === 0 ? (
+          <Grid container spacing={4}>
+            <Grid size={{ xs: 12 }}>
+              <CreditCardForm onSubmit={handleSubmitCard} isSubmitting={isCreating} />
+            </Grid>
           </Grid>
-        </Grid>
-      ) : (
-        <Box className='w-full'>
-          <CreditCardList
-            selectedCardId={selectedCardId}
-            onCardSelect={handleCardSelect}
-            onCardEdit={handleUpdateCard}
-            onCardDelete={handleDeleteCard} // Agora usa o ConfirmDialog
-            selectable={true}
-            showActions={true}
-            className='w-full'
-          />
-        </Box>
-      )}
+        ) : (
+          <Box className='w-full'>
+            <CreditCardList
+              selectedCardId={selectedCardId}
+              onCardSelect={handleCardSelect}
+              onCardEdit={handleUpdateCard}
+              onCardDelete={handleDeleteCard} // Agora usa o ConfirmDialog
+              selectable={true}
+              showActions={true}
+              className='w-full'
+            />
+          </Box>
+        )}
+        <Button
+          variant='contained'
+          size='medium'
+          onClick={() => handleCreatePlan(selectedCardId)}
+          disabled={!selectedCardId || isLoading}
+        >
+          Finalizar Compra
+        </Button>
+      </Box>
 
       {/* Dialog de Confirmação de Exclusão */}
       <ConfirmDialog

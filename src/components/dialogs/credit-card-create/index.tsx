@@ -231,6 +231,9 @@ const CreditCardCreateModal: React.FC<CreditCardCreateModalProps> = ({ open, onC
 
   const onSubmit = async (data: CreateCreditCardFormData) => {
     try {
+      const cardNumber = data.cardNumber.replace(/\D/g, '')
+      const cardBrand = getCardBrand(cardNumber)
+
       const createData = {
         user_id: data.userId,
         name: data.nameOnCard.trim(),
@@ -238,12 +241,13 @@ const CreditCardCreateModal: React.FC<CreditCardCreateModalProps> = ({ open, onC
         card_number: data.cardNumber.replace(/\D/g, ''),
         date: data.expiryDate,
         security_code: data.cvv,
-        active: data.active ? true : false
+        credit_card_brand: cardBrand,
+        active: data.active ? true : false,
+        priority: 0
       }
 
       console.log('🔄 Enviando dados para criação:', createData)
 
-      //@ts-ignore
       const result = await createCreditCard(createData).unwrap()
 
       console.log('✅ Cartão criado com sucesso:', result)

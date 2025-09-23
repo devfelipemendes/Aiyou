@@ -70,6 +70,7 @@ export const apiSlice = createApi({
     'HttpMethod',
     'CustomerInvoice',
     'Plan',
-    'CreditCard'
+    'CreditCard',
+    'UserPlan'
   ]
 })
