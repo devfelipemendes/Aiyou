@@ -79,8 +79,20 @@ const getNameAction = (action: string): 'criou' | 'atualizou' | 'deletou' | 'gre
   }
 }
 
+const getNameModel = (subject_type: string) => {
+  const nameArray = subject_type.split('\\')
+  const name = nameArray[nameArray.length - 1]
+
+  switch (name) {
+    case 'Project':
+      return 'projeto' // verde
+    case 'Assistant':
+      return 'assistente' // azul
+  }
+}
+
 const getSentenceActivity = (activity: Activity) => {
-  const sentence = `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} em ${activity.subject_type}`
+  const sentence = `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} um ${getNameModel(activity.subject_type)}`
 
   return sentence
 }
@@ -93,7 +105,7 @@ const ActivityTimeline = ({
   isLoading: boolean
 }) => {
   return (
-    <Card>
+    <Card className='max-h-[350px] overflow-y-auto'>
       {isLoading ? (
         <Box className='w-full h-full justify-center items-center flex'>
           <CircularProgress />
@@ -130,16 +142,21 @@ const ActivityTimeline = ({
                             {activty.properties.attributes.name ?? '-'}
                           </Typography>
                           <div className='flex items-center gap-2.5'>
-                            <Avatar
-                              src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
-                              className='bs-8 is-8'
-                            />
-                            <div className='flex flex-col flex-wrap gap-0.5'>
-                              <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                                <Typography variant='body1'>Descrição:</Typography>
-                                {activty.properties.attributes.description ?? '-'}
-                              </Typography>
-                            </div>
+                            {activty.properties.attributes.img_url && (
+                              <Avatar
+                                src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
+                                className='bs-8 is-8'
+                              />
+                            )}
+
+                            {activty.properties.attributes.description && (
+                              <div className='flex flex-col flex-wrap gap-0.5'>
+                                <Typography className=' flex flex-row text-wrap items-center gap-2'>
+                                  <Typography variant='body1'>Descrição:</Typography>
+                                  {activty.properties.attributes.description ?? ''}
+                                </Typography>
+                              </div>
+                            )}
                           </div>
                         </TimelineContent>
                       </TimelineItem>

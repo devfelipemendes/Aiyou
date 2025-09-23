@@ -42,17 +42,9 @@ const DashboardCRM = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, isFetching, error, refetch } = useGetDashboardQuery(filters)
 
-  const [dataFiltered_3, setDataFiltered_3] = useState<Activity[] | undefined>()
-
   const { data: dataActivity, isLoading } = useGetActivitiesQuery({
     sort: '-created_at'
   })
-
-  useEffect(() => {
-    if (dataActivity?.data) {
-      setDataFiltered_3(dataActivity.data.slice(0, 3))
-    }
-  }, [dataActivity])
 
   const handleChangeMonth = (event: SelectChangeEvent) => {
     const selectedMonth = event.target.value
@@ -124,7 +116,7 @@ const DashboardCRM = () => {
         <CardWidgetsSalesOverview />
       </Grid>
       <Grid className='relative' size={{ xs: 12, md: 12 }}>
-        <ActivityTimeline isLoading={isLoading} dataFiltered_3={dataFiltered_3 ?? []} />
+        <ActivityTimeline isLoading={isLoading} dataFiltered_3={dataActivity?.data ?? []} />
       </Grid>
       <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
         <AvailableSoon />
