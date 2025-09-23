@@ -28,6 +28,7 @@ import type { Activity } from '@/api/endpoints/activity/activity'
 import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
 import FirstAccessModal from '@/components/dialogs/firstAccess'
 import { useUserMe } from '@/hooks/useUserMe'
+import { useGetStatisticsQuery } from '@/api/endpoints/statistics/statistics'
 
 export type DataTypeEstatisticsDash = {
   icon: string
@@ -40,40 +41,28 @@ const DashboardCRM = () => {
   const { firstAccess } = useUserMe()
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [filters, setFilters] = useState({ year: getCurrentYear(), month: getCurrentMonth() })
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [month, setMonth] = useState<string>(getNameMonth(getCurrentMonth()))
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { data, isFetching, error, refetch } = useGetDashboardQuery(filters)
+  const {
+    data,
+
+    isLoading: isLoadingStatistics
+  } = useGetStatisticsQuery({
+    assistant_id: 'architecto',
+    project_id: 'architecto'
+  })
 
   const { data: dataActivity, isLoading } = useGetActivitiesQuery({
     sort: '-created_at'
   })
 
-  const handleChangeMonth = (event: SelectChangeEvent) => {
-    const selectedMonth = event.target.value
-
-    setMonth(months.find(m => m.value === selectedMonth)?.label || '')
-    setFilters(prev => ({ ...prev, month: selectedMonth }))
-  }
-
   return (
     <>
       <Grid container spacing={6}>
-        <Grid size={{ xs: 12, sm: 12 }}>
-          <FormControl fullWidth>
-            <InputLabel>Mês</InputLabel>
-            <Select value={filters.month} label='Mês' onChange={handleChangeMonth}>
-              {months.map(m => (
-                <MenuItem key={m.value} value={m.value}>
-                  {m.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
         <Grid size={{ xs: 12 }} className='self-end'>
-          <EstatisticsDash month={month} data={data} isLoading={isFetching} />
+          <EstatisticsDash month={''} data={data} isLoading={isLoadingStatistics} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end relative'>
           <AvailableSoon />
@@ -83,29 +72,29 @@ const DashboardCRM = () => {
             icon='ri-mic-fill'
             value='Em Desenvolvimento'
             title='Interações em voz'
-            month={month}
+            month={''}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
           <HorizontalWithBorderExample
-            isLoading={isFetching}
+            isLoading={isLoadingStatistics}
             color='info'
             icon='ri-chat-3-line'
             value={String(data?.data.total_protocols)}
             title='Interações em Texto'
-            month={month}
+            month={''}
           />
         </Grid>
 
         <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end relative'>
           <AvailableSoon />
           <HorizontalWithBorderExample
-            isLoading={isFetching}
+            isLoading={isLoadingStatistics}
             color='success'
             icon='ri-user-3-line'
             value='Em Desenvolvimento'
             title='Interações com operador'
-            month={month}
+            month={''}
           />
         </Grid>
         <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>

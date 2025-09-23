@@ -52,13 +52,19 @@ export default function Operadores() {
       <CardContent>
         {/* Grid container com espaçamento e wrap */}
         <Grid container spacing={3}>
-          {data?.data.map((operator: any) => {
-            return (
-              <Grid key={operator.id} size={{ xs: 12, sm: 12, md: 12, lg: 6 }}>
-                <CardTwo operator={operator} refetch={refetch} />
-              </Grid>
-            )
-          })}
+          {data?.data.length === 0 ? (
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'start', alignItems: 'center' }}>
+              <Typography>Nenhum Operador cadastrado</Typography>
+            </Box>
+          ) : (
+            data?.data.map((operator: any) => {
+              return (
+                <Grid key={operator.id} size={{ xs: 12, sm: 12, md: 12, lg: 6 }}>
+                  <CardTwo operator={operator} refetch={refetch} />
+                </Grid>
+              )
+            })
+          )}
         </Grid>
       </CardContent>
     </Card>

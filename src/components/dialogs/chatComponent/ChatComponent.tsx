@@ -37,13 +37,13 @@ const ChatLog_2 = ({ open, setOpen, protocol }: Chat_2Props) => {
   return (
     <Dialog open={open} maxWidth='md' fullWidth>
       <DialogContent className='overflow-visible relative'>
-        <Box className='absolute top-[1%] right-[4%] z-[999999999]'>
+        <Box className='absolute top-[1%] right-[5%] z-[999999999]'>
           <IconButton onClick={handleClose} className='fixed'>
             <i className='ri-close-line' />
           </IconButton>
         </Box>
 
-        <Grid size={{ xs: 12, sm: 12, md: 12 }} className='mb-6 mt-6 w-full'>
+        <Grid size={{ xs: 12, sm: 12, md: 12 }} className='mb-6 mt-2 w-full'>
           <Typography className='flex justify-start items-center gap-2' variant='h4'>
             Protocolo - <Typography variant='h5'>{protocol}</Typography>
           </Typography>

@@ -79,6 +79,7 @@ export const apiSlice = createApi({
     'Instruction',
     'Activity',
     'Protocol',
-    'TaskAssistant'
+    'TaskAssistant',
+    'Statistics'
   ]
 })

@@ -12,7 +12,7 @@ import { CircularProgress } from '@mui/material'
 
 import CustomAvatar from '@core/components/mui/Avatar'
 
-import type { GetDashboardResponse } from '@/api/endpoints/dashboard/dashboard'
+import type { GetStatisticsResponse } from '@/api/endpoints/statistics/statistics'
 
 // Vars
 
@@ -21,7 +21,7 @@ const EstatisticsDash = ({
   isLoading,
   month
 }: {
-  data: GetDashboardResponse | undefined
+  data: GetStatisticsResponse | undefined
   isLoading: boolean
   month: string
 }) => {
@@ -42,7 +42,7 @@ const EstatisticsDash = ({
               <div>
                 <Typography>Total Protocolos</Typography>
                 <Typography variant='h5'>
-                  {isLoading ? <CircularProgress size={15} /> : (data?.data.total_protocols ?? '0')}
+                  {isLoading ? <CircularProgress size={15} /> : (data?.data.overall_total. ?? '0')}
                 </Typography>
               </div>
             </div>
