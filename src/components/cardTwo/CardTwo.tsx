@@ -1,5 +1,5 @@
 import { styled } from '@mui/material/styles'
-import { Box, Card, CardContent, Typography } from '@mui/material'
+import { Box, Card, CardContent, IconButton, Tooltip, Typography } from '@mui/material'
 
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -41,7 +41,7 @@ const CardTwo = ({ operator }: { operator: any }) => {
               <Typography variant='h6' sx={{ fontWeight: 600 }}>
                 {operator.user.name}
               </Typography>
-              <i className='ri-customer-service-2-fill absolute right-0 top-[37%] mr-8 text-[35px] text-primary' />
+              <i className='ri-customer-service-2-fill absolute right-0  mr-8 mt-2 text-[35px] text-primary' />
             </Box>
 
             <Box className='flex flex-col gap-1 mt-2'>
@@ -52,11 +52,28 @@ const CardTwo = ({ operator }: { operator: any }) => {
                 CPF/CNPJ: <Typography variant='body2'>{operator.user.identifier}</Typography>
               </Typography>
               <Typography className='flex flex-row gap-2 items-center' variant='body1' color='textSecondary'>
-                Telefone:<Typography variant='body2'>{operator.user.phone_number}</Typography> | WhatsApp:
+                Telefone:<Typography variant='body2'>{operator.user.phone_number}</Typography>{' '}
+                <Typography variant='body2' className='text-primary'>
+                  |
+                </Typography>
+                WhatsApp:
                 <Typography variant='body2'> {operator.user.whatsapp_number}</Typography>
               </Typography>
             </Box>
             {/* Informações de contato */}
+          </Box>
+          <Box className='absolute right-0 bottom-0 p-2'>
+            <Tooltip title='Remover operador'>
+              <IconButton color='error' size='small'>
+                <i className='ri-delete-bin-line' />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title='Editar operador'>
+              <IconButton color='primary' size='small'>
+                <i className='ri-edit-line' />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
       </CardContent>

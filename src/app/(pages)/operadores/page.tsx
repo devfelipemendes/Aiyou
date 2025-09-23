@@ -54,7 +54,7 @@ export default function Operadores() {
         <Grid container spacing={3}>
           {data?.data.map((operator: any) => {
             return (
-              <Grid key={operator.id} size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
+              <Grid key={operator.id} size={{ xs: 12, sm: 6, md: 6, lg: 6 }}>
                 <CardTwo operator={operator} />
               </Grid>
             )
