@@ -90,41 +90,13 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
             Operadores
           </MenuItem>
         </MenuSection>
+
         <MenuSection label={'Utilidades'}>
           <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
             Ingtegração API
           </MenuItem>
         </MenuSection>
-        <MenuSection label={'Gerenciamento'}>
-          <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
-            Financeiro
-          </MenuItem>
-        </MenuSection>
-        <MenuSection label={'Utilidades'}>
-          <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
-            Ingtegração API
-          </MenuItem>
-        </MenuSection>
-        <MenuSection label={'Gerenciamento'}>
-          <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
-            Financeiro
-          </MenuItem>
-        </MenuSection>
-        <MenuSection label={'Utilidades'}>
-          <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
-            Ingtegração API
-          </MenuItem>
-        </MenuSection>
-        <MenuSection label={'Gerenciamento'}>
-          <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
-            Financeiro
-          </MenuItem>
-        </MenuSection>
-        <MenuSection label={'Utilidades'}>
-          <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
-            Ingtegração API
-          </MenuItem>
-        </MenuSection>
+
         <MenuSection label={'Gerenciamento'}>
           <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
             Financeiro
