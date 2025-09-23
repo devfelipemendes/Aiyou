@@ -1,135 +1,207 @@
 'use client'
 
-import React, { useState, type ChangeEvent } from 'react'
+import React, { useEffect, useState } from 'react'
+
+import { useRouter } from 'next/navigation'
 
 // MUI Imports
+
 import Grid from '@mui/material/Grid2'
-import { Card, CardContent, CardHeader, TextField } from '@mui/material'
+import { Box, CardContent, CardHeader, Chip, CircularProgress, IconButton, Typography } from '@mui/material'
 
-import { ptBR } from 'date-fns/locale/pt-BR'
+import type { ColumnDef } from '@tanstack/react-table'
+import { createColumnHelper } from '@tanstack/react-table'
 
-import type { CustomInputVerticalData } from '@/@core/components/custom-inputs/types'
-import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 import ListTable from '@/components/ListTable'
-import AppReactDatepicker from '@/libs/styles/AppReactDatepicker'
+
+import type { GetProtocolsResponse, Protocol } from '@/api/endpoints/protocols/protocols'
+import { useGetProtocolsQuery } from '@/api/endpoints/protocols/protocols'
+
+import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
+
+const getStatus = (status: string) => {
+  switch (status) {
+    case 'active':
+      return <Chip label='Ativo' color='success' size='small' />
+    case 'inactive':
+      return <Chip label='Inativo' color='error' size='small' />
+    case 'resolved':
+      return <Chip label='Resolvido' color='primary' size='small' />
+    case 'unresolved':
+      return <Chip label='Não Resolvido' color='warning' size='small' />
+    default:
+      return <Chip label='Desconhecido' variant='outlined' size='small' />
+  }
+}
+
+type ResultStatus = {
+  active: number
+  inactive: number
+  resolved: number
+  unresolved: number
+}
 
 export default function HistoricoInteracoes() {
-  const data: CustomInputVerticalData[] = [
-    {
-      value: 'texto',
-      title: 'Interações via texto',
-      isSelected: true,
-      content: 'Todas as interações feitas via texto pela IA.',
-      asset: 'ri-wechat-line'
-    },
-    {
-      value: 'voz',
-      title: 'Interações via voz',
-      content: 'Todas as intarações feitas via ligação pela IA',
-      asset: 'ri-user-voice-line'
-    },
-    {
-      value: 'operador',
-      title: 'Interações do Operador',
-      content: 'Todas as interações via texto feitas por um operador',
-      asset: 'ri-account-pin-circle-line'
-    }
-  ]
-
-  const initialSelected: string = data.filter(item => item.isSelected)[data.filter(item => item.isSelected).length - 1]
-    .value
-
   // States
-  const [selected, setSelected] = useState<string>(initialSelected)
-  const [dateFilter, setDateFilter] = useState<Date>(new Date())
 
-  const handleChange = (prop: string | ChangeEvent<HTMLInputElement>) => {
-    if (typeof prop === 'string') {
-      setSelected(prop)
-    } else {
-      setSelected((prop.target as HTMLInputElement).value)
-    }
+  const router = useRouter()
+
+  const { data, error, isLoading } = useGetProtocolsQuery({
+    sort: '-created_at'
+  })
+
+  const [resultStatus, setResultStatus] = useState<ResultStatus | null>(null)
+  const columnHelper = createColumnHelper<Protocol>()
+
+  const calculaResultsStatus = (data: GetProtocolsResponse) => {
+    let active = 0
+    let inactive = 0
+    let resolved = 0
+    let unresolved = 0
+
+    data.data.forEach(protocol => {
+      switch (protocol.status) {
+        case 'active':
+          active++
+          break
+        case 'inactive':
+          inactive++
+          break
+        case 'resolved':
+          resolved++
+          break
+        case 'unresolved':
+          unresolved++
+          break
+      }
+    })
+
+    setResultStatus({
+      active,
+      inactive,
+      resolved,
+      unresolved
+    })
   }
 
-  //* exemplo de uso das colunas
-  // const columnHelper = createColumnHelper<NuageConsumoResultadosType>()
+  const columns: ColumnDef<Protocol, any>[] = [
+    columnHelper.accessor('protocol', {
+      header: 'Número do Protocolo',
+      cell: ({ row }) => <Typography>{row.original.protocol}</Typography>
+    }),
+    columnHelper.accessor(row => row.assistant?.name, {
+      id: 'assistant',
+      header: 'Nome do Assistente',
+      cell: ({ row }) => <Typography>{row.original.assistant?.name || '-'}</Typography>
+    }),
+    columnHelper.accessor('status', {
+      header: 'Status',
+      cell: ({ row }) => getStatus(row.original.status)
+    }),
+    columnHelper.accessor('updated_at', {
+      header: 'Atualizado em',
+      cell: ({ row }) => (
+        <Typography>
+          {row.original.updated_at ? new Date(row.original.updated_at).toLocaleString('pt-BR') : '-'}
+        </Typography>
+      )
+    }),
 
-  //   const columns = useMemo<ColumnDef<NuageConsumoResultadosType, any>[]>(
-  //   () => [
-  //     columnHelper.accessor('dtConsumo', {
-  //       header: 'Data do Consumo',
-  //       cell: ({ row }) => (
-  //         <Typography>{row.original.dtConsumo ? format(row.original.dtConsumo, 'dd/MM/yyyy') : '-'}</Typography>
-  //       )
-  //     }),
-  //     columnHelper.accessor('qtUsado', {
-  //       header: 'Minutos',
-  //       cell: ({ row }) => <Typography>{row.original.qtUsado ? secondsToTime(row.original.qtUsado) : '-'}</Typography>
-  //     })
-  //   ],
-  //   []
-  // )
+    // Nova coluna "Detalhes"
+    columnHelper.accessor(
+      row => row.protocol, // qualquer campo existente, só para não quebrar o tipo
+      {
+        id: 'detalhes', // nome da coluna
+        header: 'Detalhes',
+        cell: ({ row }) => (
+          <IconButton size='small' onClick={() => router.push(`/historico-interacoes/${row.original.protocol}`)}>
+            <i className='ri-eye-line text-textSecondary' />
+          </IconButton>
+        )
+      }
+    )
+  ]
+
+  useEffect(() => {
+    if (!data) return
+    if (data.data.length === 0) return
+    calculaResultsStatus(data)
+  }, [data])
+
+  if (error) {
+    return (
+      <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Typography>Erro ao carregar projetos. Tentar novamente</Typography>
+      </Box>
+    )
+  }
 
   return (
-    <Card>
-      <CardHeader title={''} subheader={''} />
-      <CardContent>
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12 }}>
-            <Grid container spacing={4}>
-              {data.map((item, index) => {
-                let asset
+    <CardContent>
+      <Grid container spacing={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} className='self-end relative'>
+          <HorizontalWithBorderExample
+            isLoading={isLoading}
+            color='success'
+            icon='ri-check-line' // ✔️ Ativos
+            value={String(resultStatus?.active) ?? '0'}
+            title='Ativos'
+            month={''}
+          />
+        </Grid>
 
-                if (item.asset && typeof item.asset === 'string') {
-                  asset = <i className={item.asset + ' text-[40px]'} />
-                }
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} className='self-end relative'>
+          <HorizontalWithBorderExample
+            isLoading={isLoading}
+            color='error'
+            icon='ri-close-circle-line' // ❌ Inativos
+            value={String(resultStatus?.inactive) ?? '0'}
+            title='Inativos'
+            month={''}
+          />
+        </Grid>
 
-                return (
-                  <CustomInputVertical
-                    type='radio'
-                    key={index}
-                    data={{ ...item, asset }}
-                    selected={selected}
-                    name='custom-radios-icons'
-                    handleChange={handleChange}
-                    gridProps={{ size: { xs: 12, sm: 4 } }}
-                  />
-                )
-              })}
-            </Grid>
-          </Grid>
-          <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} className='self-end relative'>
+          <HorizontalWithBorderExample
+            isLoading={isLoading}
+            color='primary'
+            icon='ri-check-double-line' // ✅ Resolvidos
+            value={String(resultStatus?.resolved) ?? '0'}
+            title='Resolvidos'
+            month={''}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} className='self-end relative'>
+          <HorizontalWithBorderExample
+            isLoading={isLoading}
+            color='warning'
+            icon='ri-alert-line' // ⚠️ Não Resolvidos
+            value={String(resultStatus?.unresolved) ?? '0'}
+            title='Não Resolvidos'
+            month={''}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12 }}>
+          {isLoading ? (
+            <Box
+              sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : (
             <ListTable
               exportFileName={``}
               loading={false}
-              columns={[]}
-              tableData={[]}
-              headerTable={
-                <CardHeader
-                  title={`Histórico de interações ${'via' + ' ' + selected}`}
-                  action={
-                    <AppReactDatepicker
-                      boxProps={{ className: 'is-full sm:is-auto' }}
-                      selected={dateFilter}
-                      id='payment-date'
-                      onChange={(date: Date | null) => {
-                        if (date) setDateFilter(date)
-                      }}
-                      customInput={<TextField fullWidth size='small' className='is-full sm:is-auto' label='Data' />}
-                      locale={ptBR}
-                      placeholderText='dd/mm/yyyy'
-                      dateFormat='MM/yyyy'
-                      showMonthYearPicker
-                      maxDate={new Date()}
-                    />
-                  }
-                />
-              }
+              columns={columns}
+              tableData={data?.data || []}
+              headerTable={<CardHeader title={`Histórico de interações`} />}
               headerHasDivider
             />
-          </Grid>
+          )}
         </Grid>
-      </CardContent>
-    </Card>
+      </Grid>
+    </CardContent>
   )
 }

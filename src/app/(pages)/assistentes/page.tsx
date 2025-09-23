@@ -66,6 +66,7 @@ export default function Assitentes() {
                 projectName={user.project_name}
                 projectAvatarSrc={user.project_id}
                 onClick={() => handleUserClick(user)}
+                assistant={user}
               />
             </Grid>
           ))}

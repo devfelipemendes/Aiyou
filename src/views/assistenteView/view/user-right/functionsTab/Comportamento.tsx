@@ -135,11 +135,13 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
           </Typography>
 
           <Grid container spacing={4} sx={{ mb: 3 }}>
-            <Typography variant='body2' color='text.secondary' gutterBottom>
-              Defina o comportamento do assistente quando o cliente ficar inativo
-            </Typography>
+            <Grid size={{ xs: 12, md: 12 }}>
+              <Typography variant='body2' color='text.secondary' gutterBottom>
+                Defina o comportamento do assistente quando o cliente ficar inativo
+              </Typography>
+            </Grid>
 
-            <Grid size={{ xs: 6, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name='tempo_inatividade'
                 control={control}
@@ -177,20 +179,6 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
                     <MenuItem value='5 tentativas'>5 tentativas</MenuItem>
                     <MenuItem value='10 tentativas'>10 tentativas</MenuItem>
                   </TextField>
-                )}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 12 }}>
-              <Controller
-                name='notificacao_inatividade'
-                control={control}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={<Switch {...field} checked={field.value} />}
-                    label='Habilitar notificação de inatividade para o operador'
-                    sx={{ mt: 1 }}
-                  />
                 )}
               />
             </Grid>
