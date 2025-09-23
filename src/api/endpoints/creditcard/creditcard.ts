@@ -13,6 +13,8 @@ export type CreditCard = {
   card_number: string // Será criptografado na resposta
   date: string // Será criptografado na resposta
   active: boolean
+  priority?: number
+  credit_card_brand: string
   created_at: string
   updated_at: string
 }
@@ -23,17 +25,20 @@ export type CreditCardListItem = {
   name: string
   card_name: string
   card_number: string // Apenas últimos 4 dígitos na listagem
+  credit_card_brand: string
 }
 
 // 🎯 TIPOS PARA O REQUEST DE CRIAÇÃO
-export type CreateCreditCardRequest = {
+export type CreateCreditCuardRequest = {
   user_id: string
   name: string
   card_name: string
   security_code: string
   card_number: string
   date: string
-  active: string // "true" ou "false" como string
+  active: boolean // "true" ou "false" como string
+  priority?: number
+  credit_card_brand: string
 }
 
 // 🎯 TIPOS PARA O REQUEST DE UPDATE
@@ -46,6 +51,8 @@ export type UpdateCreditCardRequest = {
   card_number?: string
   date?: string
   active?: boolean
+  priority?: number
+  credit_card_brand?: string
 }
 
 // 🎯 TIPOS PARA O REQUEST DE DELETE
@@ -90,10 +97,7 @@ export type GetSingleCreditCardResponse = {
 }
 
 // 🎯 TIPO PARA ERROS (estrutura padrão do backend)
-type CreditCardError = {
-  status: number
-  message: string
-}
+type CreditCardError = { status: number; message: string }
 
 // 🎯 API ENDPOINTS
 export const creditCardApi = apiSlice.injectEndpoints({
@@ -164,7 +168,7 @@ export const creditCardApi = apiSlice.injectEndpoints({
     }),
 
     // 🎯 CREATE CREDIT CARD
-    createCreditCard: builder.mutation<CreateCreditCardResponse, CreateCreditCardRequest>({
+    createCreditCard: builder.mutation<CreateCreditCardResponse, CreateCreditCuardRequest>({
       query: data => ({
         url: '/creditCards',
         method: 'POST',

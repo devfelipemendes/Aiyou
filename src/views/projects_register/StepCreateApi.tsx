@@ -306,16 +306,16 @@ const StepCreateApi = ({ onNextStep }: StepCreateApiProps) => {
             )}
 
             {/* Next Step Button */}
-            {apis.length > 0 && onNextStep && (
+            {apis.length > 0 && (
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-end'>
                   <Button
                     variant='contained'
-                    size='large'
+                    size='small'
                     onClick={onNextStep}
                     endIcon={<i className='ri-arrow-right-line' />}
                   >
-                    Próximo Passo
+                    Finalizar cadastro de APIs
                   </Button>
                 </Box>
               </Grid>

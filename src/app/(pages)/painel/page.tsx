@@ -26,6 +26,8 @@ import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExampl
 import AvailableSoon from '@/components/AvailableSoon'
 import type { Activity } from '@/api/endpoints/activity/activity'
 import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
+import FirstAccessModal from '@/components/dialogs/firstAccess'
+import { useUserMe } from '@/hooks/useUserMe'
 
 export type DataTypeEstatisticsDash = {
   icon: string
@@ -35,6 +37,8 @@ export type DataTypeEstatisticsDash = {
 }
 
 const DashboardCRM = () => {
+  const { firstAccess } = useUserMe()
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filters, setFilters] = useState({ year: getCurrentYear(), month: getCurrentMonth() })
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -62,79 +66,82 @@ const DashboardCRM = () => {
   }
 
   return (
-    <Grid container spacing={6}>
-      <Grid size={{ xs: 12, sm: 12 }}>
-        <FormControl fullWidth>
-          <InputLabel>Mês</InputLabel>
-          <Select value={filters.month} label='Mês' onChange={handleChangeMonth}>
-            {months.map(m => (
-              <MenuItem key={m.value} value={m.value}>
-                {m.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-      <Grid size={{ xs: 12 }} className='self-end'>
-        <EstatisticsDash month={month} data={data} isLoading={isFetching} />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end relative'>
-        <AvailableSoon />
-        <HorizontalWithBorderExample
-          isLoading={false}
-          color='primary'
-          icon='ri-mic-fill'
-          value='Em Desenvolvimento'
-          title='Interações em voz'
-          month={month}
-        />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
-        <HorizontalWithBorderExample
-          isLoading={isFetching}
-          color='info'
-          icon='ri-chat-3-line'
-          value={String(data?.data.total_protocols)}
-          title='Interações em Texto'
-          month={month}
-        />
-      </Grid>
+    <>
+      <Grid container spacing={6}>
+        <Grid size={{ xs: 12, sm: 12 }}>
+          <FormControl fullWidth>
+            <InputLabel>Mês</InputLabel>
+            <Select value={filters.month} label='Mês' onChange={handleChangeMonth}>
+              {months.map(m => (
+                <MenuItem key={m.value} value={m.value}>
+                  {m.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid size={{ xs: 12 }} className='self-end'>
+          <EstatisticsDash month={month} data={data} isLoading={isFetching} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end relative'>
+          <AvailableSoon />
+          <HorizontalWithBorderExample
+            isLoading={false}
+            color='primary'
+            icon='ri-mic-fill'
+            value='Em Desenvolvimento'
+            title='Interações em voz'
+            month={month}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
+          <HorizontalWithBorderExample
+            isLoading={isFetching}
+            color='info'
+            icon='ri-chat-3-line'
+            value={String(data?.data.total_protocols)}
+            title='Interações em Texto'
+            month={month}
+          />
+        </Grid>
 
-      <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end relative'>
-        <AvailableSoon />
-        <HorizontalWithBorderExample
-          isLoading={isFetching}
-          color='success'
-          icon='ri-user-3-line'
-          value='Em Desenvolvimento'
-          title='Interações com operador'
-          month={month}
-        />
+        <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end relative'>
+          <AvailableSoon />
+          <HorizontalWithBorderExample
+            isLoading={isFetching}
+            color='success'
+            icon='ri-user-3-line'
+            value='Em Desenvolvimento'
+            title='Interações com operador'
+            month={month}
+          />
+        </Grid>
+        <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
+          <AvailableSoon />
+          <TotalSales />
+        </Grid>
+        <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
+          <AvailableSoon />
+          <RevenueReport />
+        </Grid>
+        <Grid className='relative' size={{ xs: 12, md: 6 }}>
+          <AvailableSoon />
+          <CardWidgetsSalesOverview />
+        </Grid>
+        <Grid className='relative' size={{ xs: 12, md: 12 }}>
+          <ActivityTimeline isLoading={isLoading} dataFiltered_3={dataFiltered_3 ?? []} />
+        </Grid>
+        <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
+          <AvailableSoon />
+          <MeetingSchedule />
+        </Grid>
+        <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
+          <AvailableSoon />
+          <UpgradePlan />
+        </Grid>
       </Grid>
-      <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
-        <AvailableSoon />
-        <TotalSales />
-      </Grid>
-      <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
-        <AvailableSoon />
-        <RevenueReport />
-      </Grid>
-      <Grid className='relative' size={{ xs: 12, md: 6 }}>
-        <AvailableSoon />
-        <CardWidgetsSalesOverview />
-      </Grid>
-      <Grid className='relative' size={{ xs: 12, md: 12 }}>
-        <ActivityTimeline isLoading={isLoading} dataFiltered_3={dataFiltered_3 ?? []} />
-      </Grid>
-      <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
-        <AvailableSoon />
-        <MeetingSchedule />
-      </Grid>
-      <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
-        <AvailableSoon />
-        <UpgradePlan />
-      </Grid>
-    </Grid>
+      {firstAccess && <FirstAccessModal />}
+    </>
   )
 }
 

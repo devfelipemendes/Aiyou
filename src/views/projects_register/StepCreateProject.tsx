@@ -213,14 +213,6 @@ export default function StepCreateProject({
   }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
 
   const handleFinalSubmit = useCallback(() => {
-    const finalData = {
-      projects: projects,
-      totalProjects: projects.length,
-      successfulProjects: projects.filter(p => p.status === 'success').length
-    }
-
-    console.log('Dados finais para envio:', finalData)
-
     if (onNextStep) {
       onNextStep()
     }
@@ -494,7 +486,7 @@ export default function StepCreateProject({
   }
 
   return (
-    <Box sx={{ mx: 'auto', p: 3 }}>
+    <Box sx={{ mx: 'auto', p: 3, width: '100%' }}>
       <Box sx={{ mb: 3 }}>
         <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
           <Box className='flex items-center gap-2'>

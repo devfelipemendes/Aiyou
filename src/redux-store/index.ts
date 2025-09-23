@@ -25,13 +25,14 @@ import questionsReducer from './slices/questions'
 import messagesReducer from './slices/messages'
 import clientHistoriesReducer from './slices/clientHistoriesSlice'
 import { soundNotificationMiddleware } from './midleware/soundNotificationMiddleware'
+import firstAccessReducer from './slices/firstAccessSlice'
 
 import assistantsReducer from './slices/assistants'
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['authReducer', 'monitoringReducer'],
+  whitelist: ['authReducer', 'monitoringReducer', 'firstAccess'],
   blacklist: ['websocketReducer', 'chatReducer', 'activeChats', 'protocolsReducer', 'messagesReducer'] // WebSocket e chat sempre frescos
 }
 
@@ -47,6 +48,7 @@ const rootReducer = combineReducers({
   activeChats: activeChatsReducer,
   clientHistories: clientHistoriesReducer,
   assistants: assistantsReducer,
+  firstAccess: firstAccessReducer,
 
   [apiSlice.reducerPath]: apiSlice.reducer,
   [externalApi.reducerPath]: externalApi.reducer

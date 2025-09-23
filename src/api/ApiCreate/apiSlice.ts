@@ -71,6 +71,7 @@ export const apiSlice = createApi({
     'CustomerInvoice',
     'Plan',
     'CreditCard',
+    'UserPlan',
     'CustomerInvoice',
     'Operator',
     'Dashboard',

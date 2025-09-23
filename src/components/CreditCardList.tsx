@@ -283,7 +283,8 @@ const useAdaptCards = (apiCards?: CreditCardListItem[] | null): AdaptedCreditCar
         const safeName = card.name || 'Nome não informado'
         const safeCardName = card.card_name || 'Cartão'
         const safeCardNumber = card.card_number || ''
-        const brand = getCardBrand(safeCardNumber)
+
+        const brand = card.credit_card_brand || getCardBrand(safeCardNumber)
 
         return {
           id: safeId,
