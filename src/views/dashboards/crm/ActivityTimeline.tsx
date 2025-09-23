@@ -17,7 +17,7 @@ import type { TimelineProps } from '@mui/lab/Timeline'
 
 import { Box, CircularProgress } from '@mui/material'
 
-import type { Activity } from '@/api/endpoints/activity/activity'
+import { activityApi, type Activity } from '@/api/endpoints/activity/activity'
 
 // Styled Timeline component
 const Timeline = styled(MuiTimeline)<TimelineProps>({
@@ -79,8 +79,20 @@ const getNameAction = (action: string): 'criou' | 'atualizou' | 'deletou' | 'gre
   }
 }
 
+const getNameModel = (subject_type: string) => {
+  const nameArray = subject_type.split('\\')
+  const name = nameArray[nameArray.length - 1]
+
+  switch (name) {
+    case 'Project':
+      return 'projeto' // verde
+    case 'Assistant':
+      return 'assistente' // azul
+  }
+}
+
 const getSentenceActivity = (activity: Activity) => {
-  const sentence = `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} em ${activity.subject_type}`
+  const sentence = `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} um ${getNameModel(activity.subject_type)}`
 
   return sentence
 }
@@ -92,8 +104,12 @@ const ActivityTimeline = ({
   dataFiltered_3: Activity[] | undefined
   isLoading: boolean
 }) => {
+  const filteredNoUser = dataFiltered_3?.filter(activity => {
+    return activity.causer_id !== null
+  })
+
   return (
-    <Card>
+    <Card className='max-h-[350px] overflow-y-auto'>
       {isLoading ? (
         <Box className='w-full h-full justify-center items-center flex'>
           <CircularProgress />
@@ -102,12 +118,12 @@ const ActivityTimeline = ({
         <>
           <CardHeader title='Linha do tempo de atividades' />
           <CardContent>
-            {dataFiltered_3 && dataFiltered_3.length === 0 ? (
+            {filteredNoUser && filteredNoUser.length === 0 ? (
               <Typography>Sem dados</Typography>
             ) : (
               <>
                 <Timeline>
-                  {dataFiltered_3?.map((activty: Activity) => {
+                  {filteredNoUser?.map((activty: Activity) => {
                     return (
                       <TimelineItem key={activty.id}>
                         <TimelineSeparator>
@@ -130,16 +146,21 @@ const ActivityTimeline = ({
                             {activty.properties.attributes.name ?? '-'}
                           </Typography>
                           <div className='flex items-center gap-2.5'>
-                            <Avatar
-                              src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
-                              className='bs-8 is-8'
-                            />
-                            <div className='flex flex-col flex-wrap gap-0.5'>
-                              <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                                <Typography variant='body1'>Descrição:</Typography>
-                                {activty.properties.attributes.description ?? '-'}
-                              </Typography>
-                            </div>
+                            {activty.properties.attributes.img_url && (
+                              <Avatar
+                                src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
+                                className='bs-8 is-8'
+                              />
+                            )}
+
+                            {activty.properties.attributes.description && (
+                              <div className='flex flex-col flex-wrap gap-0.5'>
+                                <Typography className=' flex flex-row text-wrap items-center gap-2'>
+                                  <Typography variant='body1'>Descrição:</Typography>
+                                  {activty.properties.attributes.description ?? ''}
+                                </Typography>
+                              </div>
+                            )}
                           </div>
                         </TimelineContent>
                       </TimelineItem>

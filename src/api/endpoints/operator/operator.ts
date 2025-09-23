@@ -288,9 +288,10 @@ export const operatorApi = apiSlice.injectEndpoints({
 /* ------------------------- 🎯 EXPORT HOOKS ------------------------- */
 export const {
   useGetOperatorsQuery,
-  useGetOperatorByIdQuery, // 👈 export novo hook
+  useGetOperatorByIdQuery,
   useCreateOperatorMutation,
-  useDeleteOperatorMutation
+  useDeleteOperatorMutation,
+  useAddUserToProjectMutation // ✅ adicionado
 } = operatorApi
 
 /* ------------------------- 🎯 SELECTORS ------------------------- */
