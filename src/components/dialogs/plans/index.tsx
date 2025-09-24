@@ -570,7 +570,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                 {selectedMethod === 'recorrencia' && (
                   <AnimatedReveal animation='slideInRight' duration={400} show={true}>
                     <Box className='w-full pt-10'>
-                      <CreditCard />
+                      <CreditCard selectedPlanId={selectedPlan} onPlanSuccess={onClose} />
                     </Box>
                   </AnimatedReveal>
                 )}

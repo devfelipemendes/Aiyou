@@ -33,6 +33,7 @@ export type UpdateUserPlanRequest = {
   active?: boolean
   used_tokens?: number
   subscription?: boolean
+  user_plan_id?: string | null
 }
 
 // 🎯 TIPOS PARA O REQUEST DE DELETE
