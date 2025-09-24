@@ -94,6 +94,24 @@ const CreditCardForm: React.FC<CreditCardFormProps> = ({ onSubmit, isSubmitting 
                 )}
               />
             </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <Controller
+                name='nameCard'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    label='Nome do Cartão'
+                    placeholder='João Silva'
+                    error={!!errors.nameOnCard}
+                    helperText={errors.nameOnCard?.message}
+                    onFocus={() => setFocused('name')}
+                    onChange={e => field.onChange(e.target.value.toUpperCase())}
+                  />
+                )}
+              />
+            </Grid>
 
             {/* Data de expiração */}
             <Grid size={{ xs: 12, sm: 4 }}>

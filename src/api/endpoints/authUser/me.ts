@@ -2,13 +2,11 @@ import { createSelector } from '@reduxjs/toolkit'
 
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
-// 🎯 TIPOS PARA PERMISSÕES DO USUÁRIO
 export type UserPermission = {
   name: string
   description: string
 }
 
-// 🎯 TIPOS PARA O PLANO
 export type Plan = {
   id: string
   name: string
@@ -18,7 +16,6 @@ export type Plan = {
   price: string
 }
 
-// 🎯 TIPOS PARA USO DO PLANO
 export type PlanUsage = {
   input_tokens: number
   input_cached_tokens: number
@@ -27,7 +24,6 @@ export type PlanUsage = {
   total_tokens: number
 }
 
-// 🎯 TIPOS PARA ASSISTENTE (dentro do projeto no /me)
 export type AssistantInProject = {
   id: string
   name: string
@@ -36,7 +32,6 @@ export type AssistantInProject = {
   phones: any[]
 }
 
-// 🎯 TIPOS PARA PROJETO (dentro do /me)
 export type ProjectInMe = {
   id: string
   name: string
@@ -46,7 +41,6 @@ export type ProjectInMe = {
   assistants: AssistantInProject[]
 }
 
-// 🎯 TIPOS PARA O USUÁRIO COMPLETO
 export type User = {
   id: string
   name: string
@@ -71,28 +65,25 @@ export type User = {
   plan_usage: PlanUsage
 }
 
-// 🎯 TIPOS PARA OS DADOS COMPLETOS DO /me
 export type MeData = {
   user_permissions: UserPermission[]
   user: User
   projects: ProjectInMe[]
   first_access: boolean
+  user_plan_id: string | null
 }
 
-// 🎯 TIPOS PARA A RESPONSE DO GET /me
 export type GetMeResponse = {
   message: string
   status: number
   data: MeData
 }
 
-// 🎯 TIPO PARA ERROS
 type MeError = {
   status: number
   message: string
 }
 
-// 🎯 API ENDPOINT
 export const userMeApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     // 🎯 GET /me - Informações do usuário autenticado
@@ -228,4 +219,10 @@ export const selectFirstAccess = createSelector([selectMeData], meData => {
   if (meData === undefined) return undefined // ainda carregando
 
   return meData.first_access // true ou false real da API
+})
+
+export const selectUserPlanId = createSelector([selectMeData], meData => {
+  if (meData === undefined) return undefined // ainda carregando
+
+  return meData.user_plan_id // true ou false real da API
 })

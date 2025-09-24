@@ -309,6 +309,17 @@ const CreditCardList: FC<CreditCardListProps> = ({
 
   const { user } = useUserMe()
 
+  const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
+  const creditCardsCount = response?.data?.length || 0
+  const shouldDisableNewCard = isFreePlan && creditCardsCount >= 1
+
+  console.log('🔍 DEBUG - User:', user)
+  console.log('🔍 DEBUG - Plan ID:', user?.plan?.id)
+  console.log('🔍 DEBUG - Is Free Plan:', isFreePlan)
+  console.log('🔍 DEBUG - Credit Cards Count:', creditCardsCount)
+  console.log('🔍 DEBUG - Should Disable:', shouldDisableNewCard)
+  console.log('🔍 DEBUG - Response Data:', response?.data)
+
   // Adaptar dados de forma segura
   const adaptedCards = useAdaptCards(response?.data)
 
@@ -403,9 +414,10 @@ const CreditCardList: FC<CreditCardListProps> = ({
             color='success'
             type='submit'
             onClick={handleOpenCreateModal}
+            disabled={shouldDisableNewCard}
             endIcon={<i className='ri-check-line' />}
           >
-            Cadastrar novo cartão
+            {shouldDisableNewCard ? 'Limite atingido (Plano Free)' : 'Cadastrar novo cartão'}
           </Button>
         </Box>
         {adaptedCards.map((card, index) => (

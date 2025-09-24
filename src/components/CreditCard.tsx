@@ -1,4 +1,3 @@
-// CreditCard.tsx - Componente principal com ConfirmDialog
 import React, { useState, useCallback } from 'react'
 
 import { Box, Button } from '@mui/material'
@@ -16,28 +15,27 @@ import {
   type CreditCardListItem
 } from '@/api/endpoints/creditcard/creditcard'
 import type { CreditCardFormData } from '@/hooks/useCreditCardForm'
-import { useCreateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import { useUserMe } from '@/hooks/useUserMe'
 
 const CreditCard: React.FC = () => {
   const [selectedCardId, setSelectedCardId] = useState<string>('1')
   const [cardToDelete, setCardToDelete] = useState<CreditCardListItem | null>(null)
 
-  // RTK Query hooks
-
+  const { user } = useUserMe()
   const [createCreditCard, { isLoading: isCreating }] = useCreateCreditCardMutation()
   const [updateCreditCard] = useUpdateCreditCardMutation()
   const [deleteCreditCard] = useDeleteCreditCardMutation()
 
   const [createUserPlan, { isLoading }] = useCreateUserPlanMutation()
+  const [updateUserPlan, { isLoading: isUpdating }] = useUpdateUserPlanMutation()
 
   const { data: creditCards } = useGetCreditCardsQuery(undefined, {
     skip: false
   })
 
-  // Hook do ConfirmDialog
   const confirmDialog = useConfirmDialog()
 
-  // ===== HANDLERS =====
   const handleSubmitCard = useCallback(
     async (data: CreditCardFormData) => {
       try {
@@ -45,9 +43,9 @@ const CreditCard: React.FC = () => {
         const cardBrand = getCardBrand(cardNumber) // Detectar bandeira
 
         await createCreditCard({
-          user_id: 'current_user', // Substituir pela lógica de autenticação
+          user_id: 'current_user',
           name: data.nameOnCard,
-          card_name: `Cartão ${data.plan.toUpperCase()}`,
+          card_name: data.nameCard,
           security_code: data.cvv,
           card_number: data.cardNumber.replace(/\D/g, ''),
           date: data.expiryDate,
@@ -66,14 +64,26 @@ const CreditCard: React.FC = () => {
   )
 
   const handleCreatePlan = async (planId: string) => {
+    const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
+
     try {
-      await createUserPlan({
-        plan_id: planId,
-        subscription: true
-      }).unwrap()
+      if (isFreePlan) {
+        await createUserPlan({
+          plan_id: planId,
+          subscription: true
+        }).unwrap()
+      } else {
+        await updateUserPlan({
+          id: user?.id || '',
+          plan_id: planId,
+          card_id: selectedCardId,
+          subscription: true
+        }).unwrap()
+
+        toast.success('Plano atualizado com sucesso!')
+      }
     } catch (error) {
-      console.error('Erro ao criar plano:', error)
-      toast.error('Erro ao criar plano. Tente novamente.')
+      console.error('Erro ao processar plano:', error)
     }
   }
 
@@ -155,24 +165,24 @@ const CreditCard: React.FC = () => {
               selectedCardId={selectedCardId}
               onCardSelect={handleCardSelect}
               onCardEdit={handleUpdateCard}
-              onCardDelete={handleDeleteCard} // Agora usa o ConfirmDialog
+              onCardDelete={handleDeleteCard}
               selectable={true}
               showActions={true}
               className='w-full'
             />
           </Box>
         )}
+
         <Button
           variant='contained'
           size='medium'
           onClick={() => handleCreatePlan(selectedCardId)}
-          disabled={!selectedCardId || isLoading}
+          disabled={!selectedCardId || isLoading || isUpdating}
         >
-          Finalizar Compra
+          {isLoading || isUpdating ? 'Processando...' : 'Finalizar Compra'}
         </Button>
       </Box>
 
-      {/* Dialog de Confirmação de Exclusão */}
       <ConfirmDialog
         open={confirmDialog.open}
         loading={confirmDialog.loading}
