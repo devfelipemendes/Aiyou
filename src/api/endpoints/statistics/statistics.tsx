@@ -2,17 +2,47 @@
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 /* ------------------------- 🎯 TYPES ------------------------- */
+
 export type StatisticsRequest = {
   assistant_id?: string
   project_id?: string
 }
 
-export type StatisticsResponse = {
-  total_chats: number
-  total_messages: number
-  total_users: number
+// estatísticas individuais por assistant
+export type AssistantStatistics = {
+  called_operators: number
+  opened_protocols: number
+  assistant: {
+    id: string
+    name: string
+    project: {
+      id: string
+      name: string
+    }
+  }
+}
 
-  // adicione outros campos que o backend retornar
+// agregados por projeto
+export type ProjectTotals = {
+  project_id: string
+  project_name: string
+  total_called_operators: number
+  total_opened_protocols: number
+  assistants_count: number
+}
+
+// total geral
+export type OverallTotals = {
+  total_called_operators: number
+  total_opened_protocols: number
+  total_assistants: number
+  total_projects: number
+}
+
+export type StatisticsResponse = {
+  statistics: AssistantStatistics[]
+  project_totals: ProjectTotals[]
+  overall_total: OverallTotals
 }
 
 export type GetStatisticsResponse = {
@@ -26,7 +56,6 @@ export const statisticsApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
     getStatistics: builder.query<GetStatisticsResponse, StatisticsRequest>({
       query: filters => {
-        // transforma os filtros no formato query param correto
         const params: Record<string, string> = {}
 
         if (filters.assistant_id) params['filter[assistant_id]'] = filters.assistant_id
@@ -37,7 +66,7 @@ export const statisticsApi = apiSlice.injectEndpoints({
           method: 'GET',
           params,
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token') || ''}`, // se precisar auth
+            Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
             Accept: 'application/json'
           }
         }
@@ -50,14 +79,19 @@ export const statisticsApi = apiSlice.injectEndpoints({
           return response as GetStatisticsResponse
         }
 
-        // fallback
+        // fallback vazio (estrutura coerente)
         return {
           message: 'OK',
           status: 200,
           data: {
-            total_chats: 0,
-            total_messages: 0,
-            total_users: 0
+            statistics: [],
+            project_totals: [],
+            overall_total: {
+              total_called_operators: 0,
+              total_opened_protocols: 0,
+              total_assistants: 0,
+              total_projects: 0
+            }
           }
         }
       },
@@ -66,12 +100,17 @@ export const statisticsApi = apiSlice.injectEndpoints({
         console.error('❌ Erro ao carregar statistics:', response)
 
         return {
-          status: response.status || 500,
+          status: response?.status || 500,
           message: response?.data?.message || response?.message || 'Erro ao carregar statistics',
           data: {
-            total_chats: 0,
-            total_messages: 0,
-            total_users: 0
+            statistics: [],
+            project_totals: [],
+            overall_total: {
+              total_called_operators: 0,
+              total_opened_protocols: 0,
+              total_assistants: 0,
+              total_projects: 0
+            }
           }
         }
       },

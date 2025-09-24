@@ -21,13 +21,14 @@ import type { ThemeColor } from '@/@core/types'
 
 import { useGetDashboardQuery } from '@/api/endpoints/dashboard/dashboard'
 import { getCurrentMonth, getCurrentYear, getNameMonth, months } from '@/utils/utilDates'
-import EstatisticsDash from './EstatisticsDash'
+
 import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
 import AvailableSoon from '@/components/AvailableSoon'
-import type { Activity } from '@/api/endpoints/activity/activity'
+
 import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
 import FirstAccessModal from '@/components/dialogs/firstAccess'
 import { useUserMe } from '@/hooks/useUserMe'
+import EstatisticsDash from './EstatisticsDash'
 import { useGetStatisticsQuery } from '@/api/endpoints/statistics/statistics'
 
 export type DataTypeEstatisticsDash = {
@@ -41,17 +42,19 @@ const DashboardCRM = () => {
   const { firstAccess } = useUserMe()
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [filters, setFilters] = useState({ year: getCurrentYear(), month: getCurrentMonth() })
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [month, setMonth] = useState<string>(getNameMonth(getCurrentMonth()))
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { data, error, isLoading: isLoadingStatistics, isFetching } = useGetStatisticsQuery({})
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
-    data,
-
-    isLoading: isLoadingStatistics
-  } = useGetStatisticsQuery({
-    assistant_id: 'architecto',
-    project_id: 'architecto'
+    data: dataInteractions,
+    error: errorInteractions,
+    isLoading: isLoadingInteractions
+  } = useGetProtocolsQuery({
+    sort: '-created_at'
   })
 
   const { data: dataActivity, isLoading } = useGetActivitiesQuery({
@@ -62,7 +65,7 @@ const DashboardCRM = () => {
     <>
       <Grid container spacing={6}>
         <Grid size={{ xs: 12 }} className='self-end'>
-          <EstatisticsDash month={''} data={data} isLoading={isLoadingStatistics} />
+          <EstatisticsDash data={data} isLoading={isFetching} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end relative'>
           <AvailableSoon />
@@ -72,29 +75,29 @@ const DashboardCRM = () => {
             icon='ri-mic-fill'
             value='Em Desenvolvimento'
             title='Interações em voz'
-            month={''}
+            month={month}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
           <HorizontalWithBorderExample
-            isLoading={isLoadingStatistics}
+            isLoading={isFetching}
             color='info'
             icon='ri-chat-3-line'
-            value={String(data?.data.total_protocols)}
+            value={`String(data?.data.total_protocols)`}
             title='Interações em Texto'
-            month={''}
+            month={month}
           />
         </Grid>
 
         <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end relative'>
           <AvailableSoon />
           <HorizontalWithBorderExample
-            isLoading={isLoadingStatistics}
+            isLoading={isFetching}
             color='success'
             icon='ri-user-3-line'
             value='Em Desenvolvimento'
             title='Interações com operador'
-            month={''}
+            month={month}
           />
         </Grid>
         <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>

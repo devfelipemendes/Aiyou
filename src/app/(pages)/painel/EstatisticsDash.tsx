@@ -16,25 +16,47 @@ import type { GetStatisticsResponse } from '@/api/endpoints/statistics/statistic
 
 // Vars
 
-const EstatisticsDash = ({
-  data,
-  isLoading,
-  month
-}: {
-  data: GetStatisticsResponse | undefined
-  isLoading: boolean
-  month: string
-}) => {
+const EstatisticsDash = ({ data, isLoading }: { data: GetStatisticsResponse | undefined; isLoading: boolean }) => {
   return (
     <Card>
       <CardHeader
-        title={`Atendimentos de ${month}`}
+        title={`Estatísticas`}
 
         // action={<OptionMenu iconClassName='text-textPrimary' options={['Refresh', 'Share', 'Update']} />}
       />
       <CardContent>
         <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12, sm: 3 }}>
+            <div className='flex items-center gap-3'>
+              <CustomAvatar variant='rounded' color={'info'} className='shadow-xs'>
+                <i className='ri-robot-3-line' />
+              </CustomAvatar>
+              <div>
+                <Typography>Total Assistentes</Typography>
+                <Typography variant='h5'>
+                  {isLoading ? <CircularProgress size={15} /> : (data?.data.overall_total.total_assistants ?? '0')}
+                </Typography>
+              </div>
+            </div>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 3 }}>
+            <div className='flex items-center gap-3'>
+              <CustomAvatar variant='rounded' color={'success'} className='shadow-xs'>
+                <i className='ri-folder-6-line' />
+              </CustomAvatar>
+              <div>
+                <Typography>Total Projetos</Typography>
+                <Typography variant='h5'>
+                  {isLoading ? (
+                    <CircularProgress size={15} />
+                  ) : (
+                    (data?.data.overall_total.total_called_operators ?? '0')
+                  )}
+                </Typography>
+              </div>
+            </div>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 3 }}>
             <div className='flex items-center gap-3'>
               <CustomAvatar variant='rounded' color={'primary'} className='shadow-xs'>
                 <i className='ri-file-list-3-line'></i>
@@ -42,35 +64,29 @@ const EstatisticsDash = ({
               <div>
                 <Typography>Total Protocolos</Typography>
                 <Typography variant='h5'>
-                  {isLoading ? <CircularProgress size={15} /> : (data?.data.overall_total. ?? '0')}
+                  {isLoading ? (
+                    <CircularProgress size={15} />
+                  ) : (
+                    (data?.data.overall_total.total_opened_protocols ?? '0')
+                  )}
                 </Typography>
               </div>
             </div>
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <div className='flex items-center gap-3'>
-              <CustomAvatar variant='rounded' color={'success'} className='shadow-xs'>
-                <i className='ri-group-line'></i>
-              </CustomAvatar>
-              <div>
-                <Typography>Total Clientes</Typography>
-                <Typography variant='h5'>
-                  {isLoading ? <CircularProgress size={15} /> : (data?.data.total_clients ?? '0')}
-                </Typography>
-              </div>
-            </div>
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 4 }}>
+          <Grid size={{ xs: 12, sm: 3 }}>
             <div className='flex items-center gap-3'>
               <CustomAvatar variant='rounded' color={'warning'} className='shadow-xs'>
-                <i className='ri-macbook-line'></i>
+                <i className='ri-headphone-line'></i>
               </CustomAvatar>
               <div>
                 <Typography>Operadores Chamados</Typography>
                 <Typography variant='h5'>
-                  {isLoading ? <CircularProgress size={15} /> : (data?.data.total_operators_called ?? '0')}
+                  {isLoading ? (
+                    <CircularProgress size={15} />
+                  ) : (
+                    (data?.data.overall_total.total_called_operators ?? '0')
+                  )}
                 </Typography>
               </div>
             </div>
