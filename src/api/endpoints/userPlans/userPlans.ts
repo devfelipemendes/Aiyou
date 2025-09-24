@@ -28,6 +28,7 @@ export type UpdateUserPlanRequest = {
   id: string
   user_id?: string
   plan_id?: string
+  card_id?: string
   date?: string
   active?: boolean
   used_tokens?: number
