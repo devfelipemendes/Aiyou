@@ -24,10 +24,13 @@ import { getCurrentMonth, getCurrentYear, getNameMonth, months } from '@/utils/u
 import EstatisticsDash from './EstatisticsDash'
 import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
 import AvailableSoon from '@/components/AvailableSoon'
-import type { Activity } from '@/api/endpoints/activity/activity'
+
 import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
 import FirstAccessModal from '@/components/dialogs/firstAccess'
 import { useUserMe } from '@/hooks/useUserMe'
+import { useAppDispatch, useAppSelector } from '@/redux-store'
+import { selectFirstAccess } from '@/api/endpoints/authUser/me'
+import { openModal, setFirstAccess } from '@/redux-store/slices/firstAccessSlice'
 
 export type DataTypeEstatisticsDash = {
   icon: string
@@ -37,8 +40,6 @@ export type DataTypeEstatisticsDash = {
 }
 
 const DashboardCRM = () => {
-  const { firstAccess } = useUserMe()
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filters, setFilters] = useState({ year: getCurrentYear(), month: getCurrentMonth() })
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -56,6 +57,24 @@ const DashboardCRM = () => {
     setMonth(months.find(m => m.value === selectedMonth)?.label || '')
     setFilters(prev => ({ ...prev, month: selectedMonth }))
   }
+
+  const { firstAccess } = useUserMe()
+  const dispatch = useAppDispatch()
+
+  console.log('First Access: do hook', firstAccess)
+
+  const apiFirstAccess = useAppSelector(selectFirstAccess)
+
+  useEffect(() => {
+    if (apiFirstAccess === true) {
+      dispatch(setFirstAccess(true))
+      dispatch(openModal())
+    }
+
+    if (apiFirstAccess === false) {
+      dispatch(setFirstAccess(false))
+    }
+  }, [apiFirstAccess, dispatch])
 
   return (
     <>
@@ -132,7 +151,7 @@ const DashboardCRM = () => {
           <UpgradePlan />
         </Grid>
       </Grid>
-      {firstAccess && <FirstAccessModal />}
+      <FirstAccessModal />
     </>
   )
 }

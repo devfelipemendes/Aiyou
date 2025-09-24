@@ -162,7 +162,6 @@ const CardBrandIcon = styled(Box, {
   fontWeight: 'bold'
 }))
 
-// ===== COMPONENTE ITEM DO CARTÃO =====
 const CreditCardItem: FC<{
   card: AdaptedCreditCard
   isSelected: boolean
@@ -188,7 +187,6 @@ const CreditCardItem: FC<{
 
   return (
     <StyledCard isSelected={isSelected} isSelectable={isSelectable} onClick={handleClick} variant='outlined'>
-      {/* Radio button para seleção */}
       {isSelectable && (
         <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
           <Radio
@@ -201,7 +199,6 @@ const CreditCardItem: FC<{
         </Box>
       )}
 
-      {/* Menu de ações */}
       {showActions && (
         <Box
           className='card-actions'
@@ -252,7 +249,6 @@ const CreditCardItem: FC<{
             </Box>
           </Box>
 
-          {/* Bandeira do cartão */}
           <CardBrandIcon brandColor={brandColor}>
             {card.brand === 'visa' && <Box sx={{ fontSize: '16px', fontWeight: 'bold', color: brandColor }}>VISA</Box>}
             {card.brand === 'mastercard' && (
@@ -341,13 +337,11 @@ const CreditCardList: FC<CreditCardListProps> = ({
     console.log('🔄 Abrindo modal de criação de cartão')
   }
 
-  // ===== HANDLER PARA FECHAR MODAL =====
   const handleCloseCreateModal = () => {
     setShowCreateModal(false)
     console.log('🔄 Fechando modal de criação de cartão')
   }
 
-  // ===== ESTADOS DE LOADING/ERROR =====
   if (isLoading) {
     return (
       <Box display='flex' justifyContent='center' alignItems='center' minHeight='200px'>
@@ -397,7 +391,6 @@ const CreditCardList: FC<CreditCardListProps> = ({
     )
   }
 
-  // ===== RENDER PRINCIPAL =====
   return (
     <>
       <Box className={'width-full'}>

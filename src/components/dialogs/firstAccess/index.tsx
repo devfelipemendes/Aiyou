@@ -150,6 +150,12 @@ const FirstAccessModal = () => {
     )
   }
 
+  useEffect(() => {
+    if (firstAccess) {
+      dispatch(openModal())
+    }
+  }, [firstAccess, dispatch])
+
   return (
     <Dialog
       open={modalOpen}

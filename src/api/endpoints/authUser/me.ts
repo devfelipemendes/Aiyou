@@ -105,18 +105,29 @@ export const userMeApi = apiSlice.injectEndpoints({
         }
       }),
 
+      // src/api/endpoints/authUser/me.ts (linha 125)
       transformResponse: (response: GetMeResponse) => {
         console.log('🔍 DEBUG - Estrutura da resposta GET /me:', response)
 
         const user = response.data.user
         const projectsCount = response.data.projects.length
-
         const totalAssistants = response.data.projects.reduce((acc, project) => acc + project.assistants.length, 0)
 
         console.log('✅ Usuário carregado:', user.name)
         console.log('📊 Projetos:', projectsCount, '| Assistentes:', totalAssistants)
-        console.log('🎯 Plano:', user.plan.name, '| Tokens restantes:', user.tokens_left.toLocaleString())
-        console.log('📈 Uso de tokens:', user.plan_usage.total_tokens.toLocaleString())
+
+        if (user.plan) {
+          console.log('🎯 Plano:', user.plan.name, '| Tokens restantes:', user.tokens_left?.toLocaleString() || '0')
+        } else {
+          console.log('⚠️ Usuário sem plano definido | Tokens restantes:', user.tokens_left?.toLocaleString() || '0')
+        }
+
+        // ✅ CORREÇÃO: Verificar se plan_usage existe
+        if (user.plan_usage) {
+          console.log('📈 Uso de tokens:', user.plan_usage.total_tokens.toLocaleString())
+        } else {
+          console.log('📈 Uso de tokens: Não disponível (sem plano)')
+        }
 
         return response
       },
@@ -143,13 +154,21 @@ export const userMeApi = apiSlice.injectEndpoints({
 export const { useGetMeQuery } = userMeApi
 
 // 🔧 CORREÇÃO: SELETORES MEMOIZADOS COM createSelector
-const selectMeResult = userMeApi.endpoints.getMe.select()
+const selectMeResult = (state: any) => userMeApi.endpoints.getMe.select(undefined)(state)
 
 // ✅ SELECTOR BASE MEMOIZADO
-export const selectMeData = createSelector([selectMeResult], result => result.data?.data)
+export const selectMeData = createSelector([selectMeResult], result => {
+  console.log('🔍 SELECTOR - Raw result:', result)
+
+  return result?.data?.data
+})
 
 // ✅ SELECTOR USER MEMOIZADO
-export const selectUser = createSelector([selectMeData], meData => meData?.user)
+export const selectUser = createSelector([selectMeData], meData => {
+  console.log('🔍 SELECTOR - MeData:', meData) // Debug
+
+  return meData?.user
+})
 
 // ✅ SELECTOR PERMISSIONS MEMOIZADO
 export const selectUserPermissions = createSelector([selectMeData], meData => meData?.user_permissions || [])
@@ -205,4 +224,8 @@ export const selectIsAdmin = createSelector([selectUserPermissions], permissions
 
 export const selectIsOperator = createSelector([selectUser], user => user?.is_operator || false)
 
-export const selectFirstAccess = createSelector([selectMeData], meData => meData?.first_access || false)
+export const selectFirstAccess = createSelector([selectMeData], meData => {
+  if (meData === undefined) return undefined // ainda carregando
+
+  return meData.first_access // true ou false real da API
+})

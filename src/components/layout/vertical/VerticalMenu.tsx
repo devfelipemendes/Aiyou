@@ -47,8 +47,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
   return (
-    // eslint-disable-next-line lines-around-comment
-    /* Custom scrollbar instead of browser scroll, remove if you want browser scroll only */
     <ScrollWrapper
       {...(isBreakpointReached
         ? {
@@ -77,9 +75,7 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
           <MenuItem href='/assistentes' icon={<i className='ri-robot-3-line' />}>
             Assistentes
           </MenuItem>
-          <MenuItem href='/projetos' icon={<i className='ri-folder-6-line' />}>
-            Tab Inicio
-          </MenuItem>
+
           <MenuItem href='/projetoss' icon={<i className='ri-folder-6-line' />}>
             Projetos
           </MenuItem>
