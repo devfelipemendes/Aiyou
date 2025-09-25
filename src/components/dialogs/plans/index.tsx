@@ -42,7 +42,6 @@ import CreditCard from '@/components/CreditCard'
 import { useUserMe } from '@/hooks/useUserMe'
 
 import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
-import { FirstModulePresentation } from '@/components/FirstModulePresentation'
 
 // Custom styles para as dots do pagination
 const swiperPaginationStyles = `
