@@ -102,7 +102,7 @@ const CreditCard: React.FC<CreditCardProps> = ({ selectedPlanId, onPlanSuccess }
       if (isFreePlan) {
         await createUserPlan({
           plan_id: selectedPlanId,
-          subscription: false
+          subscription: true
         }).unwrap()
       } else {
         if (!selectedCardId) {
@@ -115,7 +115,7 @@ const CreditCard: React.FC<CreditCardProps> = ({ selectedPlanId, onPlanSuccess }
           id: userPlanId || '',
           plan_id: selectedPlanId,
           card_id: selectedCardId,
-          subscription: false
+          subscription: true
         }).unwrap()
 
         toast.success('Plano atualizado com sucesso!')

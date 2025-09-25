@@ -124,6 +124,8 @@ export const usePrintToPDF = (options: UsePrintToPDFOptions = {}): UsePrintToPDF
         setIsGenerating(false)
       }
     },
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isGenerating, filename, quality, format, orientation, onSuccess, onError, showToast]
   )
 

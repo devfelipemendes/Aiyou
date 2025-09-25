@@ -1,4 +1,8 @@
+'use client'
+
 import React, { useEffect, useState, type ChangeEvent } from 'react'
+
+import Image from 'next/image'
 
 import {
   Dialog,
@@ -20,6 +24,8 @@ import Grid from '@mui/material/Grid2'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination } from 'swiper/modules'
 
+import { toast } from 'react-toastify'
+
 import Link from '@/components/Link'
 import Curve from '@/assets/svg/front-pages/landing-page/Curve'
 import Arrow from '@/assets/svg/front-pages/landing-page/Arrow'
@@ -33,6 +39,10 @@ import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 import type { CustomInputVerticalData } from '@/@core/components/custom-inputs/types'
 import { AnimatedReveal } from '@/components/AnimetedReveal'
 import CreditCard from '@/components/CreditCard'
+import { useUserMe } from '@/hooks/useUserMe'
+
+import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import { FirstModulePresentation } from '@/components/FirstModulePresentation'
 
 // Custom styles para as dots do pagination
 const swiperPaginationStyles = `
@@ -100,6 +110,8 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
 
   const [selectedPlan, setSelectedPlan] = useState<string>('')
   const [selectedMethod, setSelectedMethod] = useState<string>(initialSelected)
+  const [showInstructiveModal, setShowInstructiveModal] = useState<boolean>(false)
+  const [isProcessingBoleto, setIsProcessingBoleto] = useState<boolean>(false)
 
   const handleChange = (prop: string | ChangeEvent<HTMLInputElement>) => {
     if (typeof prop === 'string') {
@@ -110,6 +122,10 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
   }
 
   const { data: plansResponse, isLoading, error } = useGetPlansQuery()
+
+  const { user, userPlanId } = useUserMe()
+  const [createUserPlan] = useCreateUserPlanMutation()
+  const [updateUserPlan] = useUpdateUserPlanMutation()
 
   useEffect(() => {
     if (open) {
@@ -416,6 +432,51 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     )
   }
 
+  const handleGenerateBoleto = async () => {
+    if (!selectedPlan) {
+      toast.error('Selecione um plano primeiro!')
+
+      return
+    }
+
+    setIsProcessingBoleto(true)
+
+    const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
+
+    try {
+      if (isFreePlan) {
+        // Criar novo plano para usuário do plano gratuito
+        await createUserPlan({
+          plan_id: selectedPlan,
+          subscription: false // Boleto não é recorrente
+        }).unwrap()
+
+        toast.success('Solicitação criada! Boleto será enviado por email.')
+      } else {
+        // Atualizar plano existente
+        if (!userPlanId) {
+          throw new Error('ID do plano do usuário não encontrado')
+        }
+
+        await updateUserPlan({
+          id: userPlanId,
+          plan_id: selectedPlan,
+          subscription: false // Boleto não é recorrente
+        }).unwrap()
+
+        toast.success('Plano atualizado! Boleto será enviado por email.')
+      }
+
+      // Mostrar modal de sucesso
+      setShowInstructiveModal(true)
+    } catch (error) {
+      console.error('Erro ao gerar boleto:', error)
+      toast.error('Erro ao processar solicitação. Tente novamente.')
+    } finally {
+      setIsProcessingBoleto(false)
+    }
+  }
+
   return (
     <Dialog
       open={open}
@@ -556,13 +617,20 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                   <AnimatedReveal animation='slideInRight' duration={400} show={true}>
                     <Box className='w-full flex items-center justify-center pt-10'>
                       <Button
-                        component={Link}
-                        href='/front-pages/payment'
-                        variant={'contained'}
-                        color={'primary'}
+                        variant='contained'
+                        color='primary'
                         size='large'
+                        onClick={handleGenerateBoleto}
+                        disabled={!selectedPlan || isProcessingBoleto}
+                        startIcon={
+                          isProcessingBoleto ? (
+                            <i className='ri-loader-4-line animate-spin' />
+                          ) : (
+                            <i className='ri-file-text-line' />
+                          )
+                        }
                       >
-                        Gerar boleto
+                        {isProcessingBoleto ? 'Gerando Boleto...' : 'Gerar Boleto'}
                       </Button>
                     </Box>
                   </AnimatedReveal>

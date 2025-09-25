@@ -81,8 +81,21 @@ const PreviewCard = () => {
         <Grid container spacing={6}>
           <Grid size={{ xs: 12 }}>
             <Box className='flex flex-col gap-6 items-center justify-center'>
-              <Box className='flex items-center'>
-                <Image src='/images/LogoAiyou/LogoAiyou.svg' alt={''} width={'150'} height={'150'} />
+              <Box className='flex items-center py-5'>
+                <Image
+                  src='/images/LogoAiyou/LogoAiyou.svg'
+                  alt='Logo AIYOU'
+                  width={150}
+                  height={150}
+                  priority // Força carregamento prioritário
+                  style={{
+                    maxWidth: '150px',
+                    height: 'auto',
+                    display: 'block'
+                  }}
+                  onLoad={() => console.log('Logo carregada')}
+                  onError={() => console.log('Erro ao carregar logo')}
+                />
               </Box>
               <Box className='p-6 bg-actionHover rounded w-full'>
                 <Box className='flex justify-between gap-y-4 flex-col sm:flex-row'>
