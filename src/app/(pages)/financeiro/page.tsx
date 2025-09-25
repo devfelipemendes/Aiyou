@@ -17,6 +17,7 @@ import Grid from '@mui/material/Grid2'
 import { useUserMe } from '@/hooks/useUserMe'
 
 import PricingPlansModal from '@/components/dialogs/plans'
+import InvoiceList from '@/views/invoice/list'
 
 // Icons
 
@@ -212,9 +213,9 @@ const FinanceiroPage = () => {
           {/* Tab 1: Plano Atual */}
           <TabPanel value={tabValue} index={0}>
             <Grid container spacing={4}>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12 }}>
                 <Box component='div' className='flex   flex-col '>
-                  teste
+                  <InvoiceList />
                 </Box>
               </Grid>
             </Grid>

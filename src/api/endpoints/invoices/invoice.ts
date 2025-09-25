@@ -51,6 +51,7 @@ export type CustomerInvoice = {
     | 'DUNNING_REQUESTED'
     | 'DUNNING_RECEIVED'
     | 'AWAITING_RISK_ANALYSIS'
+    | ''
   dueDate: string
   originalDueDate: string
   paymentDate: string | null
