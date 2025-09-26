@@ -37,6 +37,8 @@ interface AdaptedMsgGroup {
     time: number
     operator?: boolean
     message: string
+    messageType?: 'text' | 'audio'
+    audioUrl?: string | null
     msgStatus?: {
       isSent: boolean
       isDelivered: boolean

@@ -72,6 +72,9 @@ interface MessageEvent {
   id: string
   protocol: string
   content: string
+  message_type?: 'text' | 'audio' // Adicionar
+  audio_url?: string | null // Adicionar
+  operator_name?: string | null // Adicionar
   role: 'user' | 'assistant' | 'operator'
   operator: number | null
   created_at: string
@@ -79,7 +82,6 @@ interface MessageEvent {
 
 interface UseMonitoringWithWebSocketOptions {
   enableWebSocket?: boolean
-
   onError?: (error: any) => void
   onChatSelect?: (protocol: string, chat: ChatWithHistory) => void
 }
@@ -184,6 +186,9 @@ export function useMonitoringWithWebSocket(
     return {
       id: messageEvent.id,
       content: messageEvent.content,
+      message_type: messageEvent.message_type || 'text',
+      audio_url: messageEvent.audio_url || null,
+      operator_name: messageEvent.operator_name || null,
       role: messageEvent.role,
       operator: typeof messageEvent.operator === 'number' ? !!messageEvent.operator : null,
       created_at: messageEvent.created_at

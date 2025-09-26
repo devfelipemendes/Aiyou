@@ -13,8 +13,11 @@ function adaptProtocolMessage(protocolMsg: ProtocolHistoryMessage): ChatHistoryM
   return {
     id: protocolMsg.id,
     content: protocolMsg.content,
+    message_type: protocolMsg.message_type || 'text', // Adicionar
+    audio_url: protocolMsg.audio_url || null, // Adicionar
     role: protocolMsg.role,
     operator: protocolMsg.operator === null ? null : Boolean(protocolMsg.operator),
+    operator_name: protocolMsg.operator_name || null, // Adicionar
     created_at: protocolMsg.created_at
   }
 }
