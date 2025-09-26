@@ -3,8 +3,11 @@ import { apiSlice } from '@/api/ApiCreate/apiSlice'
 export interface ChatHistoryMessage {
   id: string
   content: string
-  role: 'assistant' | 'user' | 'operator'
+  message_type?: 'text' | 'audio'
+  audio_url?: string | null
+  role: 'user' | 'assistant' | 'operator'
   operator: boolean | null
+  operator_name: string | null
   created_at: string
 }
 
