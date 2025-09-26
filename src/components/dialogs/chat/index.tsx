@@ -70,10 +70,17 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
   const currentChat = useMemo(() => {
     const foundChat = monitoringChats[selectedProtocol]
 
-    // 🔍 DEBUG: Log para confirmar
-    console.log('🔍 MODAL - selectedProtocol:', selectedProtocol)
-    console.log('🔍 MODAL - foundChat:', foundChat)
-    console.log('🔍 MODAL - isAssumed:', foundChat?.operator)
+    console.log('🔍 MODAL - Chat atual:', {
+      protocol: selectedProtocol,
+      hasChat: !!foundChat,
+      totalMessages: foundChat?.history?.length || 0,
+      audioMessages: foundChat?.history?.filter(h => h.message_type === 'audio').length || 0,
+      primeirasMensagens: foundChat?.history?.slice(0, 3).map(h => ({
+        id: h.id,
+        type: h.message_type,
+        hasAudio: !!(h.message_type === 'audio' && h.audio_url)
+      }))
+    })
 
     return foundChat
   }, [monitoringChats, selectedProtocol])
@@ -181,7 +188,12 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       source: data.source,
       assistant_name: data.assistant_name,
       operator_name: data.operator_name,
-      history: data.history,
+      history:
+        data.history?.map((msg: any) => ({
+          ...msg,
+          message_type: msg.message_type || 'text', // Garantir tipo
+          audio_url: msg.audio_url || null // Garantir URL
+        })) || [],
       messageCount: data.history?.length || 0,
       lastActivity: data.history?.[data.history.length - 1]?.created_at || '',
       createdAt: data.history?.[0]?.created_at || ''
@@ -214,6 +226,9 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       const convertedHistory: ChatHistoryMessage[] = historyMessages.map((msg: any) => ({
         id: msg.id,
         content: msg.content,
+        message_type: msg.message_type || 'text',
+        audio_url: msg.audio_url || null,
+        operator_name: msg.operator_name || null,
         role: msg.role,
         operator: msg.operator,
         created_at: msg.created_at
