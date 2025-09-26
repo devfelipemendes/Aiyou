@@ -76,7 +76,7 @@ export default function EditOperatorDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth>
-      <DialogTitle>Editar Assistente</DialogTitle>
+      <DialogTitle>Editar Operador</DialogTitle>
 
       <DialogContent>
         <form onSubmit={handleSubmit(onSubmit)} id='edit-assistant-form'>

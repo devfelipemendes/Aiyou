@@ -29,9 +29,9 @@ const AssistentTabView = () => {
 
   const tabContentList: { [key: string]: ReactElement } = {
     hometab: <HomeTab data={data} refetch={refetch} />,
-    linkedProject: <LinkedProject />,
+    linkedProject: <LinkedProject data={data} />,
 
-    functions: <FunctionsTab data={data} />
+    functions: <FunctionsTab data={data} refetch={refetch} />
   }
 
   console.log('datadatadatad', data)
@@ -54,10 +54,10 @@ const AssistentTabView = () => {
 
   return (
     <Grid container spacing={6}>
-      <Grid size={{ xs: 12, lg: 4, md: 5 }}>
+      <Grid size={{ xs: 12, lg: 3, md: 4 }}>
         <UserLeftOverview data={data} />
       </Grid>
-      <Grid size={{ xs: 12, lg: 8, md: 7 }}>
+      <Grid size={{ xs: 12, lg: 9, md: 8 }}>
         <UserRight tabContentList={tabContentList} />
       </Grid>
     </Grid>

@@ -5,24 +5,6 @@ import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 /* ------------------------- 🎯 REQUEST TYPES ------------------------- */
 
-// Criar operador
-export type CreateOperatorRequest = {
-  name: string
-  email: string
-  identifier: string
-  project_id: string
-  password: string
-  password_confirmation: string // Adicionado manualmente
-  date: string
-  cep?: string
-  city?: string
-  number?: string
-  street?: string
-  uf?: string
-  phone_number?: string | null
-  whatsapp_number?: string | null
-}
-
 // Deletar operador
 export type DeleteOperatorRequest = {
   project_operator_id: string
@@ -76,11 +58,6 @@ export type ProcessedGetOperatorsResponse = {
 }
 
 // Criar operador
-export type CreateOperatorResponse = {
-  message: string
-  status: number
-  data: Operator
-}
 
 // Deletar operador
 export type DeleteOperatorResponse = {
@@ -91,7 +68,7 @@ export type DeleteOperatorResponse = {
 
 // trade project
 export type AddUserToProjectRequest = {
-  project_id: string
+  project_ids: string[] // agora é array
   user_id: string
 }
 
@@ -141,7 +118,46 @@ export type GetOperatorByIdResponse = {
 }
 
 /* ------------------------- 🎯 ERROR TYPE ------------------------- */
-type OperatorError = {
+
+// Tipos de request
+export interface CreateOperatorRequest {
+  project_ids: string[] // obrigatório
+  name: string // min 3, max 255
+  identifier: string // string obrigatória
+  date: string // data < hoje (YYYY-MM-DD)
+  email: string // email válido
+  password: string // min 8 chars
+
+  // opcionais
+  cep?: string
+  city?: string
+  street?: string
+  number?: string
+  neighborhood?: string
+  complement?: string
+  uf?: string
+  phone_number?: string | null
+  whatsapp_number?: string | null
+}
+
+// Tipos de response
+export interface CreateOperatorResponse {
+  message: string
+  status: number
+  data: {
+    id: string
+    name: string
+    email: string
+    identifier: string
+    project_ids: string[]
+    created_at: string
+    updated_at: string
+    [key: string]: any // fallback pra caso a API mande mais campos
+  }
+}
+
+// Tipos de erro
+export interface OperatorError {
   status: number
   message: string
 }
@@ -199,8 +215,8 @@ export const operatorApi = apiSlice.injectEndpoints({
 
     // 🎯 CREATE OPERATOR
     createOperator: builder.mutation<CreateOperatorResponse, CreateOperatorRequest>({
-      query: ({ project_id, ...body }) => ({
-        url: `/project/${project_id}/user`,
+      query: body => ({
+        url: `/project/user`,
         method: 'POST',
         body,
         headers: {
@@ -208,14 +224,14 @@ export const operatorApi = apiSlice.injectEndpoints({
           Accept: 'application/json'
         }
       }),
-      transformResponse: (response: any, meta: any) => {
+      transformResponse: (response: any, meta: any): CreateOperatorResponse => {
         console.log('🔍 DEBUG - Resposta RAW do CREATE operator:', response)
 
         return {
           message: response?.message || 'Created',
           status: meta?.response?.status || 201,
           data: response?.data || response || {}
-        } as CreateOperatorResponse
+        }
       },
       transformErrorResponse: (response: any): OperatorError => {
         console.error('❌ Erro ao criar operador:', response)
@@ -261,11 +277,14 @@ export const operatorApi = apiSlice.injectEndpoints({
       ]
     }),
     addUserToProject: builder.mutation<AddUserToProjectResponse, AddUserToProjectRequest>({
-      query: ({ project_id, user_id }) => ({
-        url: `/project/${project_id}/operator`,
+      query: ({ project_ids, user_id }) => ({
+        url: `/project/operator`, // sem o project_id na URL, já que é múltiplo
         method: 'POST',
-        body: { user_id },
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
+        body: { project_ids, user_id },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        }
       }),
       transformResponse: (response: any, meta: any) => {
         console.log('🔍 DEBUG - addUserToProject response:', response)

@@ -65,9 +65,9 @@ const CreateAssistant = ({ open, setOpen }: CreateAssistantProps) => {
       console.log('✅ Assistente criado:', response)
 
       handleClose()
-    } catch (error) {
-      toast.error('Erro ao criar assistente!')
-      console.error('❌ Erro ao criar assistente:', error)
+    } catch (error: any) {
+      toast.error(error.message || 'Erro criar assistente')
+      console.log(error)
     }
   }
 

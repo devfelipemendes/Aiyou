@@ -31,3 +31,21 @@ export function getNameMonth(monthValue: string): string {
 
   return monthObj ? monthObj.label : ''
 }
+
+/**
+ * Retorna os labels dos últimos 6 meses, incluindo o mês atual
+ */
+export const getLastSixMonths = () => {
+  const months: { value: string; label: string }[] = []
+  const today = new Date()
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+    const month = (d.getMonth() + 1).toString().padStart(2, '0')
+    const label = d.toLocaleString('pt-BR', { month: 'short' }) // Jan, Fev...
+
+    months.push({ value: month, label })
+  }
+
+  return months
+}

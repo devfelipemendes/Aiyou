@@ -44,7 +44,7 @@ export default function HistoricoInteracoes() {
   // States
 
   const { data, error, isLoading } = useGetProtocolsQuery({
-    sort: '-created_at'
+    sort: '-updated_at'
   })
 
   const [resultStatus, setResultStatus] = useState<ResultStatus | null>(null)
@@ -118,7 +118,7 @@ export default function HistoricoInteracoes() {
             element={IconButton}
             elementProps={buttonProps}
             dialog={ChatLog_2}
-            dialogProps={{ protocol: row.original.protocol }}
+            dialogProps={{ protocol: row.original.protocol, assistantName: row.original.assistant?.name }}
           />
         )
       }

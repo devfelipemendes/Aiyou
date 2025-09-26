@@ -57,19 +57,27 @@ export default function Assitentes() {
       </CardActions>
       <CardContent>
         <Grid container spacing={3}>
-          {assistants.map((user: any) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={user.id}>
-              <CardUser
-                avatarSrc={user.avatarSrc}
-                name={user.name}
-                location={user.location}
-                projectName={user.project_name}
-                projectAvatarSrc={user.project_id}
-                onClick={() => handleUserClick(user)}
-                assistant={user}
-              />
-            </Grid>
-          ))}
+          {assistants.length === 0 ? (
+            <Box
+              sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+            >
+              <Typography>Nenhum assistente encontrado</Typography>
+            </Box>
+          ) : (
+            assistants.map((user: any) => (
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={user.id}>
+                <CardUser
+                  avatarSrc={user.avatarSrc}
+                  name={user.name}
+                  location={user.location}
+                  projectName={user.project_name}
+                  projectAvatarSrc={user.project_id}
+                  onClick={() => handleUserClick(user)}
+                  assistant={user}
+                />
+              </Grid>
+            ))
+          )}
         </Grid>
       </CardContent>
     </Card>

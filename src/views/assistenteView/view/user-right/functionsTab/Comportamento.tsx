@@ -24,6 +24,7 @@ import {
   useUpdateConfigurationMutation
 } from '@/api/endpoints/assistantBehavior/assistantBehavior'
 import type { Assistant, GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
+import AvailableSoon from '@/components/AvailableSoon'
 
 const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantResponse | undefined }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -141,7 +142,7 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
               </Typography>
             </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid className='p-2' size={{ xs: 12, md: 6 }}>
               <Controller
                 name='tempo_inatividade'
                 control={control}
@@ -154,15 +155,16 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
                     helperText='Defina o tempo limite para detectar inatividade do cliente'
                   >
                     <MenuItem value='não definido'>Não definido</MenuItem>
-                    <MenuItem value='30 min'>30 minutos</MenuItem>
-                    <MenuItem value='1 hora'>1 hora</MenuItem>
-                    <MenuItem value='2 horas'>2 horas</MenuItem>
+                    <MenuItem value='30'>30 minutos</MenuItem>
+                    <MenuItem value='60'>1 hora</MenuItem>
+                    <MenuItem value='120'>2 horas</MenuItem>
                   </TextField>
                 )}
               />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}>
+            <Grid className='relative p-2' size={{ xs: 12, md: 6 }}>
+              <AvailableSoon />
               <Controller
                 name='tentativas_reconexao'
                 control={control}
@@ -187,7 +189,8 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
           <Divider sx={{ my: 5 }} orientation='horizontal' />
 
           <Grid container spacing={4} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12 }}>
+            <Grid className='relative p-2' size={{ xs: 12 }}>
+              <AvailableSoon />
               <Typography fontWeight='bold' gutterBottom>
                 Duração da interação
               </Typography>
@@ -206,9 +209,9 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
                     helperText='Defina o tempo limite para que uma interação fique ativa'
                   >
                     <MenuItem value='não definido'>Não definido</MenuItem>
-                    <MenuItem value='30 min'>30 minutos</MenuItem>
-                    <MenuItem value='1 hora'>1 hora</MenuItem>
-                    <MenuItem value='2 horas'>2 horas</MenuItem>
+                    <MenuItem value='30'>30 minutos</MenuItem>
+                    <MenuItem value='60'>1 hora</MenuItem>
+                    <MenuItem value='120'>2 horas</MenuItem>
                   </TextField>
                 )}
               />
@@ -219,7 +222,8 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
 
           {/* Ações Pós Encerramento */}
           <Grid container spacing={4} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 12 }}>
+            <Grid className='relative p-2' size={{ xs: 12 }}>
+              <AvailableSoon />
               <Typography fontWeight='bold' gutterBottom>
                 Ações pós encerramento
               </Typography>

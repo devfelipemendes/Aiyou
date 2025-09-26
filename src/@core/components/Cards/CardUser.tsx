@@ -18,6 +18,8 @@ import * as v from 'valibot'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
 // API
+import { toast } from 'react-toastify'
+
 import { useUpdateAssistantMutation, useDeleteAssistantMutation } from '@/api/endpoints/assistant/assistant'
 import { useGetProjectsQuery } from '@/api/endpoints/Projects/project'
 
@@ -87,12 +89,18 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
 
   const handleEditSubmit = useCallback(
     async (data: AssistantFormData) => {
-      if (!editingAssistant) return
-      await updateAssistant({ id: editingAssistant.id, ...data })
-      handleCloseEditModal()
-      refetch()
+      try {
+        if (!editingAssistant) return
+        await updateAssistant({ id: editingAssistant.id, ...data })
+        handleCloseEditModal()
+        refetch()
+        toast.success('Assistente Atualizado!')
 
-      // 🔥 refetchProject() entra aqui
+        // 🔥 refetchProject() entra aqui
+      } catch (err: any) {
+        console.error('Erro ao deletar assistente:', err)
+        toast.error(err.message || 'Erro ao editar assistente')
+      }
     },
     [editingAssistant, updateAssistant, handleCloseEditModal]
   )
@@ -112,10 +120,12 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
       refetch()
       confirmDialog.closeDialog()
       setAssistantToDelete(null)
+      toast.success('Assistente deletado com sucesso')
 
       // 🔥 refetchProject() entra aqui
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao deletar assistente:', err)
+      toast.error(err.message || 'Erro ao deletar assistente')
     } finally {
       confirmDialog.setLoading(false)
     }

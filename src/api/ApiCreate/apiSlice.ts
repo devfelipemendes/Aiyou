@@ -78,7 +78,9 @@ export const apiSlice = createApi({
     'Configuration',
     'Instruction',
     'Activity',
+    'Protocol',
     'TaskAssistant',
-    'Statistics'
+    'Statistics',
+    'AssistantPhone'
   ]
 })

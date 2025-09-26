@@ -8,9 +8,6 @@ import Grid from '@mui/material/Grid2'
 
 // Components Imports
 
-import type { SelectChangeEvent } from '@mui/material'
-import { FormControl, InputLabel, MenuItem, Select } from '@mui/material'
-
 import RevenueReport from '@views/dashboards/crm/RevenueReport'
 import CardWidgetsSalesOverview from '@views/dashboards/crm/SalesOverview'
 import ActivityTimeline from '@views/dashboards/crm/ActivityTimeline'
@@ -18,9 +15,6 @@ import UpgradePlan from '@views/dashboards/crm/UpgradePlan'
 import MeetingSchedule from '@views/dashboards/crm/MeetingSchedule'
 import TotalSales from '@/views/dashboards/crm/TotalSales'
 import type { ThemeColor } from '@/@core/types'
-
-import { useGetDashboardQuery } from '@/api/endpoints/dashboard/dashboard'
-import { getCurrentMonth, getCurrentYear, getNameMonth, months } from '@/utils/utilDates'
 
 import HorizontalWithBorderExample from '@/components/HorizontalWithBorderExample'
 import AvailableSoon from '@/components/AvailableSoon'
@@ -30,6 +24,9 @@ import FirstAccessModal from '@/components/dialogs/firstAccess'
 import { useUserMe } from '@/hooks/useUserMe'
 import EstatisticsDash from './EstatisticsDash'
 import { useGetStatisticsQuery } from '@/api/endpoints/statistics/statistics'
+
+import type { ProtocolMessage } from '@/api/endpoints/protocols/protocols'
+import { useGetProtocolsQuery, useLazyGetProtocolHistoryQuery } from '@/api/endpoints/protocols/protocols'
 
 export type DataTypeEstatisticsDash = {
   icon: string
@@ -42,24 +39,79 @@ const DashboardCRM = () => {
   const { firstAccess } = useUserMe()
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [filters, setFilters] = useState({ year: getCurrentYear(), month: getCurrentMonth() })
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [month, setMonth] = useState<string>(getNameMonth(getCurrentMonth()))
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, error, isLoading: isLoadingStatistics, isFetching } = useGetStatisticsQuery({})
+  const [totalText, setTotalText] = useState<string>('0')
+  const [totalAudio, setTotalAudio] = useState<string>('0')
+  const [totalOperator, setTotalOperator] = useState<string>('0')
+  const [isLoadingAudioAndText, setIsLoadingAudioAndText] = useState<boolean>(true)
+  const [fetchProtocolHistory] = useLazyGetProtocolHistoryQuery()
+
+  const { data: dataActivity, isLoading } = useGetActivitiesQuery({
+    sort: '-created_at'
+  })
 
   const {
     data: dataInteractions,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     error: errorInteractions,
     isLoading: isLoadingInteractions
   } = useGetProtocolsQuery({
     sort: '-created_at'
   })
 
-  const { data: dataActivity, isLoading } = useGetActivitiesQuery({
-    sort: '-created_at'
-  })
+  const calculaAudioAndText_2 = async (arrayConversas: ProtocolMessage[]) => {
+    if (!arrayConversas) return
+
+    let text = 0
+    let audio = 0
+    let operator = 0
+
+    arrayConversas.forEach((conversa: ProtocolMessage) => {
+      if (conversa.message_type === 'text') {
+        text++
+      }
+
+      if (conversa.message_type === 'audio') {
+        audio++
+      }
+
+      if (conversa.operator) {
+        operator++
+      }
+    })
+
+    setTotalText(String(text))
+    setTotalAudio(String(audio))
+    setTotalOperator(String(operator))
+    setIsLoadingAudioAndText(false)
+  }
+
+  const calculaAudioAndText = async () => {
+    if (!dataInteractions?.data) return
+
+    setIsLoadingAudioAndText(true)
+
+    const promises = dataInteractions.data.map(interaction =>
+      fetchProtocolHistory({ protocol: interaction.protocol }).unwrap()
+    )
+
+    try {
+      const resultados = await Promise.all(promises)
+      const arrayConversas = resultados.flatMap(res => res.data)
+
+      console.log('arrayConversas', arrayConversas)
+
+      calculaAudioAndText_2(arrayConversas)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    if (!dataInteractions) return
+    calculaAudioAndText()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInteractions])
 
   return (
     <>
@@ -68,41 +120,40 @@ const DashboardCRM = () => {
           <EstatisticsDash data={data} isLoading={isFetching} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end relative'>
-          <AvailableSoon />
+          {/* <AvailableSoon /> */}
           <HorizontalWithBorderExample
-            isLoading={false}
+            isLoading={isLoadingAudioAndText}
             color='primary'
             icon='ri-mic-fill'
-            value='Em Desenvolvimento'
+            value={totalAudio}
             title='Interações em voz'
-            month={month}
+            month={''}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 4 }} className='self-end'>
           <HorizontalWithBorderExample
-            isLoading={isFetching}
+            isLoading={isLoadingAudioAndText}
             color='info'
             icon='ri-chat-3-line'
-            value={`String(data?.data.total_protocols)`}
+            value={totalText}
             title='Interações em Texto'
-            month={month}
+            month={''}
           />
         </Grid>
 
         <Grid size={{ xs: 12, sm: 12, md: 4 }} className='self-end relative'>
-          <AvailableSoon />
+          {/* <AvailableSoon /> */}
           <HorizontalWithBorderExample
-            isLoading={isFetching}
+            isLoading={isLoadingAudioAndText}
             color='success'
             icon='ri-user-3-line'
-            value='Em Desenvolvimento'
+            value={totalOperator}
             title='Interações com operador'
-            month={month}
+            month={''}
           />
         </Grid>
-        <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
-          <AvailableSoon />
-          <TotalSales />
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <TotalSales protocols={dataInteractions?.data} isLoadingInteractions={isLoadingInteractions} />
         </Grid>
         <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
           <AvailableSoon />

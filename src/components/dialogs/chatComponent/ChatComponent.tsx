@@ -10,9 +10,10 @@ type Chat_2Props = {
   open: boolean
   setOpen: (open: boolean) => void
   protocol: string
+  assistantName: string
 }
 
-const ChatLog_2 = ({ open, setOpen, protocol }: Chat_2Props) => {
+const ChatLog_2 = ({ open, setOpen, protocol, assistantName }: Chat_2Props) => {
   const { data, isLoading } = useGetProtocolHistoryQuery({ protocol })
 
   const formattedMessages = useMemo(() => {
@@ -21,7 +22,7 @@ const ChatLog_2 = ({ open, setOpen, protocol }: Chat_2Props) => {
     return data.data.map(msg => ({
       id: msg.id,
       senderRole: msg.role,
-      senderName: msg.operator_name || (msg.role === 'assistant' ? 'Assistente' : 'Cliente'),
+      senderName: msg.operator_name || (msg.role === 'assistant' ? assistantName || 'Assistente' : 'Cliente'),
       message: msg.content,
       time: new Date(msg.created_at).toLocaleTimeString('pt-BR', {
         hour: '2-digit',
@@ -57,70 +58,36 @@ const ChatLog_2 = ({ open, setOpen, protocol }: Chat_2Props) => {
             const isSender = msg.senderRole === 'assistant'
 
             return (
-              <>
-                <div
-                  key={msg.id}
-                  className={classnames('flex gap-3 mb-4', {
-                    'flex-row-reverse': isSender
-                  })}
-                >
-                  <Avatar>{msg.senderName.charAt(0)}</Avatar>
-                  <div
-                    className={classnames('flex flex-col', {
-                      'items-end': isSender
+              <div
+                key={msg.id}
+                className={classnames('flex gap-3 mb-4', {
+                  'flex-row-reverse': isSender
+                })}
+              >
+                {/* Avatar alinhado verticalmente com o nome */}
+                <Avatar className='self-start'>{msg.senderName.charAt(0)}</Avatar>
+
+                {/* Coluna de nome e mensagem */}
+                <div className={classnames('flex flex-col', { 'items-end': isSender })}>
+                  <Typography variant='caption' color='text.secondary'>
+                    {msg.senderName}
+                  </Typography>
+
+                  <Box
+                    className={classnames('px-3 py-2 rounded-lg shadow-sm whitespace-pre-wrap mt-1', {
+                      'bg-primary text-white': isSender,
+                      'bg-gray-100 text-black': !isSender
                     })}
+                    sx={{ maxWidth: '300px' }}
                   >
-                    <Typography variant='caption' color='text.secondary'>
-                      {msg.senderName}
-                    </Typography>
+                    {msg.message}
+                  </Box>
 
-                    <Box
-                      className={classnames('px-3 py-2 rounded-lg shadow-sm whitespace-pre-wrap', {
-                        'bg-primary text-white': isSender,
-                        'bg-gray-100 text-black': !isSender
-                      })}
-                      sx={{ maxWidth: '250px' }}
-                    >
-                      {msg.message}
-                    </Box>
-
-                    <Typography variant='caption' color='text.disabled' className='mt-1'>
-                      {msg.time}
-                    </Typography>
-                  </div>
+                  <Typography variant='caption' color='text.disabled' className='mt-1'>
+                    {msg.time}
+                  </Typography>
                 </div>
-                <div
-                  key={msg.id}
-                  className={classnames('flex gap-3 mb-4', {
-                    'flex-row-reverse': isSender
-                  })}
-                >
-                  <Avatar>{msg.senderName.charAt(0)}</Avatar>
-                  <div
-                    className={classnames('flex flex-col', {
-                      'items-end': isSender
-                    })}
-                  >
-                    <Typography variant='caption' color='text.secondary'>
-                      {msg.senderName}
-                    </Typography>
-
-                    <Box
-                      className={classnames('px-3 py-2 rounded-lg shadow-sm whitespace-pre-wrap', {
-                        'bg-primary text-white': isSender,
-                        'bg-gray-100 text-black': !isSender
-                      })}
-                      sx={{ maxWidth: '250px' }}
-                    >
-                      {msg.message}
-                    </Box>
-
-                    <Typography variant='caption' color='text.disabled' className='mt-1'>
-                      {msg.time}
-                    </Typography>
-                  </div>
-                </div>
-              </>
+              </div>
             )
           })}
         </CardContent>

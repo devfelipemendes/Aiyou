@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback } from 'react'
 
 import { useTheme } from '@mui/material/styles'
 import type { ButtonProps } from '@mui/material'
-import { Card, CardHeader, CardContent, Button, CircularProgress, CardActions } from '@mui/material'
+import { Card, CardHeader, CardContent, Button, CircularProgress, CardActions, Box, Typography } from '@mui/material'
 import Grid from '@mui/material/Grid2'
 
 import { useForm } from 'react-hook-form'
@@ -165,19 +165,27 @@ export default function ProjectList() {
         </CardActions>
         <CardContent>
           <Grid container spacing={3}>
-            {projects.map(project => (
-              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.id}>
-                <ProjectCard
-                  project={project}
-                  onEdit={() => handleOpenEditModal(project)}
-                  onRemove={() => handleDeleteProject(project.id)}
-                  isUpdating={isUpdating || confirmDialog.loading}
-                  backgroundColor={theme.palette.primary.main}
-                  backgroundImage='/images/iaImages/projects.png'
-                  showEye
-                />
-              </Grid>
-            ))}
+            {projects.length === 0 ? (
+              <Box
+                sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Typography>Nenhum assistente encontrado</Typography>
+              </Box>
+            ) : (
+              projects.map(project => (
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.id}>
+                  <ProjectCard
+                    project={project}
+                    onEdit={() => handleOpenEditModal(project)}
+                    onRemove={() => handleDeleteProject(project.id)}
+                    isUpdating={isUpdating || confirmDialog.loading}
+                    backgroundColor={theme.palette.primary.main}
+                    backgroundImage='/images/iaImages/projects.png'
+                    showEye
+                  />
+                </Grid>
+              ))
+            )}
           </Grid>
         </CardContent>
       </Card>

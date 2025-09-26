@@ -47,7 +47,7 @@ export default function EditAssistantDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth>
-      <DialogTitle>Editar Assistente222: {assistant.name}</DialogTitle>
+      <DialogTitle>Editar Assistente: {assistant.name}</DialogTitle>
 
       <DialogContent>
         <form onSubmit={editForm.handleSubmit(onSubmit)} id='edit-assistant-form'>

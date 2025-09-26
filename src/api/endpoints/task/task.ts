@@ -397,6 +397,7 @@ export const taskApi = apiSlice.injectEndpoints({
 export const {
   useGetTasksQuery,
   useGetSingleTaskQuery,
+  useLazyGetSingleTaskQuery, // <-- aqui está o lazy hook
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation

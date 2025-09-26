@@ -17,7 +17,7 @@ import type { TimelineProps } from '@mui/lab/Timeline'
 
 import { Box, CircularProgress } from '@mui/material'
 
-import { activityApi, type Activity } from '@/api/endpoints/activity/activity'
+import { type Activity } from '@/api/endpoints/activity/activity'
 
 // Styled Timeline component
 const Timeline = styled(MuiTimeline)<TimelineProps>({
@@ -25,9 +25,7 @@ const Timeline = styled(MuiTimeline)<TimelineProps>({
   paddingRight: 0,
   '& .MuiTimelineItem-root': {
     width: '100%',
-    '&:before': {
-      display: 'none'
-    }
+    '&:before': { display: 'none' }
   }
 })
 
@@ -51,31 +49,29 @@ function formatDateTime(isoString: string) {
   return `${data} às ${hora}`
 }
 
-const getColorDot = (
-  event: string
-): 'inherit' | 'primary' | 'grey' | 'secondary' | 'error' | 'info' | 'success' | 'warning' => {
+const getColorDot = (event: string) => {
   switch (event) {
     case 'created':
-      return 'success' // verde
+      return 'success'
     case 'updated':
-      return 'info' // azul
+      return 'info'
     case 'deleted':
-      return 'error' // vermelho
+      return 'error'
     default:
-      return 'grey' // cinza para outros
+      return 'grey'
   }
 }
 
-const getNameAction = (action: string): 'criou' | 'atualizou' | 'deletou' | 'grey' => {
+const getNameAction = (action: string) => {
   switch (action) {
     case 'created':
-      return 'criou' // verde
+      return 'criou'
     case 'updated':
-      return 'atualizou' // azul
+      return 'atualizou'
     case 'deleted':
-      return 'deletou' // vermelho
+      return 'deletou'
     default:
-      return 'grey' // cinza para outros
+      return 'grey'
   }
 }
 
@@ -84,17 +80,98 @@ const getNameModel = (subject_type: string) => {
   const name = nameArray[nameArray.length - 1]
 
   switch (name) {
-    case 'Project':
-      return 'projeto' // verde
+    case 'Api':
+      return 'api'
     case 'Assistant':
-      return 'assistente' // azul
+      return 'assistente'
+    case 'AssistantConfigs':
+      return 'configurações do assistente'
+    case 'AssistantFlows':
+      return 'fluxos do assistente'
+    case 'AssistantPhones':
+      return 'telefones do assistente'
+    case 'Configs':
+      return 'configurações'
+    case 'CreditCards':
+      return 'cartões de crédito'
+    case 'Flow':
+      return 'fluxo'
+    case 'Parameter':
+      return 'parâmetro'
+    case 'ParameterReturn':
+      return 'retorno de parâmetro'
+    case 'Permissions':
+      return 'permissões'
+    case 'PersonalAccessTokens':
+      return 'tokens de acesso pessoal'
+    case 'Plan':
+      return 'plano'
+    case 'Project':
+      return 'projeto'
+    case 'ProjectOperator':
+      return 'operador de projeto'
+    case 'Step':
+      return 'etapa'
+    case 'Task':
+      return 'tarefa'
+    case 'TaskAssistant':
+      return 'assistente de tarefa'
+    case 'Protocol':
+      return 'protocolo'
+    default:
+      return name.toLowerCase()
   }
 }
 
 const getSentenceActivity = (activity: Activity) => {
-  const sentence = `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} um ${getNameModel(activity.subject_type)}`
+  return `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} um ${getNameModel(activity.subject_type)}`
+}
 
-  return sentence
+const renderAttributes = (properties: any) => {
+  if (!properties) return null
+  const attrs = properties.attributes ?? {}
+  const oldAttrs = properties.old ?? {}
+
+  return (
+    <>
+      {/* Imagem */}
+      {attrs.img_url && <Avatar src={attrs.img_url} className='bs-8 is-8 mb-2' />}
+      {/* Atributos atuais */}
+      {Object.entries(attrs).map(([key, value]) => {
+        if (!value || key === 'img_url') return null
+        const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+
+        return (
+          <Typography key={key} className='flex flex-row text-wrap items-center gap-2'>
+            <Typography variant='body1'>{label}:</Typography>
+            {String(value)}
+          </Typography>
+        )
+      })}
+      {/* Atributos antigos */}
+      {Object.entries(oldAttrs).map(([key, value]) => {
+        if (!value) return null
+        const label = `Antigo ${key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+
+        return (
+          <Typography key={`old-${key}`} className='flex flex-row text-wrap items-center gap-2'>
+            <Typography variant='body1'>{label}:</Typography>
+            {String(value)}
+          </Typography>
+        )
+      })}
+      {/* Outras propriedades diretas */}
+      {['status', 'protocol'].map(
+        prop =>
+          properties[prop] && (
+            <Typography key={prop} className='flex flex-row text-wrap items-center gap-2'>
+              <Typography variant='body1'>{prop.charAt(0).toUpperCase() + prop.slice(1)}:</Typography>
+              {properties[prop]}
+            </Typography>
+          )
+      )}
+    </>
+  )
 }
 
 const ActivityTimeline = ({
@@ -104,15 +181,17 @@ const ActivityTimeline = ({
   dataFiltered_3: Activity[] | undefined
   isLoading: boolean
 }) => {
-  const filteredNoUser = dataFiltered_3?.filter(activity => {
-    return activity.causer_id !== null
-  })
+  const filteredNoUser = dataFiltered_3?.filter(activity => activity.causer_id !== null)
 
   return (
     <Card className='max-h-[350px] overflow-y-auto'>
       {isLoading ? (
         <Box className='w-full h-full justify-center items-center flex'>
           <CircularProgress />
+        </Box>
+      ) : dataFiltered_3 && dataFiltered_3.length === 0 ? (
+        <Box className='w-full h-full justify-center items-center flex p-4'>
+          <Typography>Sem atividades</Typography>
         </Box>
       ) : (
         <>
@@ -121,53 +200,28 @@ const ActivityTimeline = ({
             {filteredNoUser && filteredNoUser.length === 0 ? (
               <Typography>Sem dados</Typography>
             ) : (
-              <>
-                <Timeline>
-                  {filteredNoUser?.map((activty: Activity) => {
-                    return (
-                      <TimelineItem key={activty.id}>
-                        <TimelineSeparator>
-                          <TimelineDot color={getColorDot(activty.event)} />
-                          <TimelineConnector />
-                        </TimelineSeparator>
-                        <TimelineContent>
-                          <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
-                            <Typography className='font-medium' color='text.primary'>
-                              {getSentenceActivity(activty)}
-                            </Typography>
-
-                            <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                              <Typography variant='body1'>Atividade realizada em:</Typography>
-                              {formatDateTime(activty.created_at)}
-                            </Typography>
-                          </div>
-                          <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                            <Typography variant='body1'>Nome:</Typography>
-                            {activty.properties.attributes.name ?? '-'}
-                          </Typography>
-                          <div className='flex items-center gap-2.5'>
-                            {activty.properties.attributes.img_url && (
-                              <Avatar
-                                src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
-                                className='bs-8 is-8'
-                              />
-                            )}
-
-                            {activty.properties.attributes.description && (
-                              <div className='flex flex-col flex-wrap gap-0.5'>
-                                <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                                  <Typography variant='body1'>Descrição:</Typography>
-                                  {activty.properties.attributes.description ?? ''}
-                                </Typography>
-                              </div>
-                            )}
-                          </div>
-                        </TimelineContent>
-                      </TimelineItem>
-                    )
-                  })}
-                </Timeline>
-              </>
+              <Timeline>
+                {filteredNoUser?.map((activity: Activity) => (
+                  <TimelineItem key={activity.id}>
+                    <TimelineSeparator>
+                      <TimelineDot color={getColorDot(activity.event)} />
+                      <TimelineConnector />
+                    </TimelineSeparator>
+                    <TimelineContent>
+                      <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
+                        <Typography className='font-medium' color='text.primary'>
+                          {getSentenceActivity(activity)}
+                        </Typography>
+                        <Typography className='flex flex-row text-wrap items-center gap-2'>
+                          <Typography variant='body1'>Atividade realizada em:</Typography>
+                          {formatDateTime(activity.created_at)}
+                        </Typography>
+                      </div>
+                      <div className='flex flex-col flex-wrap gap-0.5'>{renderAttributes(activity.properties)}</div>
+                    </TimelineContent>
+                  </TimelineItem>
+                ))}
+              </Timeline>
             )}
           </CardContent>
         </>

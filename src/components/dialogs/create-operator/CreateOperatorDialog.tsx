@@ -118,10 +118,9 @@ export default function CreateOperatorDialog({ open, setOpen }: CreateOperatorDi
   const onSubmit = async (data: FormData) => {
     try {
       const { project_id, ...body } = data // remove project_id do body
+      const project_ids: string[] = [project_id]
 
-      const res = await createOperator({ project_id, ...body }).unwrap()
-
-      console.log('resssssssssssssssssssssssssssssss', res)
+      const res = await createOperator({ project_ids, ...body }).unwrap()
 
       toast.success(res.message)
 

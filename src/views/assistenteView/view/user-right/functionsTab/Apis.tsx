@@ -1,12 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
-  Box,
-  Card,
-  CardHeader,
-  Divider,
   Table,
   TableHead,
   TableBody,
@@ -14,70 +10,76 @@ import {
   TableCell,
   TableContainer,
   TablePagination,
-  IconButton
+  IconButton,
+  Collapse,
+  Box,
+  Typography,
+  Chip
 } from '@mui/material'
-import Typography from '@mui/material/Typography'
+
+import Grid from '@mui/material/Grid2'
+
+import { Dot } from 'lucide-react'
 
 import CustomAvatar from '@core/components/mui/Avatar'
-import OptionMenu from '@core/components/option-menu'
-import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
-import CreateAssistant from '@/components/dialogs/create-assistant'
 import { useGetTasksByAssistantQuery } from '@/api/endpoints/taskAssistant/taskAssistant'
+import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
+import { taskApi } from '@/api/endpoints/task/task'
 
-type DataType = {
-  name: string
-  profession: string
-  totalCourses: number
-  avatar: string
-}
-
-const data: DataType[] = [
-  { name: 'Jordan Stevenson', profession: 'Business Intelligence', totalCourses: 33, avatar: '/images/avatars/1.png' },
-  { name: 'Bentlee Emblin', profession: 'Digital Marketing', totalCourses: 52, avatar: '/images/avatars/2.png' },
-  { name: 'Benedetto Rossiter', profession: 'UI/UX Design', totalCourses: 12, avatar: '/images/avatars/3.png' },
-  { name: 'Beverlie Krabbe', profession: 'Vue', totalCourses: 8, avatar: '/images/avatars/4.png' }
-]
-
-// 🔥 Botão customizado
-const iconButtonProps = {
-  color: 'primary' as const,
-  children: <i className='ri-key-2-line text-[20px]' />,
-  sx: {
-    backgroundColor: 'primary.main',
-    color: 'white',
-    '&:hover': {
-      backgroundColor: 'primary.dark'
-    },
-    width: 40,
-    height: 40,
-    borderRadius: '8px'
-  }
-}
-
-const Apis = () => {
-  // Estado de paginação
+const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | undefined }) => {
+  // Paginação
   const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(2) // 🔥 qtd de linhas por página
+  const [rowsPerPage, setRowsPerPage] = useState(5)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
 
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage)
-  }
+  const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10))
     setPage(0)
   }
 
-  // Paginação real: fatia do array
-  const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+  // Tasks do assistant
+  const { data: tasksData, error } = useGetTasksByAssistantQuery(dataAssistant?.data?.id || '')
 
-  const {
-    data: dataTaskAssistant,
-    isLoading,
-    error
-  } = useGetTasksByAssistantQuery('d77ed7e3-e9f0-4886-bbb1-9fad8cfd15b2')
+  // Estado para detalhes das tasks
+  const [tasksWithDetails, setTasksWithDetails] = useState<any[]>([])
+  const [fetchTaskDetails] = taskApi.useLazyGetSingleTaskQuery()
 
-  console.log('datataskassistant', dataTaskAssistant)
+  // Estado de expansão por linha
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
+
+  const toggleExpand = (id: string) => {
+    setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  useEffect(() => {
+    if (!tasksData?.data) return
+
+    const fetchAllDetails = async () => {
+      try {
+        const promises = tasksData.data.map(task => fetchTaskDetails(task.task_id).unwrap())
+        const results = await Promise.all(promises)
+
+        const detailedTasks = tasksData.data.map((task, index) => ({
+          ...task,
+          details: results[index].data
+        }))
+
+        setTasksWithDetails(detailedTasks)
+        setIsLoading(false)
+      } catch (err) {
+        console.error('Erro ao carregar detalhes das tasks:', err)
+      }
+    }
+
+    fetchAllDetails()
+  }, [tasksData, fetchTaskDetails])
+
+  if (isLoading) return <p>Carregando apis...</p>
+  if (error) return <p>Erro ao carregar tasks</p>
+
+  const paginatedTasks = tasksWithDetails.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 
   return (
     <>
@@ -85,49 +87,105 @@ const Apis = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>id</TableCell>
-              <TableCell>criação</TableCell>
-              <TableCell>Expandir</TableCell>
+              <TableCell />
+              <TableCell>Avatar</TableCell>
+
+              <TableCell>Nome</TableCell>
+              <TableCell>Ativa</TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
-            {paginatedData.map((item, i) => (
-              <TableRow key={i}>
-                <TableCell>
-                  <CustomAvatar size={34} src={item.avatar} />
-                </TableCell>
-                <TableCell>
-                  <Typography className='font-medium' color='text.primary'>
-                    {item.name}
-                  </Typography>
-                </TableCell>
-                <TableCell>{item.profession}</TableCell>
-                <TableCell>{item.totalCourses}</TableCell>
-                <TableCell align='right'>
-                  <OpenDialogOnElementClick
-                    element={IconButton}
-                    elementProps={iconButtonProps}
-                    dialog={CreateAssistant}
-                  />
-                </TableCell>
-              </TableRow>
+            {paginatedTasks.map(task => (
+              <>
+                <TableRow key={task.id}>
+                  {/* Botão de expandir */}
+                  <TableCell>
+                    <IconButton size='small' onClick={() => toggleExpand(task.id)}>
+                      {expandedRows[task.id] ? '-' : '+'}
+                    </IconButton>
+                  </TableCell>
+
+                  <TableCell>
+                    <CustomAvatar size={34} src='/images/avatars/1.png' />
+                  </TableCell>
+
+                  <TableCell>{task.details?.name}</TableCell>
+                  <TableCell>
+                    {task.details?.active ? (
+                      <Chip label='Ativa' color='success' size='small' />
+                    ) : (
+                      <Chip label='Inativa' color='error' size='small' />
+                    )}
+                  </TableCell>
+                </TableRow>
+
+                {/* Linha expandida */}
+                <TableRow>
+                  <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
+                    <Collapse in={expandedRows[task.id]} timeout='auto' unmountOnExit>
+                      <Box padding={2}>
+                        <Typography variant='h6' gutterBottom color='primary'>
+                          Detalhes:
+                        </Typography>
+
+                        <Grid container spacing={2}>
+                          <Grid size={{ xs: 12 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Dot size={50} className='text-primary' />
+                              <Typography variant='body2'>
+                                <strong>Descrição:</strong> {task.details?.description || '-'}
+                              </Typography>
+                            </Box>
+                          </Grid>
+
+                          <Grid size={{ xs: 12 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                              <Dot size={50} className='text-primary' />
+                              <Typography variant='body2'>
+                                <strong>Endpoint:</strong> {task.details?.endpoint || '-'}
+                              </Typography>
+                            </Box>
+                          </Grid>
+
+                          <Grid size={{ xs: 12 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Dot size={50} className='text-primary' />
+                              <Typography variant='body2'>
+                                <strong>Método ID:</strong> {task.details?.method_id || '-'}
+                              </Typography>
+                            </Box>
+                          </Grid>
+
+                          <Grid size={{ xs: 12 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Dot size={50} className='text-primary' />
+                              <Typography variant='body2'>
+                                <strong>Parâmetros:</strong> {task.details?.pai_parameters?.length || 0}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Collapse>
+                  </TableCell>
+                </TableRow>
+              </>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Componente de paginação */}
       <TablePagination
         className='mt-2'
         component='div'
-        count={data.length}
+        count={tasksWithDetails.length}
         page={page}
         onPageChange={handleChangePage}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        rowsPerPageOptions={[]} // 🔥 tira o seletor de "linhas por página"
-        labelRowsPerPage='' // 🔥 esconde o label
+        rowsPerPageOptions={[]}
+        labelRowsPerPage=''
         labelDisplayedRows={({ page, count }) => `Página ${page + 1} de ${Math.ceil(count / rowsPerPage)}`}
       />
     </>
