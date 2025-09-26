@@ -310,6 +310,9 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
                 <MenuItem href='/permissoes' icon={<i className='ri-lock-line' />}>
                   Acessos & Permissões
                 </MenuItem>
+                <MenuItem href='/perfil' icon={<i className='ri-user-3-line' />}>
+                  Meu perfil
+                </MenuItem>
               </SubMenu>
             </MenuSection>
           </Menu>
