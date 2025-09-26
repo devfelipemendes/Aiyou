@@ -1,4 +1,6 @@
 // MUI Imports
+import { useState } from 'react'
+
 import { useTheme } from '@mui/material/styles'
 import { Card, CardContent, Typography, Button, CircularProgress, Box, LinearProgress, Divider } from '@mui/material'
 
@@ -22,6 +24,7 @@ import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNav
 import menuItemStyles from '@core/styles/vertical/menuItemStyles'
 import menuSectionStyles from '@core/styles/vertical/menuSectionStyles'
 import { AnimatedReveal } from '@/components/AnimetedReveal'
+import PricingPlansModal from '@/components/dialogs/plans'
 
 type RenderExpandIconProps = {
   open?: boolean
@@ -39,7 +42,7 @@ const RenderExpandIcon = ({ open, transitionDuration }: RenderExpandIconProps) =
 )
 
 // Componente do Card de Upgrade
-const UpgradeCard = () => {
+const UpgradeCard = ({ OpenModalPlan }: { OpenModalPlan: () => void }) => {
   const { plan, userTokensUsage } = useUserMe()
   const theme = useTheme()
 
@@ -90,7 +93,7 @@ const UpgradeCard = () => {
             <CircularProgress
               variant='determinate'
               value={usagePercentage}
-              size={40}
+              size={50}
               thickness={4}
               color={getProgressColor(usagePercentage)}
               sx={{
@@ -172,6 +175,7 @@ const UpgradeCard = () => {
           size='small'
           color='primary'
           startIcon={<i className='ri-vip-crown-line' />}
+          onClick={OpenModalPlan}
           sx={{
             textTransform: 'none',
             fontWeight: 600,
@@ -203,8 +207,15 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   // Hooks
   const theme = useTheme()
   const verticalNavOptions = useVerticalNav()
+  const [modalOpen, setModalOpen] = useState(false)
 
-  console.log('verticalNavOptions', verticalNavOptions)
+  const handleOpenModal = () => {
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+  }
 
   // Vars
   const { isBreakpointReached, transitionDuration, isCollapsed, isHovered } = verticalNavOptions
@@ -297,10 +308,11 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
               flexShrink: 0
             }}
           >
-            <UpgradeCard />
+            <UpgradeCard OpenModalPlan={handleOpenModal} />
           </Box>
         </AnimatedReveal>
       )}
+      <PricingPlansModal open={modalOpen} onClose={handleCloseModal} />
     </Box>
   )
 }
