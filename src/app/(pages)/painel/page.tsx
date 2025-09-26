@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import Grid from '@mui/material/Grid2'
 
 // Components Imports
+import { parseISO, differenceInCalendarDays } from 'date-fns'
 
 import RevenueReport from '@views/dashboards/crm/RevenueReport'
 import CardWidgetsSalesOverview from '@views/dashboards/crm/SalesOverview'
@@ -28,7 +29,7 @@ import { openModal, setFirstAccess } from '@/redux-store/slices/firstAccessSlice
 import EstatisticsDash from './EstatisticsDash'
 import { useGetStatisticsQuery } from '@/api/endpoints/statistics/statistics'
 
-import type { ProtocolMessage } from '@/api/endpoints/protocols/protocols'
+import type { Protocol, ProtocolMessage } from '@/api/endpoints/protocols/protocols'
 import { useGetProtocolsQuery, useLazyGetProtocolHistoryQuery } from '@/api/endpoints/protocols/protocols'
 
 export type DataTypeEstatisticsDash = {
@@ -36,6 +37,10 @@ export type DataTypeEstatisticsDash = {
   stats: string
   title: string
   color: ThemeColor
+}
+type ResoluctionsArray = {
+  operator: number[]
+  ia: number[]
 }
 
 const DashboardCRM = () => {
@@ -46,6 +51,11 @@ const DashboardCRM = () => {
   const [totalOperator, setTotalOperator] = useState<string>('0')
   const [isLoadingAudioAndText, setIsLoadingAudioAndText] = useState<boolean>(true)
   const [fetchProtocolHistory] = useLazyGetProtocolHistoryQuery()
+
+  const [resoluctions, setResoluctions] = useState<ResoluctionsArray>({
+    operator: Array(9).fill(0),
+    ia: Array(9).fill(0)
+  })
 
   const { data: dataActivity, isLoading } = useGetActivitiesQuery({
     sort: '-created_at'
@@ -92,6 +102,8 @@ const DashboardCRM = () => {
 
     setIsLoadingAudioAndText(true)
 
+    calculaOperadorVsIa(dataInteractions?.data)
+
     const promises = dataInteractions.data.map(interaction =>
       fetchProtocolHistory({ protocol: interaction.protocol }).unwrap()
     )
@@ -106,6 +118,30 @@ const DashboardCRM = () => {
     } catch (err) {
       console.error(err)
     }
+  }
+
+  const calculaOperadorVsIa = (data: Protocol[]) => {
+    const operadorArr = Array(9).fill(0)
+    const iaArr = Array(9).fill(0)
+    const today = new Date()
+
+    data.forEach(protocolo => {
+      if (protocolo.status === 'resolved' && protocolo.updated_at) {
+        const updatedDate = parseISO(protocolo.updated_at)
+        const diff = differenceInCalendarDays(today, updatedDate)
+
+        if (diff >= 0 && diff < 9) {
+          // diff = 0 => hoje, diff = 1 => ontem, etc
+          if (protocolo.operator) {
+            operadorArr[8 - diff]++ // invertendo para o gráfico ficar do mais antigo à esquerda
+          } else {
+            iaArr[8 - diff]++
+          }
+        }
+      }
+    })
+
+    setResoluctions({ operator: operadorArr, ia: iaArr })
   }
 
   useEffect(() => {
@@ -175,8 +211,12 @@ const DashboardCRM = () => {
           <TotalSales protocols={dataInteractions?.data} isLoadingInteractions={isLoadingInteractions} />
         </Grid>
         <Grid className='relative' size={{ xs: 12, sm: 6, md: 3 }}>
-          <AvailableSoon />
-          <RevenueReport />
+          <RevenueReport
+            series={[
+              { name: 'IA', data: resoluctions.ia },
+              { name: 'Operador', data: resoluctions.operator }
+            ]}
+          />
         </Grid>
         <Grid className='relative' size={{ xs: 12, md: 6 }}>
           <AvailableSoon />

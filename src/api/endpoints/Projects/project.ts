@@ -294,19 +294,12 @@ export const projectApi = apiSlice.injectEndpoints({
         }
       },
 
-      transformResponse: (response: UpdateProjectResponse) => {
+      transformResponse: (response: any) => {
         console.log('🔍 DEBUG - Estrutura da resposta UPDATE:', response)
-        console.log('✅ Projeto atualizado com sucesso:', response?.data?.name || '')
 
-        // Toast de sucesso para atualização
-        toast.success(`✏️ Projeto "${response.data.name}" atualizado com sucesso!`, {
-          position: 'top-right',
-          autoClose: 4000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true
-        })
+        const projectName = response?.data?.name || 'Projeto' // fallback
+
+        toast.success(`✏️ ${projectName} atualizado com sucesso!`)
 
         return response
       },

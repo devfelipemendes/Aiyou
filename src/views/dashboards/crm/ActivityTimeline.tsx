@@ -71,7 +71,7 @@ const getNameAction = (action: string) => {
     case 'deleted':
       return 'deletou'
     default:
-      return 'grey'
+      return 'realizou uma ação'
   }
 }
 
@@ -132,34 +132,45 @@ const renderAttributes = (properties: any) => {
   const attrs = properties.attributes ?? {}
   const oldAttrs = properties.old ?? {}
 
+  // 🔥 Remove qualquer chave que contenha "id" OU datas técnicas
+  const filterKeys = (key: string) => {
+    const lower = key.toLowerCase()
+
+    return !lower.includes('id') && !['created_at', 'updated_at', 'deleted_at', 'img_url'].includes(lower)
+  }
+
   return (
     <>
       {/* Imagem */}
       {attrs.img_url && <Avatar src={attrs.img_url} className='bs-8 is-8 mb-2' />}
       {/* Atributos atuais */}
-      {Object.entries(attrs).map(([key, value]) => {
-        if (!value || key === 'img_url') return null
-        const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      {Object.entries(attrs)
+        .filter(([key]) => filterKeys(key))
+        .map(([key, value]) => {
+          if (!value) return null
+          const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
-        return (
-          <Typography key={key} className='flex flex-row text-wrap items-center gap-2'>
-            <Typography variant='body1'>{label}:</Typography>
-            {String(value)}
-          </Typography>
-        )
-      })}
+          return (
+            <Typography key={key} className='flex flex-row text-wrap items-center gap-2'>
+              <Typography variant='body1'>{label}:</Typography>
+              {String(value)}
+            </Typography>
+          )
+        })}
       {/* Atributos antigos */}
-      {Object.entries(oldAttrs).map(([key, value]) => {
-        if (!value) return null
-        const label = `Antigo ${key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+      {Object.entries(oldAttrs)
+        .filter(([key]) => filterKeys(key))
+        .map(([key, value]) => {
+          if (!value) return null
+          const label = `Antigo ${key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
 
-        return (
-          <Typography key={`old-${key}`} className='flex flex-row text-wrap items-center gap-2'>
-            <Typography variant='body1'>{label}:</Typography>
-            {String(value)}
-          </Typography>
-        )
-      })}
+          return (
+            <Typography key={`old-${key}`} className='flex flex-row text-wrap items-center gap-2'>
+              <Typography variant='body1'>{label}:</Typography>
+              {String(value)}
+            </Typography>
+          )
+        })}
       {/* Outras propriedades diretas */}
       {['status', 'protocol'].map(
         prop =>

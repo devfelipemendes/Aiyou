@@ -41,6 +41,7 @@ type FormValues = {
 
 const AddOperatorToProject = ({ open, setOpen, projectsOperator, user_id }: AddOperatorToProjectProps) => {
   const handleClose = () => {
+    reset()
     setOpen(false)
   }
 
@@ -56,7 +57,7 @@ const AddOperatorToProject = ({ open, setOpen, projectsOperator, user_id }: AddO
     })
   }, [projectsResponse, projectsOperator])
 
-  const { control, handleSubmit } = useForm<FormValues>({
+  const { control, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: {
       projectIds: []
     }

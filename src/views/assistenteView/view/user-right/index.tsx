@@ -29,9 +29,9 @@ const UserRight = ({ tabContentList }: { tabContentList: { [key: string]: ReactE
             <CustomTabList onChange={handleChange} variant='scrollable' pill='true'>
               <Tab icon={<i className='ri-home-line' />} value='hometab' label='Home' iconPosition='start' />
               <Tab
-                icon={<i className='ri-computer-line' />}
+                icon={<i className='ri-bar-chart-line' />}
                 value='linkedProject'
-                label='Projeto Vinculado'
+                label='Estastísticas'
                 iconPosition='start'
               />
               <Tab icon={<i className='ri-tools-line' />} value='functions' label='Funções' iconPosition='start' />

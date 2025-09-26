@@ -22,8 +22,6 @@ import {
 } from '@mui/material'
 import { LockKeyhole, MapPinHouse, UserPen } from 'lucide-react'
 
-import { toast } from 'react-toastify'
-
 import { useLazyGetCepInfoQuery } from '@/api/endpoints/cep'
 import type { Project } from '@/api/endpoints/Projects/project'
 import { useGetProjectsQuery } from '@/api/endpoints/Projects/project'
@@ -120,14 +118,12 @@ export default function CreateOperatorDialog({ open, setOpen }: CreateOperatorDi
       const { project_id, ...body } = data // remove project_id do body
       const project_ids: string[] = [project_id]
 
-      const res = await createOperator({ project_ids, ...body }).unwrap()
-
-      toast.success(res.message)
+      await createOperator({ project_ids, ...body }).unwrap()
 
       reset()
       setOpen(false)
     } catch (err: any) {
-      toast.error(err.message)
+      console.log(err)
     }
   }
 
@@ -323,6 +319,7 @@ export default function CreateOperatorDialog({ open, setOpen }: CreateOperatorDi
             <Grid size={{ xs: 6 }}>
               <Controller
                 name='uf'
+                rules={{ required: 'UF obrigatória' }}
                 control={control}
                 render={({ field }) => <TextField {...field} label='UF' fullWidth disabled={loadingCep} />}
               />

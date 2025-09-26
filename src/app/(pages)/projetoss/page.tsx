@@ -97,9 +97,8 @@ export default function ProjectList() {
       if (editImageMode === 'url') payload.img_url = data.img_url
       if (editImageMode === 'file') payload.img_file = editImageFile
 
-      const result = await updateProject(payload)
+      await updateProject(payload)
 
-      if ('error' in result) return alert('Erro ao atualizar projeto')
       setEditingProject(null)
     },
     [editingProject, editImageFile, editImageMode, updateProject]
