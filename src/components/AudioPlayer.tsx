@@ -1,8 +1,8 @@
 // file: src/components/AudioPlayer/AudioPlayer.tsx
 import React, { useState, useRef, useEffect } from 'react'
 
-import { Box, IconButton, Typography, LinearProgress, Chip, CircularProgress } from '@mui/material'
-import { Play, Pause, Volume2, Download } from 'lucide-react'
+import { Box, IconButton, Typography, LinearProgress, CircularProgress } from '@mui/material'
+import { Play, Pause, Volume2 } from 'lucide-react'
 
 interface AudioPlayerProps {
   audioUrl: string
@@ -30,9 +30,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, compact = fa
       setLoading(false)
     }
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
-    }
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime)
 
     const handleEnded = () => {
       setIsPlaying(false)
@@ -44,10 +42,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, compact = fa
 
       setError(errorMessage)
       setLoading(false)
-
-      if (onError) {
-        onError(new Error(errorMessage))
-      }
+      if (onError) onError(new Error(errorMessage))
     }
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata)
@@ -120,10 +115,13 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, compact = fa
         display: 'flex',
         alignItems: 'center',
         gap: 1,
-        minWidth: compact ? 200 : 250,
-        p: 1,
+        p: { xs: 1.5, sm: 2, md: 3 },
         bgcolor: 'action.hover',
-        borderRadius: 1
+        borderRadius: 1,
+
+        // minWidth: compact ? 200 : { xs: '100%', sm: 250 },
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'center'
       }}
     >
       <audio ref={audioRef} src={audioUrl} preload='metadata' />
@@ -135,6 +133,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, compact = fa
         sx={{
           bgcolor: 'primary.main',
           color: 'white',
+          mr: { sm: 2, xs: 0 },
+          mb: { xs: 1, sm: 0 },
           '&:hover': { bgcolor: 'primary.dark' }
         }}
       >
@@ -147,7 +147,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, compact = fa
         )}
       </IconButton>
 
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}>
         <LinearProgress variant='determinate' value={progress} sx={{ height: 4, borderRadius: 2 }} />
         {!compact && (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
@@ -156,12 +156,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, compact = fa
           </Box>
         )}
       </Box>
-
-      <Chip label='Áudio' size='small' color='primary' variant='outlined' icon={<Volume2 size={12} />} />
-
-      <IconButton size='small' component='a' href={audioUrl} download target='_blank'>
-        <Download size={16} />
-      </IconButton>
     </Box>
   )
 }

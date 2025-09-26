@@ -6,9 +6,9 @@ import { apiSlice } from '@/api/ApiCreate/apiSlice'
 export interface ProtocolHistoryMessage {
   id: string
   content: string
-  message_type?: 'text' | 'audio' // Adicionar
+  message_type?: 'text' | 'audio'
   audio_url?: string | null
-  operator_name?: string | null // Adicionar
+  operator_name?: string | null
   role: 'user' | 'assistant' | 'operator'
   operator: number | null
   created_at: string

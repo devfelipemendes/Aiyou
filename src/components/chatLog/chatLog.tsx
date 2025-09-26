@@ -16,6 +16,7 @@ import { getInitials } from '@/utils/getInitials'
 
 import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
 import SendMsgForm from '../SendMessageFormChat'
+import { AudioPlayer } from '../AudioPlayer'
 
 interface AdaptedChatLogProps {
   chatData: ChatWithHistory
@@ -64,6 +65,8 @@ const formatChatHistory = (history: ChatHistoryMessage[]): AdaptedMsgGroup[] => 
       msgGroup.messages.push({
         time: new Date(message.created_at).getTime(),
         message: message.content,
+        messageType: message.message_type, // Adicionar
+        audioUrl: message.audio_url,
         operator: message.operator ?? undefined,
         msgStatus: {
           isSent: true,
@@ -71,6 +74,12 @@ const formatChatHistory = (history: ChatHistoryMessage[]): AdaptedMsgGroup[] => 
           isSeen: true
         },
         messageId: message.id
+      })
+      console.log('Mensagem processada:', {
+        id: message.id,
+        type: message.message_type,
+        audio: message.audio_url,
+        content: message.content.substring(0, 50)
       })
     } else {
       currentRole = message.role
@@ -84,6 +93,8 @@ const formatChatHistory = (history: ChatHistoryMessage[]): AdaptedMsgGroup[] => 
             messageId: message.id,
             time: new Date(message.created_at).getTime(),
             message: message.content,
+            messageType: message.message_type, // Adicionar
+            audioUrl: message.audio_url, // Adicionar
             operator: message.operator ?? undefined,
             msgStatus: {
               isSent: true,
@@ -337,6 +348,7 @@ const ChatLog = ({
                   const hasButton = !isSender && msg.operator === true && isShowDetailsChatLog === true
                   const isLoadingThisMessage = instructionLoading === msg.messageId
                   const showingInput = activeInstructionMessageId === msg.messageId && !isLoadingThisMessage
+                  const isAudioMessage = msg.messageType === 'audio' && msg.audioUrl
 
                   return (
                     <React.Fragment key={msg.messageId || msgIndex}>
@@ -351,34 +363,91 @@ const ChatLog = ({
                             questionId={msg.messageId}
                             onInstructionSent={handleInstructionSent}
                             onCancel={handleCloseInstructionInput}
-                            onInstructionSending={handleInstructionSending} // 👈 NOVO: callback de início
-                            onInstructionError={handleInstructionError} // 👈 NOVO: callback de erro
+                            onInstructionSending={handleInstructionSending}
+                            onInstructionError={handleInstructionError}
                             disabled={isLoadingThisMessage}
                           />
                         </div>
                       )}
-                      <Box
-                        key={msgIndex}
-                        className={classnames('whitespace-pre-wrap pli-4 plb-2 shadow-xs', {
-                          'bg-backgroundPaper rounded-e rounded-b': !isSender,
-                          'bg-primary text-[var(--mui-palette-primary-contrastText)] rounded-s rounded-b': isSender,
 
-                          'flex justify-between items-start gap-3': hasButton
-                        })}
-                        sx={{
-                          width: hasButton ? 'auto' : 'fit-content',
-                          minWidth: hasButton ? '200px' : 'auto',
-                          maxWidth: '100%'
-                        }}
-                      >
-                        {hasButton ? (
-                          <>
+                      {/* Renderização condicional: áudio ou texto */}
+                      {isAudioMessage ? (
+                        <Box
+                          className={classnames('shadow-xs', {
+                            'rounded-e rounded-b': !isSender,
+                            'rounded-s rounded-b': isSender
+                          })}
+                          sx={{
+                            bgcolor: isSender ? 'primary.main' : 'background.paper',
+                            p: 1
+                          }}
+                        >
+                          <AudioPlayer audioUrl={msg.audioUrl!} messageId={msg.messageId} compact={isBelowSmScreen} />
+                        </Box>
+                      ) : (
+                        <Box
+                          key={msgIndex}
+                          className={classnames('whitespace-pre-wrap pli-4 plb-2 shadow-xs', {
+                            'bg-backgroundPaper rounded-e rounded-b': !isSender,
+                            'bg-primary text-[var(--mui-palette-primary-contrastText)] rounded-s rounded-b': isSender,
+                            'flex justify-between items-start gap-3': hasButton
+                          })}
+                          sx={{
+                            width: hasButton ? 'auto' : 'fit-content',
+                            minWidth: hasButton ? '200px' : 'auto',
+                            maxWidth: '100%'
+                          }}
+                        >
+                          {hasButton ? (
+                            <>
+                              <Typography
+                                style={{
+                                  wordBreak: 'break-word',
+                                  flex: 1,
+                                  marginRight: '12px'
+                                }}
+                                className={classnames({
+                                  'bg-backgroundPaper rounded-e rounded-b': !isSender,
+                                  'bg-primary text-[var(--mui-palette-primary-contrastText)] rounded-s rounded-b':
+                                    isSender
+                                })}
+                              >
+                                {msg.message}
+                              </Typography>
+
+                              <Divider orientation='vertical' flexItem />
+
+                              <Button
+                                variant='contained'
+                                size='small'
+                                className='cursor-pointer'
+                                color={!showingInput ? 'info' : isLoadingThisMessage ? 'warning' : 'error'}
+                                sx={{
+                                  flexShrink: 0,
+                                  alignSelf: 'flex-start'
+                                }}
+                                onClick={() => handleToggleInstructionInput(msg.messageId)}
+                                disabled={isLoadingThisMessage}
+                                endIcon={
+                                  isLoadingThisMessage ? (
+                                    <i className='ri-loader-4-line animate-spin' />
+                                  ) : showingInput ? (
+                                    <i className='ri-close-line' />
+                                  ) : (
+                                    <i className='ri-chat-3-line' />
+                                  )
+                                }
+                              >
+                                {isLoadingThisMessage
+                                  ? 'Enviando...'
+                                  : showingInput
+                                    ? 'Cancelar instrução'
+                                    : 'Instruir assistente'}
+                              </Button>
+                            </>
+                          ) : (
                             <Typography
-                              style={{
-                                wordBreak: 'break-word',
-                                flex: 1,
-                                marginRight: '12px'
-                              }}
+                              style={{ wordBreak: 'break-word' }}
                               className={classnames({
                                 'bg-backgroundPaper rounded-e rounded-b': !isSender,
                                 'bg-primary text-[var(--mui-palette-primary-contrastText)] rounded-s rounded-b':
@@ -387,49 +456,9 @@ const ChatLog = ({
                             >
                               {msg.message}
                             </Typography>
-
-                            <Divider orientation='vertical' flexItem />
-
-                            <Button
-                              variant='contained'
-                              size='small'
-                              className='cursor-pointer'
-                              color={!showingInput ? 'info' : isLoadingThisMessage ? 'warning' : 'error'}
-                              sx={{
-                                flexShrink: 0,
-                                alignSelf: 'flex-start'
-                              }}
-                              onClick={() => handleToggleInstructionInput(msg.messageId)}
-                              disabled={isLoadingThisMessage} // 👈 NOVO: disabled durante loading
-                              endIcon={
-                                isLoadingThisMessage ? (
-                                  <i className='ri-loader-4-line animate-spin' /> // 👈 LOADING ICON
-                                ) : showingInput ? (
-                                  <i className='ri-close-line' />
-                                ) : (
-                                  <i className='ri-chat-3-line' />
-                                )
-                              }
-                            >
-                              {isLoadingThisMessage
-                                ? 'Enviando...'
-                                : showingInput
-                                  ? 'Cancelar instrução'
-                                  : 'Instruir assistente'}
-                            </Button>
-                          </>
-                        ) : (
-                          <Typography
-                            style={{ wordBreak: 'break-word' }}
-                            className={classnames({
-                              'bg-backgroundPaper rounded-e rounded-b': !isSender,
-                              'bg-primary text-[var(--mui-palette-primary-contrastText)] rounded-s rounded-b': isSender
-                            })}
-                          >
-                            {msg.message}
-                          </Typography>
-                        )}
-                      </Box>
+                          )}
+                        </Box>
+                      )}
                     </React.Fragment>
                   )
                 })}
