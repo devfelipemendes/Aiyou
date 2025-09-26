@@ -47,7 +47,13 @@ export default function HistoricoInteracoes() {
     sort: '-updated_at'
   })
 
-  const [resultStatus, setResultStatus] = useState<ResultStatus | null>(null)
+  const [resultStatus, setResultStatus] = useState<ResultStatus>({
+    active: 0,
+    inactive: 0,
+    resolved: 0,
+    unresolved: 0
+  })
+
   const columnHelper = createColumnHelper<Protocol>()
 
   const calculaResultsStatus = (data: GetProtocolsResponse) => {
@@ -147,7 +153,7 @@ export default function HistoricoInteracoes() {
             isLoading={isLoading}
             color='success'
             icon='ri-check-line' // ✔️ Ativos
-            value={String(resultStatus?.active) ?? '0'}
+            value={String(resultStatus?.active)}
             title='Ativos'
             month={''}
           />
@@ -158,7 +164,7 @@ export default function HistoricoInteracoes() {
             isLoading={isLoading}
             color='error'
             icon='ri-close-circle-line' // ❌ Inativos
-            value={String(resultStatus?.inactive) ?? '0'}
+            value={String(resultStatus?.inactive)}
             title='Inativos'
             month={''}
           />
@@ -169,7 +175,7 @@ export default function HistoricoInteracoes() {
             isLoading={isLoading}
             color='primary'
             icon='ri-check-double-line' // ✅ Resolvidos
-            value={String(resultStatus?.resolved) ?? '0'}
+            value={String(resultStatus?.resolved)}
             title='Resolvidos'
             month={''}
           />
@@ -180,7 +186,7 @@ export default function HistoricoInteracoes() {
             isLoading={isLoading}
             color='warning'
             icon='ri-alert-line' // ⚠️ Não Resolvidos
-            value={String(resultStatus?.unresolved) ?? '0'}
+            value={String(resultStatus?.unresolved)}
             title='Não Resolvidos'
             month={''}
           />

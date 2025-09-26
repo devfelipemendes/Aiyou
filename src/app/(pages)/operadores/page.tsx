@@ -53,7 +53,9 @@ export default function Operadores() {
         {/* Grid container com espaçamento e wrap */}
         <Grid container spacing={8}>
           {data?.data.length === 0 ? (
-            <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'start', alignItems: 'center' }}>
+            <Box
+              sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+            >
               <Typography>Nenhum Operador cadastrado</Typography>
             </Box>
           ) : (

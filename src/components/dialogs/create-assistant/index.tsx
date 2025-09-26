@@ -18,8 +18,6 @@ import {
 
 import LoadingButton from '@mui/lab/LoadingButton'
 
-import { toast } from 'react-toastify'
-
 import { useCreateAssistantMutation } from '@/api/endpoints/assistant/assistant'
 import { useGetProjectsQuery } from '@/api/endpoints/Projects/project'
 
@@ -58,15 +56,10 @@ const CreateAssistant = ({ open, setOpen }: CreateAssistantProps) => {
     try {
       const response = await createAssistant(data).unwrap()
 
-      if (response.status === 201) {
-        toast.success('Assistete criado com sucesso!')
-      }
-
       console.log('✅ Assistente criado:', response)
 
       handleClose()
     } catch (error: any) {
-      toast.error(error.message || 'Erro criar assistente')
       console.log(error)
     }
   }

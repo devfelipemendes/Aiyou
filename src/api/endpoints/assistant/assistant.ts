@@ -366,7 +366,7 @@ export const assistantApi = apiSlice.injectEndpoints({
       transformErrorResponse: (response: any): AssistantError => {
         console.error('❌ Erro ao criar assistente:', response)
 
-        const errorMessage = response?.data?.message || response?.message || 'Erro ao criar assistente'
+        const errorMessage = response?.data?.error || response?.message || 'Erro ao criar assistente'
 
         toast.error(`❌ Erro ao criar assistente: ${errorMessage}`, {
           position: 'top-right',

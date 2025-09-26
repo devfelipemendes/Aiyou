@@ -5,12 +5,12 @@ import { useState, useMemo, useCallback } from 'react'
 
 // MUI
 import Card from '@mui/material/Card'
-import CardMedia from '@mui/material/CardMedia'
+
 import CardContent from '@mui/material/CardContent'
 import Avatar from '@mui/material/Avatar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-import { IconButton, Tooltip, useColorScheme } from '@mui/material'
+import { Box, IconButton, keyframes, Tooltip, useColorScheme } from '@mui/material'
 
 // Forms & validation
 import { useForm } from 'react-hook-form'
@@ -30,6 +30,12 @@ import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmati
 // Tipos
 import type { UIAssistant } from '@/views/projects_register/StepCreateAssistant'
 
+const gradientAnimation = keyframes`
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+`
+
 interface CardUserProps {
   avatarSrc: string
   name: string
@@ -42,7 +48,7 @@ interface CardUserProps {
 
 const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, onClick, assistant }: CardUserProps) => {
   // random bg do card
-  const randomCardNumber = Math.floor(Math.random() * 10) + 1
+
   const { mode, systemMode } = useColorScheme()
   const _mode = (mode === 'system' ? systemMode : mode) || 'light'
 
@@ -94,14 +100,13 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
         await updateAssistant({ id: editingAssistant.id, ...data })
         handleCloseEditModal()
         refetch()
-        toast.success('Assistente Atualizado!')
 
         // 🔥 refetchProject() entra aqui
       } catch (err: any) {
         console.error('Erro ao deletar assistente:', err)
-        toast.error(err.message || 'Erro ao editar assistente')
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [editingAssistant, updateAssistant, handleCloseEditModal]
   )
 
@@ -129,6 +134,7 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
     } finally {
       confirmDialog.setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantToDelete, deleteAssistant, confirmDialog])
 
   const handleCancelDelete = useCallback(() => {
@@ -140,7 +146,17 @@ const CardUser = ({ avatarSrc, name, location, projectName, projectAvatarSrc, on
 
   return (
     <Card>
-      <CardMedia image={`/images/cards/${randomCardNumber}.png`} className='bs-[180px]' />
+      <Box sx={{ width: '100%', height: 180, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(270deg, #0ff, #f0f, #0ff)',
+            backgroundSize: '600% 600%',
+            animation: `${gradientAnimation} 8s ease infinite`
+          }}
+        />
+      </Box>
       <CardContent className='relative' sx={{ backgroundColor: _mode === 'dark' ? '#0089ad' : undefined }}>
         <Avatar
           src={avatarSrc}

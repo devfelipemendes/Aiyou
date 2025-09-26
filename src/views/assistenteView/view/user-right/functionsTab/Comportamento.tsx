@@ -14,10 +14,7 @@ import {
   CircularProgress
 } from '@mui/material'
 import { useForm, Controller } from 'react-hook-form'
-
 import LoadingButton from '@mui/lab/LoadingButton'
-
-import { toast } from 'react-toastify'
 
 import {
   useGetConfigurationsQuery,
@@ -27,8 +24,7 @@ import type { Assistant, GetSingleAssistantResponse } from '@/api/endpoints/assi
 import AvailableSoon from '@/components/AvailableSoon'
 
 const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantResponse | undefined }) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [assistente, setAssistente] = useState<Assistant | undefined>(dataAssistent?.data)
+  const [assistente] = useState<Assistant | undefined>(dataAssistent?.data)
 
   const { control, handleSubmit, watch, reset } = useForm({
     defaultValues: {
@@ -44,59 +40,40 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
   const values = watch()
 
   // Monta o objeto filtrando selects e checkboxes
-  const mappedData = Object.entries(values)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .filter(([key, value]) => {
-      if (typeof value === 'boolean') {
-        return value // só entra se for true
-      }
+  const mappedData = assistente?.id
+    ? Object.entries(values)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .filter(([_, value]) => {
+          if (typeof value === 'boolean') {
+            return value
+          }
 
-      return value !== 'não definido' // só entra se não for "não definido"
-    })
-    .map(([key, value]) => ({
-      assistant_id: assistente?.id,
-      type: typeof value === 'boolean' ? 'checkbox' : 'options',
-      name: key,
-      value: typeof value === 'boolean' ? 0 : value
-    }))
+          return value !== 'não definido'
+        })
+        .map(([key, value]) => ({
+          assistant_id: assistente.id, // agora sempre string
+          type: typeof value === 'boolean' ? 'checkbox' : 'options',
+          name: key,
+          value: typeof value === 'boolean' ? 0 : value
+        }))
+    : []
 
-  console.log('mappedDatamappedDatamappedData', mappedData)
   const [updateConfiguration, { isLoading }] = useUpdateConfigurationMutation()
 
-  const {
-    data,
-    error,
-    isLoading: isLoadingGet,
-    isFetching
-  } = useGetConfigurationsQuery(
-    assistente?.id ?? '',
-    { skip: !assistente?.id } // só executa quando assistente.id existe
-  )
-
-  console.log('dadosvindos', data)
+  const { data, isLoading: isLoadingGet } = useGetConfigurationsQuery(assistente?.id ?? '', { skip: !assistente?.id })
 
   const onSubmit = async () => {
-    console.log('opaaaaaaaaaaaaaaaaaaaa', {
-      data: JSON.stringify(mappedData)
-    })
-
     try {
-      const result = await updateConfiguration({
+      await updateConfiguration({
         id: assistente?.id ?? '',
         body: { data: mappedData }
-      }).unwrap() // unwrap retorna a resposta ou lança erro
-
-      toast.success('Dados atualizados com sucesso!')
+      }).unwrap()
     } catch (err) {
       console.error('❌ Erro ao atualizar:', err)
-      toast.error('Erro ao atualizar dados!')
     }
   }
 
   useEffect(() => {
-    console.log('Executando use effect')
-    console.log('data no use', data)
-
     if (data?.data && Array.isArray(data.data)) {
       const mappedDefaults: any = {
         tempo_inatividade: 'não definido',
@@ -108,8 +85,6 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
       }
 
       data.data.forEach((item: any) => {
-        console.log('item dentro do lop', item)
-
         if (item.type === 'options') {
           mappedDefaults[item.name] = item.value || 'não definido'
         }
@@ -118,8 +93,8 @@ const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantRespon
           mappedDefaults[item.name] = item.value === '0' ? true : false
         }
       })
-      console.log('mappedDefaults depois do forEach', mappedDefaults)
-      reset(mappedDefaults) // aplica no form
+
+      reset(mappedDefaults)
     }
   }, [data, reset])
 

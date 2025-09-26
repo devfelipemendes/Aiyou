@@ -1,13 +1,16 @@
 // src/api/endpoints/operator/operator.ts
-// 🎯 TIPOS BASEADOS NA RESPOSTA REAL DO BACKEND
-
 import { toast } from 'react-toastify'
 
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 /* ------------------------- 🎯 REQUEST TYPES ------------------------- */
 export type DeleteOperatorRequest = {
-  project_operator_id: string
+  user_id: string
+}
+
+export type AddUserToProjectRequest = {
+  project_ids: string[]
+  user_id: string
 }
 
 /* ------------------------- 🎯 MODEL TYPES ------------------------- */
@@ -45,21 +48,10 @@ export type GetOperatorsResponse = {
   data: Operator[]
 }
 
-export type ProcessedGetOperatorsResponse = {
-  message: string
-  status: number
-  data: OperatorInList[]
-}
-
 export type DeleteOperatorResponse = {
   message: string
   status: number
   data?: any
-}
-
-export type AddUserToProjectRequest = {
-  project_ids: string[]
-  user_id: string
 }
 
 export type AddUserToProjectResponse = {
@@ -68,47 +60,6 @@ export type AddUserToProjectResponse = {
   data?: Operator
 }
 
-export type GetOperatorByIdResponse = {
-  message: string
-  status: number
-  data: {
-    user: {
-      id: string
-      name: string
-      identifier: string
-      date: string
-      phone_number: string | null
-      whatsapp_number: string | null
-      is_juridic: boolean
-      cep?: string
-      uf?: string
-      city?: string
-      street?: string
-      number?: string
-      neighborhood?: string
-      complement?: string
-      email: string
-      email_verified_at: string | null
-      created_at: string
-      updated_at: string
-      customer_id?: string | null
-      subscription_id?: string | null
-      address?: string | null
-    }
-    project: {
-      id: string
-      user_id: string
-      name: string
-      img_url?: string
-      description?: string
-      created_at: string
-      updated_at: string
-      deleted_at?: string | null
-    }
-  }
-}
-
-/* ------------------------- 🎯 ERROR TYPE ------------------------- */
 export interface CreateOperatorRequest {
   project_ids: string[]
   name: string
@@ -157,8 +108,6 @@ export const operatorApi = apiSlice.injectEndpoints({
         headers: { Accept: 'application/json' }
       }),
       transformResponse: (response: GetOperatorsResponse) => {
-        console.log('🔍 DEBUG - GET operators completo:', response)
-
         if (response.data?.length) {
           toast.success(
             `✅ ${response.data.length} ${response.data.length === 1 ? 'operador carregado' : 'operadores carregados'}`,
@@ -179,28 +128,6 @@ export const operatorApi = apiSlice.injectEndpoints({
         result
           ? [...result.data.map(({ id }) => ({ type: 'Operator' as const, id })), { type: 'Operator', id: 'LIST' }]
           : [{ type: 'Operator', id: 'LIST' }]
-    }),
-
-    getOperatorById: builder.query<GetOperatorByIdResponse, string>({
-      query: project_operator_id => ({
-        url: `/project/operator/${project_operator_id}/show`,
-        method: 'GET',
-        headers: { Accept: 'application/json' }
-      }),
-      transformResponse: (response: GetOperatorByIdResponse) => {
-        console.log('🔍 DEBUG - GET operator único:', response)
-        toast.success(`✅ Operador "${response.data.user.name}" carregado!`, { autoClose: 3000 })
-
-        return response
-      },
-      transformErrorResponse: (response: any): OperatorError => {
-        const msg = response?.data?.message || response?.message || 'Erro ao carregar operador'
-
-        toast.error(`❌ ${msg}`, { autoClose: 5000 })
-
-        return { status: response.status || 500, message: msg }
-      },
-      providesTags: (result, error, id) => [{ type: 'Operator', id }]
     }),
 
     createOperator: builder.mutation<CreateOperatorResponse, CreateOperatorRequest>({
@@ -230,34 +157,29 @@ export const operatorApi = apiSlice.injectEndpoints({
     }),
 
     deleteOperator: builder.mutation<DeleteOperatorResponse, DeleteOperatorRequest>({
-      query: ({ project_operator_id }) => ({
-        url: `/project/operator/${project_operator_id}`,
+      query: ({ user_id }) => ({
+        url: `/project/operator`,
         method: 'DELETE',
-        headers: { Accept: 'application/json' }
+        body: { user_id },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
       }),
       transformResponse: (response: any, meta: any) => {
-        console.log('🔍 DEBUG - Resposta RAW do DELETE operator:', response)
+        const status = meta?.response?.status || 200
+        const message = response?.message || (status === 204 ? 'Operador deletado com sucesso!' : 'Operador deletado!')
 
-        const result =
-          meta?.response?.status === 204
-            ? { message: 'Deleted successfully', status: 204 }
-            : response?.message
-              ? response
-              : { message: 'Deleted successfully', status: meta?.response?.status || 200 }
+        toast.success(`✅ ${message}`, { autoClose: 3000 })
 
-        toast.success(result.message || '✅ Operador deletado!', { autoClose: 3000 })
-
-        return result
+        return { message, status, data: response?.data ?? null }
       },
       transformErrorResponse: (response: any): OperatorError => {
-        const msg = response?.data?.message || response?.message || 'Erro ao deletar operador'
+        const msg = response?.data?.message || response?.message || 'Erro inesperado ao deletar operador'
 
         toast.error(`❌ ${msg}`, { autoClose: 5000 })
 
         return { status: response.status || 500, message: msg }
       },
-      invalidatesTags: (result, error, { project_operator_id }) => [
-        { type: 'Operator', id: project_operator_id },
+      invalidatesTags: (result, error, { user_id }) => [
+        { type: 'Operator', id: user_id },
         { type: 'Operator', id: 'LIST' }
       ]
     }),
@@ -286,6 +208,33 @@ export const operatorApi = apiSlice.injectEndpoints({
         return { status: response.status || 500, message: msg }
       },
       invalidatesTags: [{ type: 'Operator', id: 'LIST' }]
+    }),
+
+    // 🔥 Novo endpoint DELETE user from project
+    deleteUserFromProject: builder.mutation<AddUserToProjectResponse, AddUserToProjectRequest>({
+      query: ({ project_ids, user_id }) => ({
+        url: `/project/operator`,
+        method: 'DELETE',
+        body: { project_ids, user_id },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
+      }),
+      transformResponse: (response: any, meta: any) => {
+        toast.success(response?.message || '✅ Usuário removido do projeto!', { autoClose: 3000 })
+
+        return {
+          message: response?.message || 'User removed',
+          status: meta?.response?.status || 200,
+          data: response?.data || {}
+        }
+      },
+      transformErrorResponse: (response: any) => {
+        const msg = response?.data?.message || response?.message || 'Erro ao remover usuário'
+
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
+      },
+      invalidatesTags: [{ type: 'Operator', id: 'LIST' }]
     })
   })
 })
@@ -293,10 +242,10 @@ export const operatorApi = apiSlice.injectEndpoints({
 /* ------------------------- 🎯 EXPORT HOOKS ------------------------- */
 export const {
   useGetOperatorsQuery,
-  useGetOperatorByIdQuery,
   useCreateOperatorMutation,
   useDeleteOperatorMutation,
-  useAddUserToProjectMutation
+  useAddUserToProjectMutation,
+  useDeleteUserFromProjectMutation
 } = operatorApi
 
 /* ------------------------- 🎯 SELECTORS ------------------------- */

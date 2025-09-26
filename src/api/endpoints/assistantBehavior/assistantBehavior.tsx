@@ -1,4 +1,6 @@
 // src/api/endpoints/configurationsAssistants.ts
+import { toast } from 'react-toastify'
+
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 /* ------------------------- 🎯 TYPES ------------------------- */
@@ -21,7 +23,7 @@ export type GetConfigurationResponse = {
   data: ConfigurationAssistant[]
 }
 
-// PUT /v1/config/{id} response
+// PUT /v1/config/{id} request/response
 export type UpdateConfigurationRequest = {
   data: {
     assistant_id: string
@@ -62,7 +64,16 @@ export const configurationsAssistantsApi = apiSlice.injectEndpoints({
         status: response.status || 500,
         message: response?.data?.message || response?.message || 'Erro ao carregar configurações'
       }),
-      providesTags: (result, error, id) => [{ type: 'Configuration', id }]
+      providesTags: (result, error, id) => [{ type: 'Configuration', id }],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+
+          toast.success(data.message || 'Configurações carregadas com sucesso')
+        } catch (err: any) {
+          toast.error(err?.error?.message || 'Erro ao carregar configurações')
+        }
+      }
     }),
 
     // PUT / update
@@ -85,7 +96,16 @@ export const configurationsAssistantsApi = apiSlice.injectEndpoints({
         status: response.status || 500,
         message: response?.data?.message || response?.message || 'Erro ao atualizar configuração'
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Configuration', id }]
+      invalidatesTags: (result, error, { id }) => [{ type: 'Configuration', id }],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+
+          toast.success(data.message || 'Configuração atualizada com sucesso')
+        } catch (err: any) {
+          toast.error(err?.error?.message || 'Erro ao atualizar configuração')
+        }
+      }
     })
   })
 })
