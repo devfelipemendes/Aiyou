@@ -226,3 +226,9 @@ export const selectUserPlanId = createSelector([selectMeData], meData => {
 
   return meData.user_plan_id // true ou false real da API
 })
+
+export const selectTokensUsage = createSelector([selectMeData], meData => {
+  if (meData === undefined) return undefined // ainda carregando
+
+  return meData.user.plan_usage.total_tokens // true ou false real da API
+})

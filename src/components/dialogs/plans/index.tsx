@@ -156,6 +156,8 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     // Gerar features baseadas nos dados da API
     const features = []
 
+    const isCurrentPlan = user?.plan?.id === apiPlan.id
+
     // Assistentes
     if (apiPlan.max_assistants >= 99) {
       features.push('Assistentes ilimitados')
@@ -225,7 +227,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
       supportType: supportInfo.supportType,
       supportMedium: supportInfo.supportMedium,
       respondTime: supportInfo.respondTime,
-      current: false // TODO: Implementar lógica para detectar plano atual do usuário
+      current: isCurrentPlan // TODO: Implementar lógica para detectar plano atual do usuário
     }
   })
 

@@ -88,6 +88,8 @@ const getNameModel = (subject_type: string) => {
       return 'projeto' // verde
     case 'Assistant':
       return 'assistente' // azul
+    default:
+      return 'item' // fallback
   }
 }
 
@@ -136,27 +138,38 @@ const ActivityTimeline = ({
                               {getSentenceActivity(activty)}
                             </Typography>
 
-                            <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                              <Typography variant='body1'>Atividade realizada em:</Typography>
+                            <Typography className=' flex flex-row text-wrap items-center gap-2' component='span'>
+                              <Typography variant='body1' component='span'>
+                                Atividade realizada em:
+                              </Typography>
                               {formatDateTime(activty.created_at)}
                             </Typography>
                           </div>
-                          <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                            <Typography variant='body1'>Nome:</Typography>
-                            {activty.properties.attributes.name ?? '-'}
+
+                          {/* ✅ CORREÇÃO: Optional chaining completo + component="span" */}
+                          <Typography className=' flex flex-row text-wrap items-center gap-2' component='span'>
+                            <Typography variant='body1' component='span'>
+                              Nome:
+                            </Typography>
+                            {activty.properties?.attributes?.name ?? '-'}
                           </Typography>
+
                           <div className='flex items-center gap-2.5'>
-                            {activty.properties.attributes.img_url && (
+                            {/* ✅ CORREÇÃO: Optional chaining para img_url */}
+                            {activty.properties?.attributes?.img_url && (
                               <Avatar
                                 src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
                                 className='bs-8 is-8'
                               />
                             )}
 
-                            {activty.properties.attributes.description && (
+                            {/* ✅ CORREÇÃO: Optional chaining para description + component="span" */}
+                            {activty.properties?.attributes?.description && (
                               <div className='flex flex-col flex-wrap gap-0.5'>
-                                <Typography className=' flex flex-row text-wrap items-center gap-2'>
-                                  <Typography variant='body1'>Descrição:</Typography>
+                                <Typography className=' flex flex-row text-wrap items-center gap-2' component='span'>
+                                  <Typography variant='body1' component='span'>
+                                    Descrição:
+                                  </Typography>
                                   {activty.properties.attributes.description ?? ''}
                                 </Typography>
                               </div>

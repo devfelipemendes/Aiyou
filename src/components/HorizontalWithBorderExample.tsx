@@ -38,7 +38,7 @@ interface PropsCard {
   color: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success'
   icon: string
   value: string
-  title: string
+  title: string | number
   month: string
   isLoading: boolean
 }

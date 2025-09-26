@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import Typography from '@mui/material/Typography'
@@ -337,7 +337,7 @@ const ChatLog = ({
                   const showingInput = activeInstructionMessageId === msg.messageId && !isLoadingThisMessage
 
                   return (
-                    <>
+                    <React.Fragment key={msg.messageId || msgIndex}>
                       {showingInput && (
                         <div className='mb-2'>
                           <SendMsgForm
@@ -428,7 +428,7 @@ const ChatLog = ({
                           </Typography>
                         )}
                       </Box>
-                    </>
+                    </React.Fragment>
                   )
                 })}
 
@@ -436,7 +436,7 @@ const ChatLog = ({
                   if (msgIndex !== msgGroup.messages.length - 1) return null
 
                   return (
-                    <div key={msgIndex}>
+                    <div key={`status-${msg.messageId || msgIndex}`}>
                       {isSender ? (
                         <div className='flex items-center gap-2'>
                           {msg.msgStatus?.isSeen ? (

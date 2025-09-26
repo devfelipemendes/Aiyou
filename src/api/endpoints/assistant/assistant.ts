@@ -1,18 +1,5 @@
 // src/api/endpoints/assistant/assistant.ts
-// 🎯 TIPOS BASEADOS NA RESPOSTA REAL DO BACKEND
-// Exemplo de resposta CREATE:
-// {
-//   "message": "Created",
-//   "status": 201,
-//   "data": {
-//     "name": "Playton",
-//     "project_id": "0198cd82-42ea-727f-90ef-bf8ce4a8e10d",
-//     "openai_id": "asst_qCDquMzuOlwQ1zqcQfNjh8qn",
-//     "id": "0198cd87-62c0-70ad-9c37-aea95963629e",
-//     "updated_at": "2025-08-21T16:47:38.000000Z",
-//     "created_at": "2025-08-21T16:47:38.000000Z"
-//   }
-// }
+import { toast } from 'react-toastify'
 
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
@@ -116,27 +103,7 @@ export type Parameter = {
   example_value?: string
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE GET (listagem) - estrutura real do backend
-// Exemplo de resposta GET_ALL:
-// {
-//   "message": "OK",
-//   "status": 200,
-//   "data": [
-//     {
-//       "project_name": "test",
-//       "project_id": "0198cd82-42ea-727f-90ef-bf8ce4a8e10d",
-//       "assistants": [
-//         {
-//           "id": "0198cd87-62c0-70ad-9c37-aea95963629e",
-//           "name": "Playton",
-//           "img_url": null,
-//           "description": null,
-//           "phones": []
-//         }
-//       ]
-//     }
-//   ]
-// }
+// 🎯 TIPOS PARA A RESPONSE DE GET (listagem)
 export type GetAssistantsResponse = {
   message: string
   status: number
@@ -150,20 +117,7 @@ export type ProcessedGetAssistantsResponse = {
   data: ProcessedAssistant[]
 }
 
-// 🎯 TIPOS PARA A RESPONSE DE CREATE (estrutura real do backend)
-// Exemplo de resposta:
-// {
-//   "message": "Created",
-//   "status": 201,
-//   "data": {
-//     "name": "Playton",
-//     "project_id": "0198cd82-42ea-727f-90ef-bf8ce4a8e10d",
-//     "openai_id": "asst_qCDquMzuOlwQ1zqcQfNjh8qn",
-//     "id": "0198cd87-62c0-70ad-9c37-aea95963629e",
-//     "updated_at": "2025-08-21T16:47:38.000000Z",
-//     "created_at": "2025-08-21T16:47:38.000000Z"
-//   }
-// }
+// 🎯 TIPOS PARA A RESPONSE DE CREATE
 export type CreateAssistantResponse = {
   message: string
   status: number
@@ -207,8 +161,6 @@ export const assistantApi = apiSlice.injectEndpoints({
         console.log('🔍 DEBUG - Estrutura da resposta GET assistants:', response)
 
         // "Achatar" os dados: extrair assistentes de todos os projetos e adicionar info do projeto
-        // A API retorna: [{ project_name, project_id, assistants: [...] }]
-        // Transformamos em: [{ id, name, project_id, project_name, ... }]
         const processedAssistants: ProcessedAssistant[] = []
 
         response.data.forEach(project => {
@@ -222,13 +174,22 @@ export const assistantApi = apiSlice.injectEndpoints({
         })
 
         const count = processedAssistants.length
-
-        console.log('✅ Assistentes carregados:', count, count === 1 ? 'assistente' : 'assistentes')
-
-        // Log dos projetos processados
         const projectsWithAssistants = response.data.filter(p => p.assistants.length > 0)
 
+        console.log('✅ Assistentes carregados:', count, count === 1 ? 'assistente' : 'assistentes')
         console.log('📊 Projetos com assistentes:', projectsWithAssistants.length)
+
+        // Toast de sucesso apenas quando há assistentes
+        if (count > 0) {
+          toast.success(`🤖 ${count} ${count === 1 ? 'assistente carregado' : 'assistentes carregados'} com sucesso!`, {
+            position: 'top-right',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+        }
 
         return {
           message: response.message,
@@ -240,13 +201,23 @@ export const assistantApi = apiSlice.injectEndpoints({
       transformErrorResponse: (response: any): AssistantError => {
         console.error('❌ Erro ao carregar assistentes:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao carregar assistentes'
+
+        toast.error(`❌ Erro ao carregar assistentes: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao carregar assistentes'
+          message: errorMessage
         }
       },
 
-      // 🎯 TAG PARA CACHE E INVALIDAÇÃO
       providesTags: result =>
         result
           ? [...result.data.map(({ id }) => ({ type: 'Assistant' as const, id })), { type: 'Assistant', id: 'LIST' }]
@@ -266,15 +237,36 @@ export const assistantApi = apiSlice.injectEndpoints({
       transformResponse: (response: GetSingleAssistantResponse) => {
         console.log('🔍 DEBUG - Assistente único carregado:', response.data.name, 'OpenAI ID:', response.data.openai_id)
 
+        // Toast de sucesso para assistente específico
+        toast.success(`🤖 Assistente "${response.data.name}" carregado com sucesso!`, {
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return response
       },
 
       transformErrorResponse: (response: any): AssistantError => {
         console.error('❌ Erro ao carregar assistente:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao carregar assistente'
+
+        toast.error(`❌ Erro ao carregar assistente: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao carregar assistente'
+          message: errorMessage
         }
       },
 
@@ -305,12 +297,32 @@ export const assistantApi = apiSlice.injectEndpoints({
           console.log('✅ CREATE estrutura padrão detectada (status', httpStatus, ')')
           console.log('✅ Assistente criado:', response.data.name, 'OpenAI ID:', response.data.openai_id)
 
+          // Toast de sucesso para criação
+          toast.success(`🎉 Assistente "${response.data.name}" criado com sucesso!`, {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+
           return response as CreateAssistantResponse
         }
 
         // ✅ STATUS 201/200 com dados diretos (sem wrapper)
         if (response && response.id) {
           console.log('✅ CREATE estrutura alternativa detectada (dados diretos, status', httpStatus, ')')
+
+          // Toast de sucesso para criação
+          toast.success(`🎉 Assistente "${response.name || 'Novo assistente'}" criado com sucesso!`, {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
 
           return {
             message: 'Created',
@@ -322,6 +334,16 @@ export const assistantApi = apiSlice.injectEndpoints({
         // ✅ QUALQUER STATUS 2xx é considerado sucesso
         if (httpStatus >= 200 && httpStatus < 300) {
           console.log('✅ CREATE bem-sucedido - Status 2xx:', httpStatus)
+
+          // Toast de sucesso genérico
+          toast.success('🎉 Assistente criado com sucesso!', {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
 
           return {
             message: 'Created successfully',
@@ -344,13 +366,23 @@ export const assistantApi = apiSlice.injectEndpoints({
       transformErrorResponse: (response: any): AssistantError => {
         console.error('❌ Erro ao criar assistente:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao criar assistente'
+
+        toast.error(`❌ Erro ao criar assistente: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao criar assistente'
+          message: errorMessage
         }
       },
 
-      // 🎯 INVALIDAR CACHE DA LISTA
       invalidatesTags: [{ type: 'Assistant', id: 'LIST' }]
     }),
 
@@ -371,7 +403,6 @@ export const assistantApi = apiSlice.injectEndpoints({
         console.log('🔍 DEBUG - Meta do PUT (com status HTTP):', meta)
         console.log('🔍 DEBUG - Status HTTP:', meta?.response?.status)
 
-        // ✅ VERIFICAR STATUS HTTP PRIMEIRO
         const httpStatus = meta?.response?.status
 
         console.log('🔍 HTTP Status recebido:', httpStatus)
@@ -381,12 +412,32 @@ export const assistantApi = apiSlice.injectEndpoints({
           console.log('✅ Estrutura padrão detectada (status', httpStatus, ')')
           console.log('✅ Assistente atualizado:', response.data.name || 'Nome não encontrado')
 
+          // Toast de sucesso para atualização
+          toast.success(`✏️ Assistente "${response.data.name || 'assistente'}" atualizado com sucesso!`, {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+
           return response as UpdateAssistantResponse
         }
 
         // ✅ STATUS 200/201 com dados diretos (sem wrapper)
         if (response && response.id) {
           console.log('✅ Estrutura alternativa detectada (dados diretos, status', httpStatus, ')')
+
+          // Toast de sucesso para atualização
+          toast.success(`✏️ Assistente "${response.name || 'assistente'}" atualizado com sucesso!`, {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
 
           return {
             message: 'Updated',
@@ -399,16 +450,36 @@ export const assistantApi = apiSlice.injectEndpoints({
         if (httpStatus === 204) {
           console.log('✅ UPDATE bem-sucedido - Status 204 (No Content)')
 
+          // Toast de sucesso genérico
+          toast.success('✏️ Assistente atualizado com sucesso!', {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+
           return {
             message: 'Updated successfully',
             status: 204,
-            data: { id: 'unknown' } // Dados mínimos para evitar erro
+            data: { id: 'unknown' }
           } as UpdateAssistantResponse
         }
 
         // ✅ QUALQUER STATUS 2xx é considerado sucesso
         if (httpStatus >= 200 && httpStatus < 300) {
           console.log('✅ UPDATE bem-sucedido - Status 2xx genérico:', httpStatus)
+
+          // Toast de sucesso genérico
+          toast.success('✏️ Assistente atualizado com sucesso!', {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
 
           return {
             message: 'Updated successfully',
@@ -421,7 +492,6 @@ export const assistantApi = apiSlice.injectEndpoints({
         console.error('❌ ATENÇÃO: Status inesperado:', httpStatus)
         console.error('❌ Response completa:', JSON.stringify(response, null, 2))
 
-        // Último recurso
         return {
           message: 'Updated',
           status: httpStatus || 200,
@@ -431,16 +501,24 @@ export const assistantApi = apiSlice.injectEndpoints({
 
       transformErrorResponse: (response: any): AssistantError => {
         console.error('❌ transformErrorResponse - Erro ao atualizar assistente:', response)
-        console.error('❌ transformErrorResponse - Status:', response.status)
-        console.error('❌ transformErrorResponse - Data:', response.data)
+
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao atualizar assistente'
+
+        toast.error(`❌ Erro ao atualizar assistente: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
 
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao atualizar assistente'
+          message: errorMessage
         }
       },
 
-      // 🎯 INVALIDAR CACHE ESPECÍFICO E LISTA
       invalidatesTags: (result, error, { id }) => [
         { type: 'Assistant', id },
         { type: 'Assistant', id: 'LIST' }
@@ -465,6 +543,16 @@ export const assistantApi = apiSlice.injectEndpoints({
         if (meta?.response?.status === 204) {
           console.log('✅ DELETE bem-sucedido - Status 204 (No Content)')
 
+          // Toast de sucesso para exclusão
+          toast.success('🗑️ Assistente deletado com sucesso!', {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+
           return {
             message: 'Deleted successfully',
             status: 204
@@ -475,11 +563,31 @@ export const assistantApi = apiSlice.injectEndpoints({
         if (response && response.message) {
           console.log('✅ DELETE bem-sucedido - Status 200 com dados')
 
+          // Toast de sucesso para exclusão
+          toast.success('🗑️ Assistente deletado com sucesso!', {
+            position: 'top-right',
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+
           return response as DeleteAssistantResponse
         }
 
         // ✅ FALLBACK: Qualquer resposta com status 2xx é considerada sucesso
         console.log('✅ DELETE bem-sucedido - Fallback')
+
+        // Toast de sucesso genérico
+        toast.success('🗑️ Assistente deletado com sucesso!', {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
 
         return {
           message: 'Deleted successfully',
@@ -489,16 +597,24 @@ export const assistantApi = apiSlice.injectEndpoints({
 
       transformErrorResponse: (response: any): AssistantError => {
         console.error('❌ transformErrorResponse - Erro ao deletar assistente:', response)
-        console.error('❌ transformErrorResponse - Status:', response.status)
-        console.error('❌ transformErrorResponse - Data:', response.data)
+
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao deletar assistente'
+
+        toast.error(`❌ Erro ao deletar assistente: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
 
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao deletar assistente'
+          message: errorMessage
         }
       },
 
-      // 🎯 INVALIDAR CACHE ESPECÍFICO E LISTA
       invalidatesTags: (result, error, { id }) => [
         { type: 'Assistant', id },
         { type: 'Assistant', id: 'LIST' }

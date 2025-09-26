@@ -52,10 +52,17 @@ export const ProtocolHistoryList = ({ historyData, currentProtocol, onProtocolSe
               </Box>
 
               <ListItemText
+                primaryTypographyProps={{
+                  component: 'div' // Permite elementos block dentro
+                }}
+                secondaryTypographyProps={{
+                  component: 'div' // Permite elementos block dentro
+                }}
                 primary={
                   <Box display='flex' justifyContent='space-between' alignItems='center' mb={0.5}>
                     <Typography
                       variant='h6'
+                      component='span' // ✅ Usar span para inline
                       fontWeight={isCurrentProtocol ? 'bold' : 'normal'}
                       sx={{
                         color: isCurrentProtocol ? 'white' : 'var(--mui-palette-primary-main)'
@@ -63,7 +70,11 @@ export const ProtocolHistoryList = ({ historyData, currentProtocol, onProtocolSe
                     >
                       # {protocolItem.identifier || protocolItem.protocol}
                     </Typography>
-                    <Typography color={isCurrentProtocol ? 'white' : 'text.primary'} variant='caption'>
+                    <Typography
+                      component='span' // ✅ Usar span para inline
+                      color={isCurrentProtocol ? 'white' : 'text.primary'}
+                      variant='caption'
+                    >
                       {protocolItem.created_at
                         ? format(new Date(protocolItem.created_at), 'dd/MM/yyyy', { locale: ptBR })
                         : '--'}
@@ -75,6 +86,7 @@ export const ProtocolHistoryList = ({ historyData, currentProtocol, onProtocolSe
                     {/* Informações do assistente/operador */}
                     <Typography
                       variant='caption'
+                      component='span' // ✅ Usar span para inline
                       color={isCurrentProtocol ? 'white' : 'text.secondary'}
                       display='block'
                     >
@@ -82,6 +94,7 @@ export const ProtocolHistoryList = ({ historyData, currentProtocol, onProtocolSe
                     </Typography>
                     <Typography
                       variant='caption'
+                      component='span' // ✅ Usar span para inline
                       color={isCurrentProtocol ? 'white' : 'textPrimary'}
                       display='block'
                       sx={{ mt: 0.5 }}
