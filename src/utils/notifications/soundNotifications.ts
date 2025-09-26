@@ -84,7 +84,7 @@ class SoundNotificationManager {
       const endTime = now + duration / 1000
 
       gainNode.gain.setValueAtTime(0, now)
-      gainNode.gain.linearRampToValueAtTime(volume, now + 0.03) // Attack
+      gainNode.gain.linearRampToValueAtTime(volume, now + 0.1) // Attack
       gainNode.gain.exponentialRampToValueAtTime(volume * 0.7, endTime - 0.05) // Sustain
       gainNode.gain.exponentialRampToValueAtTime(0.001, endTime) // Release
 

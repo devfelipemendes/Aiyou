@@ -125,6 +125,9 @@ export const monitoringSlice = createSlice({
       const formattedMessages = messages.map((msg: any) => ({
         id: msg.id,
         content: msg.content,
+        message_type: msg.message_type || 'text',
+        audio_url: msg.audio_url || null,
+        operator_name: msg.operator_name || null,
         role: msg.role,
         operator: msg.operator,
         created_at: msg.created_at,

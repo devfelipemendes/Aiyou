@@ -343,7 +343,6 @@ const ChatLog = ({
                     {userData.fullName}
                   </Typography>
                 )}
-
                 {msgGroup.messages.map((msg, msgIndex) => {
                   const hasButton = !isSender && msg.operator === true && isShowDetailsChatLog === true
                   const isLoadingThisMessage = instructionLoading === msg.messageId
@@ -370,19 +369,101 @@ const ChatLog = ({
                         </div>
                       )}
 
-                      {/* Renderização condicional: áudio ou texto */}
+                      {/* Renderização para ÁUDIO */}
                       {isAudioMessage ? (
                         <Box
                           className={classnames('shadow-xs', {
                             'rounded-e rounded-b': !isSender,
-                            'rounded-s rounded-b': isSender
+                            'rounded-s rounded-b': isSender,
+                            'flex justify-between items-start gap-3': hasButton
                           })}
                           sx={{
                             bgcolor: isSender ? 'primary.main' : 'background.paper',
-                            p: 1
+                            p: 1,
+                            width: hasButton ? 'auto' : 'fit-content',
+                            minWidth: hasButton ? '350px' : '280px',
+                            maxWidth: '100%'
                           }}
                         >
-                          <AudioPlayer audioUrl={msg.audioUrl!} messageId={msg.messageId} compact={isBelowSmScreen} />
+                          {hasButton ? (
+                            <>
+                              <Box sx={{ flex: 1 }}>
+                                <AudioPlayer
+                                  audioUrl={msg.audioUrl!}
+                                  messageId={msg.messageId}
+                                  compact={isBelowSmScreen}
+                                />
+                                {/* Mostrar transcrição se existir */}
+                                {msg.message && msg.message !== 'Áudio' && (
+                                  <Typography
+                                    variant='caption'
+                                    sx={{
+                                      display: 'block',
+                                      mt: 3,
+                                      mb: 3,
+                                      px: 3,
+                                      fontStyle: 'italic',
+                                      color: isSender ? 'primary.contrastText' : 'text.secondary'
+                                    }}
+                                  >
+                                    Transcrição: {msg.message}
+                                  </Typography>
+                                )}
+                              </Box>
+
+                              <Divider orientation='vertical' flexItem />
+
+                              <Button
+                                variant='contained'
+                                size='small'
+                                className='cursor-pointer'
+                                color={!showingInput ? 'info' : isLoadingThisMessage ? 'warning' : 'error'}
+                                sx={{
+                                  flexShrink: 0,
+                                  alignSelf: 'flex-start',
+                                  height: '100%',
+                                  ml: 1
+                                }}
+                                onClick={() => handleToggleInstructionInput(msg.messageId)}
+                                disabled={isLoadingThisMessage}
+                                endIcon={
+                                  isLoadingThisMessage ? (
+                                    <i className='ri-loader-4-line animate-spin' />
+                                  ) : showingInput ? (
+                                    <i className='ri-close-line' />
+                                  ) : (
+                                    <i className='ri-chat-3-line' />
+                                  )
+                                }
+                              >
+                                {isLoadingThisMessage ? 'Enviando...' : showingInput ? 'Cancelar' : 'Instruir'}
+                              </Button>
+                            </>
+                          ) : (
+                            <Box>
+                              <AudioPlayer
+                                audioUrl={msg.audioUrl!}
+                                messageId={msg.messageId}
+                                compact={isBelowSmScreen}
+                              />
+                              {/* Mostrar transcrição se existir */}
+                              {msg.message && msg.message !== 'Áudio' && (
+                                <Typography
+                                  variant='caption'
+                                  sx={{
+                                    display: 'block',
+                                    mt: 3,
+                                    mb: 3,
+                                    px: 3,
+                                    fontStyle: 'italic',
+                                    color: isSender ? 'primary.contrastText' : 'text.secondary'
+                                  }}
+                                >
+                                  Transcrição: {msg.message}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
                         </Box>
                       ) : (
                         <Box

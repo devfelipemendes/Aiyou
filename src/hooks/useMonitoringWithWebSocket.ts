@@ -498,7 +498,12 @@ export function useMonitoringWithWebSocket(
             dispatch(
               updateProtocolMessages({
                 protocolId,
-                messages: protocolData.history
+                messages: protocolData.history.map(msg => ({
+                  ...msg,
+                  message_type: msg.message_type || 'text',
+                  audio_url: msg.audio_url || null,
+                  operator_name: msg.operator_name || null
+                }))
               })
             )
             setTimeout(() => {
