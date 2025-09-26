@@ -1,9 +1,9 @@
 // src/api/endpoints/assistantPhone/assistantPhone.ts
+import { toast } from 'react-toastify'
+
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 /* ------------------------- 🎯 TYPES ------------------------- */
-
-// Request types
 export interface CreateAssistantPhoneRequest {
   assistant_id: string
   phone: string
@@ -18,7 +18,6 @@ export interface UpdateAssistantPhoneRequest {
   wa_key: string
 }
 
-// Response types
 export interface AssistantPhone {
   id: string
   assistant_id: string
@@ -43,22 +42,29 @@ export interface AssistantPhoneError {
 /* ------------------------- 🎯 API ENDPOINTS ------------------------- */
 export const assistantPhoneApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    // Get phone by id
     getAssistantPhone: builder.query<AssistantPhoneResponse, string>({
       query: (phone_id: string) => ({
         url: `/assistant/phone/${phone_id}`,
         method: 'GET',
         headers: { Accept: 'application/json' }
       }),
-      transformResponse: (response: any) => response,
-      transformErrorResponse: (response: any): AssistantPhoneError => ({
-        status: response.status || 500,
-        message: response?.data?.message || response?.message || 'Erro ao buscar telefone'
-      }),
+      transformResponse: (response: any) => {
+        if (response?.data) {
+          toast.success(`✅ Telefone carregado!`, { autoClose: 3000 })
+        }
+
+        return response
+      },
+      transformErrorResponse: (response: any): AssistantPhoneError => {
+        const msg = response?.data?.message || response?.message || 'Erro ao buscar telefone'
+
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
+      },
       providesTags: (result, error, id) => [{ type: 'AssistantPhone', id }]
     }),
 
-    // Create phone
     createAssistantPhone: builder.mutation<AssistantPhoneResponse, CreateAssistantPhoneRequest>({
       query: body => ({
         url: '/assistant/phone',
@@ -66,19 +72,25 @@ export const assistantPhoneApi = apiSlice.injectEndpoints({
         body,
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
       }),
-      transformResponse: (response: any, meta: any) => ({
-        message: response?.message || 'Created',
-        status: meta?.response?.status || 201,
-        data: response?.data || {}
-      }),
-      transformErrorResponse: (response: any): AssistantPhoneError => ({
-        status: response.status || 500,
-        message: response?.data?.message || response?.message || 'Erro ao criar telefone'
-      }),
+      transformResponse: (response: any, meta: any) => {
+        toast.success(response?.message || '✅ Telefone criado!', { autoClose: 3000 })
+
+        return {
+          message: response?.message || 'Created',
+          status: meta?.response?.status || 201,
+          data: response?.data || {}
+        }
+      },
+      transformErrorResponse: (response: any): AssistantPhoneError => {
+        const msg = response?.data?.message || response?.message || 'Erro ao criar telefone'
+
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
+      },
       invalidatesTags: [{ type: 'AssistantPhone', id: 'LIST' }]
     }),
 
-    // Update phone
     updateAssistantPhone: builder.mutation<
       AssistantPhoneResponse,
       { phone_id: string; data: UpdateAssistantPhoneRequest }
@@ -89,22 +101,28 @@ export const assistantPhoneApi = apiSlice.injectEndpoints({
         body: data,
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
       }),
-      transformResponse: (response: any, meta: any) => ({
-        message: response?.message || 'Updated',
-        status: meta?.response?.status || 200,
-        data: response?.data || {}
-      }),
-      transformErrorResponse: (response: any): AssistantPhoneError => ({
-        status: response.status || 500,
-        message: response?.data?.message || response?.message || 'Erro ao atualizar telefone'
-      }),
+      transformResponse: (response: any, meta: any) => {
+        toast.success(response?.message || '✅ Telefone atualizado!', { autoClose: 3000 })
+
+        return {
+          message: response?.message || 'Updated',
+          status: meta?.response?.status || 200,
+          data: response?.data || {}
+        }
+      },
+      transformErrorResponse: (response: any): AssistantPhoneError => {
+        const msg = response?.data?.message || response?.message || 'Erro ao atualizar telefone'
+
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
+      },
       invalidatesTags: (result, error, { phone_id }) => [
         { type: 'AssistantPhone', id: phone_id },
         { type: 'AssistantPhone', id: 'LIST' }
       ]
     }),
 
-    // Delete phone
     deleteAssistantPhone: builder.mutation<AssistantPhoneResponse, string>({
       query: phone_id => ({
         url: `/assistant/phone/${phone_id}`,
@@ -112,16 +130,24 @@ export const assistantPhoneApi = apiSlice.injectEndpoints({
         headers: { Accept: 'application/json' }
       }),
       transformResponse: (response: any, meta: any) => {
-        if (meta?.response?.status === 204) {
-          return { message: 'Deleted successfully', status: 204 }
-        }
+        const result =
+          meta?.response?.status === 204
+            ? { message: 'Deleted successfully', status: 204 }
+            : response?.message
+              ? response
+              : { message: 'Deleted successfully', status: meta?.response?.status || 200 }
 
-        return response?.message ? response : { message: 'Deleted successfully', status: meta?.response?.status || 200 }
+        toast.success(result.message || '✅ Telefone deletado!', { autoClose: 3000 })
+
+        return result
       },
-      transformErrorResponse: (response: any): AssistantPhoneError => ({
-        status: response.status || 500,
-        message: response?.data?.message || response?.message || 'Erro ao deletar telefone'
-      }),
+      transformErrorResponse: (response: any): AssistantPhoneError => {
+        const msg = response?.data?.message || response?.message || 'Erro ao deletar telefone'
+
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
+      },
       invalidatesTags: (result, error, id) => [
         { type: 'AssistantPhone', id },
         { type: 'AssistantPhone', id: 'LIST' }

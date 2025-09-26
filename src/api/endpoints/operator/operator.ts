@@ -1,18 +1,16 @@
 // src/api/endpoints/operator/operator.ts
 // 🎯 TIPOS BASEADOS NA RESPOSTA REAL DO BACKEND
 
+import { toast } from 'react-toastify'
+
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 /* ------------------------- 🎯 REQUEST TYPES ------------------------- */
-
-// Deletar operador
 export type DeleteOperatorRequest = {
   project_operator_id: string
 }
 
 /* ------------------------- 🎯 MODEL TYPES ------------------------- */
-
-// Operador individual
 export type Operator = {
   id: string
   project_id: string
@@ -31,7 +29,6 @@ export type Operator = {
   updated_at: string
 }
 
-// Operador simplificado para listagem
 export type OperatorInList = {
   id: string
   name: string
@@ -42,41 +39,35 @@ export type OperatorInList = {
 }
 
 /* ------------------------- 🎯 RESPONSE TYPES ------------------------- */
-
-// Listagem de operadores
 export type GetOperatorsResponse = {
   message: string
   status: number
   data: Operator[]
 }
 
-// Operador processado para UI
 export type ProcessedGetOperatorsResponse = {
   message: string
   status: number
   data: OperatorInList[]
 }
 
-// Criar operador
-
-// Deletar operador
 export type DeleteOperatorResponse = {
   message: string
   status: number
   data?: any
 }
 
-// trade project
 export type AddUserToProjectRequest = {
-  project_ids: string[] // agora é array
+  project_ids: string[]
   user_id: string
 }
 
 export type AddUserToProjectResponse = {
   message: string
   status: number
-  data?: Operator // opcional, dependendo do backend
+  data?: Operator
 }
+
 export type GetOperatorByIdResponse = {
   message: string
   status: number
@@ -118,17 +109,13 @@ export type GetOperatorByIdResponse = {
 }
 
 /* ------------------------- 🎯 ERROR TYPE ------------------------- */
-
-// Tipos de request
 export interface CreateOperatorRequest {
-  project_ids: string[] // obrigatório
-  name: string // min 3, max 255
-  identifier: string // string obrigatória
-  date: string // data < hoje (YYYY-MM-DD)
-  email: string // email válido
-  password: string // min 8 chars
-
-  // opcionais
+  project_ids: string[]
+  name: string
+  identifier: string
+  date: string
+  email: string
+  password: string
   cep?: string
   city?: string
   street?: string
@@ -140,7 +127,6 @@ export interface CreateOperatorRequest {
   whatsapp_number?: string | null
 }
 
-// Tipos de response
 export interface CreateOperatorResponse {
   message: string
   status: number
@@ -152,11 +138,10 @@ export interface CreateOperatorResponse {
     project_ids: string[]
     created_at: string
     updated_at: string
-    [key: string]: any // fallback pra caso a API mande mais campos
+    [key: string]: any
   }
 }
 
-// Tipos de erro
 export interface OperatorError {
   status: number
   message: string
@@ -165,7 +150,6 @@ export interface OperatorError {
 /* ------------------------- 🎯 API ENDPOINTS ------------------------- */
 export const operatorApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    // 🎯 GET OPERATORS
     getOperators: builder.query<GetOperatorsResponse, void>({
       query: () => ({
         url: '/project/operator',
@@ -173,59 +157,61 @@ export const operatorApi = apiSlice.injectEndpoints({
         headers: { Accept: 'application/json' }
       }),
       transformResponse: (response: GetOperatorsResponse) => {
-        // Aqui você mantém exatamente a estrutura que vem do backend
         console.log('🔍 DEBUG - GET operators completo:', response)
+
+        if (response.data?.length) {
+          toast.success(
+            `✅ ${response.data.length} ${response.data.length === 1 ? 'operador carregado' : 'operadores carregados'}`,
+            { autoClose: 3000 }
+          )
+        }
 
         return response
       },
       transformErrorResponse: (response: any): OperatorError => {
-        console.error('❌ Erro ao carregar operadores:', response)
+        const msg = response?.data?.message || response?.message || 'Erro ao carregar operadores'
 
-        return {
-          status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao carregar operadores'
-        }
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
       },
       providesTags: result =>
         result
           ? [...result.data.map(({ id }) => ({ type: 'Operator' as const, id })), { type: 'Operator', id: 'LIST' }]
           : [{ type: 'Operator', id: 'LIST' }]
     }),
+
     getOperatorById: builder.query<GetOperatorByIdResponse, string>({
-      query: (project_operator_id: string) => ({
+      query: project_operator_id => ({
         url: `/project/operator/${project_operator_id}/show`,
         method: 'GET',
         headers: { Accept: 'application/json' }
       }),
       transformResponse: (response: GetOperatorByIdResponse) => {
         console.log('🔍 DEBUG - GET operator único:', response)
+        toast.success(`✅ Operador "${response.data.user.name}" carregado!`, { autoClose: 3000 })
 
         return response
       },
       transformErrorResponse: (response: any): OperatorError => {
-        console.error('❌ Erro ao carregar operador único:', response)
+        const msg = response?.data?.message || response?.message || 'Erro ao carregar operador'
 
-        return {
-          status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao carregar operador'
-        }
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
       },
       providesTags: (result, error, id) => [{ type: 'Operator', id }]
     }),
 
-    // 🎯 CREATE OPERATOR
     createOperator: builder.mutation<CreateOperatorResponse, CreateOperatorRequest>({
       query: body => ({
         url: `/project/user`,
         method: 'POST',
         body,
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
       }),
-      transformResponse: (response: any, meta: any): CreateOperatorResponse => {
-        console.log('🔍 DEBUG - Resposta RAW do CREATE operator:', response)
+      transformResponse: (response: any, meta: any) => {
+        toast.success(response?.message || '✅ Operador criado!', { autoClose: 3000 })
 
         return {
           message: response?.message || 'Created',
@@ -233,13 +219,12 @@ export const operatorApi = apiSlice.injectEndpoints({
           data: response?.data || response || {}
         }
       },
-      transformErrorResponse: (response: any): OperatorError => {
-        console.error('❌ Erro ao criar operador:', response)
+      transformErrorResponse: (response: any) => {
+        const msg = response?.data?.message || response?.message || 'Erro ao criar operador'
 
-        return {
-          status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao criar operador'
-        }
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
       },
       invalidatesTags: [{ type: 'Operator', id: 'LIST' }]
     }),
@@ -253,52 +238,53 @@ export const operatorApi = apiSlice.injectEndpoints({
       transformResponse: (response: any, meta: any) => {
         console.log('🔍 DEBUG - Resposta RAW do DELETE operator:', response)
 
-        if (meta?.response?.status === 204) {
-          return { message: 'Deleted successfully', status: 204 } as DeleteOperatorResponse
-        }
+        const result =
+          meta?.response?.status === 204
+            ? { message: 'Deleted successfully', status: 204 }
+            : response?.message
+              ? response
+              : { message: 'Deleted successfully', status: meta?.response?.status || 200 }
 
-        if (response?.message) {
-          return response as DeleteOperatorResponse
-        }
+        toast.success(result.message || '✅ Operador deletado!', { autoClose: 3000 })
 
-        return { message: 'Deleted successfully', status: meta?.response?.status || 200 } as DeleteOperatorResponse
+        return result
       },
       transformErrorResponse: (response: any): OperatorError => {
-        console.error('❌ Erro ao deletar operador:', response)
+        const msg = response?.data?.message || response?.message || 'Erro ao deletar operador'
 
-        return {
-          status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao deletar operador'
-        }
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
       },
       invalidatesTags: (result, error, { project_operator_id }) => [
         { type: 'Operator', id: project_operator_id },
         { type: 'Operator', id: 'LIST' }
       ]
     }),
+
     addUserToProject: builder.mutation<AddUserToProjectResponse, AddUserToProjectRequest>({
       query: ({ project_ids, user_id }) => ({
-        url: `/project/operator`, // sem o project_id na URL, já que é múltiplo
+        url: `/project/operator`,
         method: 'POST',
         body: { project_ids, user_id },
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
       }),
       transformResponse: (response: any, meta: any) => {
-        console.log('🔍 DEBUG - addUserToProject response:', response)
+        toast.success(response?.message || '✅ Usuário adicionado ao projeto!', { autoClose: 3000 })
 
         return {
           message: response?.message || 'User added',
           status: meta?.response?.status || 201,
           data: response?.data || {}
-        } as AddUserToProjectResponse
+        }
       },
-      transformErrorResponse: (response: any) => ({
-        status: response.status || 500,
-        message: response?.data?.message || response?.message || 'Erro ao adicionar usuário'
-      }),
+      transformErrorResponse: (response: any) => {
+        const msg = response?.data?.message || response?.message || 'Erro ao adicionar usuário'
+
+        toast.error(`❌ ${msg}`, { autoClose: 5000 })
+
+        return { status: response.status || 500, message: msg }
+      },
       invalidatesTags: [{ type: 'Operator', id: 'LIST' }]
     })
   })
@@ -310,7 +296,7 @@ export const {
   useGetOperatorByIdQuery,
   useCreateOperatorMutation,
   useDeleteOperatorMutation,
-  useAddUserToProjectMutation // ✅ adicionado
+  useAddUserToProjectMutation
 } = operatorApi
 
 /* ------------------------- 🎯 SELECTORS ------------------------- */

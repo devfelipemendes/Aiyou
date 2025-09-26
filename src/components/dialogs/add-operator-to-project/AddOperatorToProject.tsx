@@ -45,7 +45,7 @@ const AddOperatorToProject = ({ open, setOpen, projectsOperator, user_id }: AddO
   }
 
   const { data: projectsResponse } = useGetProjectsQuery()
-  const [addUserToProject, { isLoading, isError, data, error }] = useAddUserToProjectMutation()
+  const [addUserToProject, { isLoading }] = useAddUserToProjectMutation()
 
   const projects: Project[] = useMemo(() => {
     if (!projectsResponse?.data) return []
@@ -71,7 +71,6 @@ const AddOperatorToProject = ({ open, setOpen, projectsOperator, user_id }: AddO
 
       handleClose()
       console.log('Usuário adicionado com sucesso:', response)
-      alert(response.message)
     } catch (err: any) {
       console.error('Erro ao adicionar usuário:', err)
       alert(err.message || 'Erro desconhecido')
