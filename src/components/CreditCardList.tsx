@@ -162,7 +162,6 @@ const CardBrandIcon = styled(Box, {
   fontWeight: 'bold'
 }))
 
-// ===== COMPONENTE ITEM DO CARTÃO =====
 const CreditCardItem: FC<{
   card: AdaptedCreditCard
   isSelected: boolean
@@ -188,7 +187,6 @@ const CreditCardItem: FC<{
 
   return (
     <StyledCard isSelected={isSelected} isSelectable={isSelectable} onClick={handleClick} variant='outlined'>
-      {/* Radio button para seleção */}
       {isSelectable && (
         <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}>
           <Radio
@@ -201,7 +199,6 @@ const CreditCardItem: FC<{
         </Box>
       )}
 
-      {/* Menu de ações */}
       {showActions && (
         <Box
           className='card-actions'
@@ -252,7 +249,6 @@ const CreditCardItem: FC<{
             </Box>
           </Box>
 
-          {/* Bandeira do cartão */}
           <CardBrandIcon brandColor={brandColor}>
             {card.brand === 'visa' && <Box sx={{ fontSize: '16px', fontWeight: 'bold', color: brandColor }}>VISA</Box>}
             {card.brand === 'mastercard' && (
@@ -313,6 +309,17 @@ const CreditCardList: FC<CreditCardListProps> = ({
 
   const { user } = useUserMe()
 
+  const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
+  const creditCardsCount = response?.data?.length || 0
+  const shouldDisableNewCard = isFreePlan && creditCardsCount >= 1
+
+  console.log('🔍 DEBUG - User:', user)
+  console.log('🔍 DEBUG - Plan ID:', user?.plan?.id)
+  console.log('🔍 DEBUG - Is Free Plan:', isFreePlan)
+  console.log('🔍 DEBUG - Credit Cards Count:', creditCardsCount)
+  console.log('🔍 DEBUG - Should Disable:', shouldDisableNewCard)
+  console.log('🔍 DEBUG - Response Data:', response?.data)
+
   // Adaptar dados de forma segura
   const adaptedCards = useAdaptCards(response?.data)
 
@@ -341,13 +348,11 @@ const CreditCardList: FC<CreditCardListProps> = ({
     console.log('🔄 Abrindo modal de criação de cartão')
   }
 
-  // ===== HANDLER PARA FECHAR MODAL =====
   const handleCloseCreateModal = () => {
     setShowCreateModal(false)
     console.log('🔄 Fechando modal de criação de cartão')
   }
 
-  // ===== ESTADOS DE LOADING/ERROR =====
   if (isLoading) {
     return (
       <Box display='flex' justifyContent='center' alignItems='center' minHeight='200px'>
@@ -397,7 +402,6 @@ const CreditCardList: FC<CreditCardListProps> = ({
     )
   }
 
-  // ===== RENDER PRINCIPAL =====
   return (
     <>
       <Box className={'width-full'}>
@@ -410,9 +414,10 @@ const CreditCardList: FC<CreditCardListProps> = ({
             color='success'
             type='submit'
             onClick={handleOpenCreateModal}
+            disabled={shouldDisableNewCard}
             endIcon={<i className='ri-check-line' />}
           >
-            Cadastrar novo cartão
+            {shouldDisableNewCard ? 'Limite atingido (Plano Free)' : 'Cadastrar novo cartão'}
           </Button>
         </Box>
         {adaptedCards.map((card, index) => (

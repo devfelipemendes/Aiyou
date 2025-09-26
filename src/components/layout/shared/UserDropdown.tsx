@@ -142,21 +142,30 @@ const UserDropdown = () => {
                     </div>
                   </div>
                   <Divider className='mlb-1' />
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
+                  <MenuItem
+                    className='gap-3'
+                    onClick={e => {
+                      router.push('/perfil')
+                      handleDropdownClose(e)
+                    }}
+                  >
                     <i className='ri-user-3-line' />
-                    <Typography color='text.primary'>My Profile</Typography>
+                    <Typography color='text.primary'>Meu Perfil</Typography>
                   </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
-                    <i className='ri-settings-4-line' />
-                    <Typography color='text.primary'>Settings</Typography>
-                  </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
+
+                  <MenuItem
+                    className='gap-3'
+                    onClick={e => {
+                      router.push('/financeiro')
+                      handleDropdownClose(e)
+                    }}
+                  >
                     <i className='ri-money-dollar-circle-line' />
-                    <Typography color='text.primary'>Pricing</Typography>
+                    <Typography color='text.primary'>Financeiro</Typography>
                   </MenuItem>
                   <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
                     <i className='ri-question-line' />
-                    <Typography color='text.primary'>FAQ</Typography>
+                    <Typography color='text.primary'>Ajuda</Typography>
                   </MenuItem>
                   <div className='flex items-center plb-2 pli-4'>
                     <Button
@@ -175,7 +184,7 @@ const UserDropdown = () => {
                       onClick={handleUserLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
-                      {isLoggingOut ? 'Saindo...' : 'Logout'}
+                      {isLoggingOut ? 'Saindo...' : 'Sair'}
                     </Button>
                   </div>
                 </MenuList>

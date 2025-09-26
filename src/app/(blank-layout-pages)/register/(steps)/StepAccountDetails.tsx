@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 
 // MUI Imports
+import { useRouter } from 'next/navigation'
+
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
@@ -43,6 +45,8 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
 
   const dispatch = useDispatch()
   const savedAccountDetails = useAppSelector((state: RootState) => selectAccountDetails(state))
+
+  const router = useRouter()
 
   const {
     watch,
@@ -199,7 +203,14 @@ const StepAccountDetails = ({ handleNext }: StepAccountDetailsProps) => {
               )}
             />
           </Grid>
-          <Grid size={{ xs: 12 }} className='flex justify-end'>
+          <Grid size={{ xs: 12 }} className='flex justify-between'>
+            <Button
+              variant='outlined'
+              onClick={() => router.push('/login')}
+              startIcon={<i className='ri-arrow-left-line' />}
+            >
+              Voltar
+            </Button>
             <Button
               variant='contained'
               disabled={!isValid || !isDirty || !passwordsMatch || !watch('confirmePassword')}

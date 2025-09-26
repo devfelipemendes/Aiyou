@@ -85,6 +85,12 @@ const CreditCardSchema = v.object({
     v.maxLength(50, 'Máximo 50 caracteres'),
     v.regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Apenas letras e espaços')
   ),
+  nameCard: v.pipe(
+    v.string('Nome é obrigatório'),
+    v.minLength(2, 'Mínimo 2 caracteres'),
+    v.maxLength(50, 'Máximo 50 caracteres'),
+    v.regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Apenas letras e espaços')
+  ),
   expiryDate: v.pipe(
     v.string('Data de expiração é obrigatória'),
     v.regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Formato MM/AA'),
@@ -113,6 +119,7 @@ export const useCreditCardForm = () => {
     mode: 'onChange',
     defaultValues: {
       cardNumber: '',
+      nameCard: '',
       plan: 'basic',
       nameOnCard: '',
       expiryDate: '',

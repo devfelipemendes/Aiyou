@@ -1,5 +1,6 @@
-// CreditCard.tsx - Componente principal com ConfirmDialog
 import React, { useState, useCallback } from 'react'
+
+import Image from 'next/image'
 
 import { Box, Button } from '@mui/material'
 import { toast } from 'react-toastify'
@@ -16,28 +17,57 @@ import {
   type CreditCardListItem
 } from '@/api/endpoints/creditcard/creditcard'
 import type { CreditCardFormData } from '@/hooks/useCreditCardForm'
-import { useCreateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import { useUserMe } from '@/hooks/useUserMe'
+import { FirstModulePresentation } from './FirstModulePresentation'
 
-const CreditCard: React.FC = () => {
+interface CreditCardProps {
+  selectedPlanId: string
+  onPlanSuccess?: () => void
+}
+
+const CreditCard: React.FC<CreditCardProps> = ({ selectedPlanId, onPlanSuccess }) => {
   const [selectedCardId, setSelectedCardId] = useState<string>('1')
   const [cardToDelete, setCardToDelete] = useState<CreditCardListItem | null>(null)
 
-  // RTK Query hooks
-
+  const { user, userPlanId } = useUserMe()
   const [createCreditCard, { isLoading: isCreating }] = useCreateCreditCardMutation()
   const [updateCreditCard] = useUpdateCreditCardMutation()
   const [deleteCreditCard] = useDeleteCreditCardMutation()
 
   const [createUserPlan, { isLoading }] = useCreateUserPlanMutation()
+  const [updateUserPlan, { isLoading: isUpdating }] = useUpdateUserPlanMutation()
+
+  const [showInstructiveModal, setShowInstructiveModal] = useState<boolean>(false)
+
+  const instructiveSteps = [
+    {
+      title: 'Sua solicitação aquisição de plano está aguardando pagamento',
+      description:
+        'Tudo certo! Em breve você receberá por e-mail a confirmação da sua assinatura com cobrança recorrente.',
+      icon: (
+        <Image
+          src='/images/illustrations/characters/13.png'
+          alt='Email Sent'
+          width={100}
+          height={300}
+          style={{
+            objectFit: 'cover',
+            width: '100%',
+            height: '100%'
+          }}
+        />
+      ),
+      information: 'info' as const
+    }
+  ]
 
   const { data: creditCards } = useGetCreditCardsQuery(undefined, {
     skip: false
   })
 
-  // Hook do ConfirmDialog
   const confirmDialog = useConfirmDialog()
 
-  // ===== HANDLERS =====
   const handleSubmitCard = useCallback(
     async (data: CreditCardFormData) => {
       try {
@@ -45,9 +75,9 @@ const CreditCard: React.FC = () => {
         const cardBrand = getCardBrand(cardNumber) // Detectar bandeira
 
         await createCreditCard({
-          user_id: 'current_user', // Substituir pela lógica de autenticação
+          user_id: 'current_user',
           name: data.nameOnCard,
-          card_name: `Cartão ${data.plan.toUpperCase()}`,
+          card_name: data.nameCard,
           security_code: data.cvv,
           card_number: data.cardNumber.replace(/\D/g, ''),
           date: data.expiryDate,
@@ -65,15 +95,35 @@ const CreditCard: React.FC = () => {
     [createCreditCard]
   )
 
-  const handleCreatePlan = async (planId: string) => {
+  const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
+
+  const handleCreatePlan = async () => {
     try {
-      await createUserPlan({
-        plan_id: planId,
-        subscription: true
-      }).unwrap()
+      if (isFreePlan) {
+        await createUserPlan({
+          plan_id: selectedPlanId,
+          subscription: true
+        }).unwrap()
+      } else {
+        if (!selectedCardId) {
+          toast.error('Selecione um cartão de pagamento!')
+
+          return
+        }
+
+        await updateUserPlan({
+          id: userPlanId || '',
+          plan_id: selectedPlanId,
+          card_id: selectedCardId,
+          subscription: true
+        }).unwrap()
+
+        toast.success('Plano atualizado com sucesso!')
+      }
+
+      setShowInstructiveModal(true)
     } catch (error) {
-      console.error('Erro ao criar plano:', error)
-      toast.error('Erro ao criar plano. Tente novamente.')
+      console.error('Erro ao processar plano:', error)
     }
   }
 
@@ -140,6 +190,24 @@ const CreditCard: React.FC = () => {
     confirmDialog.closeDialog()
   }
 
+  const handleCloseInstructiveModal = () => {
+    setShowInstructiveModal(false)
+  }
+
+  const handleCompleteInstructions = () => {
+    console.log('Tutorial de boas-vindas concluído!')
+    setShowInstructiveModal(false)
+  }
+
+  const handleFinalizeInstructions = () => {
+    console.log('Instruções finalizadas!')
+    setShowInstructiveModal(false)
+
+    if (onPlanSuccess) {
+      onPlanSuccess()
+    }
+  }
+
   return (
     <>
       <Box className='w-full flex flex-col gap-6'>
@@ -155,24 +223,24 @@ const CreditCard: React.FC = () => {
               selectedCardId={selectedCardId}
               onCardSelect={handleCardSelect}
               onCardEdit={handleUpdateCard}
-              onCardDelete={handleDeleteCard} // Agora usa o ConfirmDialog
+              onCardDelete={handleDeleteCard}
               selectable={true}
               showActions={true}
               className='w-full'
             />
           </Box>
         )}
+
         <Button
           variant='contained'
           size='medium'
-          onClick={() => handleCreatePlan(selectedCardId)}
-          disabled={!selectedCardId || isLoading}
+          onClick={handleCreatePlan}
+          disabled={!selectedPlanId || isLoading || isUpdating || (!isFreePlan && !selectedCardId)}
         >
-          Finalizar Compra
+          {isLoading || isUpdating ? 'Processando...' : 'Finalizar Compra'}
         </Button>
       </Box>
 
-      {/* Dialog de Confirmação de Exclusão */}
       <ConfirmDialog
         open={confirmDialog.open}
         loading={confirmDialog.loading}
@@ -189,6 +257,16 @@ const CreditCard: React.FC = () => {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         icon={<i className='ri-bank-card-line' style={{ fontSize: '48px', color: '#d32f2f' }} />}
+      />
+      <FirstModulePresentation
+        open={showInstructiveModal}
+        steps={instructiveSteps}
+        onComplete={handleCompleteInstructions}
+        onFinaly={handleFinalizeInstructions}
+        onClose={handleCloseInstructiveModal}
+        size='large'
+        variant='default'
+        allowCloseOnlyAtEnd={true}
       />
     </>
   )

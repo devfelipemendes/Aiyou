@@ -1,213 +1,395 @@
-// MUI Imports
+// file: src/views/invoice/preview/PreviewCard.tsx
+'use client'
+
+import { useParams } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid2'
-import Divider from '@mui/material/Divider'
+import CircularProgress from '@mui/material/CircularProgress'
+import Alert from '@mui/material/Alert'
+import { Box, Button, IconButton, Tooltip } from '@mui/material'
+import { QRCodeSVG } from 'qrcode.react'
+import Barcode from 'react-barcode'
 
-// Type Imports
-
-// Component Imports
-import Logo from '@components/layout/shared/Logo'
-
-// Style Imports
 import tableStyles from '@core/styles/table.module.css'
 import './print.css'
-import type { InvoiceType } from '@/types/invoiceTypes'
+import { useBuildInvoiceQuery } from '@/api/endpoints/invoices/buildInvoice'
+import { useCopyToClipboard } from '@/utils/copyToClipbard'
+import { usePrintToPDF } from '@/hooks/usePrintToPDFOptions'
 
-// Vars
-const data = [
-  {
-    Item: 'Premium Branding Package',
-    Description: 'Branding & Promotion',
-    Hours: 48,
-    Qty: 1,
-    Total: '$32'
-  },
-  {
-    Item: 'Social Media',
-    Description: 'Social media templates',
-    Hours: 42,
-    Qty: 1,
-    Total: '$28'
-  },
-  {
-    Item: 'Web Design',
-    Description: 'Web designing package',
-    Hours: 46,
-    Qty: 1,
-    Total: '$24'
-  },
-  {
-    Item: 'SEO',
-    Description: 'Search engine optimization',
-    Hours: 40,
-    Qty: 1,
-    Total: '$22'
+const PreviewCard = () => {
+  const params = useParams()
+
+  const { isCopied, copyText } = useCopyToClipboard({
+    successDuration: 2500,
+    customToastMessage: 'Código PIX copiado!',
+    onSuccess: text => console.log('PIX copiado:', text.length, 'caracteres'),
+    onError: error => console.error('Erro copy PIX:', error)
+  })
+
+  const paymentId = params?.id as string
+
+  const {
+    data: invoiceResponse,
+    isLoading,
+    error
+  } = useBuildInvoiceQuery(paymentId, {
+    skip: !paymentId
+  })
+
+  const invoice = invoiceResponse?.data
+
+  const { isGenerating, generatePDF } = usePrintToPDF({
+    filename: `fatura_${invoice?.invoiceNumber || 'documento'}.pdf`,
+    onSuccess: filename => console.log('PDF gerado:', filename),
+    onError: error => console.error('Erro PDF:', error)
+  })
+
+  const handleDownloadBoleto = () => {
+    generatePDF('previewCard') // ID do elemento que queremos converter
   }
-]
 
-const PreviewCard = ({ invoiceData, id }: { invoiceData?: InvoiceType; id: string }) => {
+  if (!paymentId) {
+    return <Alert severity='error'>ID do pagamento não fornecido na URL</Alert>
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className='flex justify-center items-center py-12'>
+          <CircularProgress />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return <Alert severity='error'>Erro ao carregar dados da fatura. Tente novamente.</Alert>
+  }
+
+  if (!invoice) {
+    return <Alert severity='warning'>Dados da fatura não encontrados</Alert>
+  }
+
   return (
-    <Card className='previewCard'>
+    <Card className='previewCard w-full' id='previewCard'>
       <CardContent className='sm:!p-12'>
         <Grid container spacing={6}>
           <Grid size={{ xs: 12 }}>
-            <div className='p-6 bg-actionHover rounded'>
-              <div className='flex justify-between gap-y-4 flex-col sm:flex-row'>
-                <div className='flex flex-col gap-6'>
-                  <div className='flex items-center'>
-                    <Logo />
-                  </div>
-                  <div>
-                    <Typography color='text.primary'>Office 149, 450 South Brand Brooklyn</Typography>
-                    <Typography color='text.primary'>San Diego County, CA 91905, USA</Typography>
-                    <Typography color='text.primary'>+1 (123) 456 7891, +44 (876) 543 2198</Typography>
-                  </div>
-                </div>
-                <div className='flex flex-col gap-6'>
-                  <Typography variant='h5'>{`Invoice #${id}`}</Typography>
-                  <div className='flex flex-col gap-1'>
-                    <Typography color='text.primary'>{`Date Issued: ${invoiceData?.issuedDate}`}</Typography>
-                    <Typography color='text.primary'>{`Date Due: ${invoiceData?.dueDate}`}</Typography>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Box className='flex flex-col gap-6 items-center justify-center'>
+              <Box className='flex items-center py-5'>
+                <Image
+                  src='/images/LogoAiyou/LogoAiyou.svg'
+                  alt='Logo AIYOU'
+                  width={150}
+                  height={150}
+                  priority // Força carregamento prioritário
+                  style={{
+                    maxWidth: '150px',
+                    height: 'auto',
+                    display: 'block'
+                  }}
+                  onLoad={() => console.log('Logo carregada')}
+                  onError={() => console.log('Erro ao carregar logo')}
+                />
+              </Box>
+              <Box className='p-6 bg-actionHover rounded w-full'>
+                <Box className='flex justify-between gap-y-4 flex-col sm:flex-row'>
+                  <Box className='flex flex-col gap-6'>
+                    <Box>
+                      <Typography color='text.primary'>
+                        Emitido por: <strong>{invoice.nomeempresa}</strong>
+                      </Typography>
+                      <Typography color='text.primary'>Localidade: Brasil</Typography>
+                      {invoice.email_aiyou ? (
+                        <Link
+                          href={`mailto:${invoice.email_aiyou}`}
+                          target='_blank'
+                          style={{ color: 'inherit', textDecoration: 'none' }}
+                        >
+                          <Typography color='text.primary'>Email: {invoice.email_aiyou}</Typography>
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`mailto:noreply@aiyou.com.br`}
+                          target='_blank'
+                          style={{ color: 'inherit', textDecoration: 'none' }}
+                        >
+                          <Typography color='text.primary'> Email: noreply@aiyou.com.br</Typography>
+                        </Link>
+                      )}
+                    </Box>
+                  </Box>
+                  <Box className='flex flex-col gap-1'>
+                    <Typography variant='h5'>{`Nº # ${invoice.invoiceNumber}`}</Typography>
+                    <Box className='flex flex-col gap-1'>
+                      <Typography color='text.primary'>
+                        Vencimento: {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
+                      </Typography>
+                      <Typography color='text.primary'>
+                        Status: {invoice.status === 'RECEIVED' ? 'PAGO' : 'PENDENTE'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
           </Grid>
+
           <Grid size={{ xs: 12 }}>
             <Grid container spacing={6}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <div className='flex flex-col gap-4'>
+                <Box className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
-                    Invoice To:
+                    Destinada Para:
                   </Typography>
-                  <div>
-                    <Typography>{invoiceData?.name}</Typography>
-                    <Typography>{invoiceData?.company}</Typography>
-                    <Typography>{invoiceData?.address}</Typography>
-                    <Typography>{invoiceData?.contact}</Typography>
-                    <Typography>{invoiceData?.companyEmail}</Typography>
-                  </div>
-                </div>
+                  <Box>
+                    <Typography>Nome: {invoice.nome}</Typography>
+                    <Typography>CPF: {invoice.cpf}</Typography>
+                    <Typography>E-mail: {invoice.email}</Typography>
+                  </Box>
+                </Box>
               </Grid>
+
               <Grid size={{ xs: 12, sm: 6 }}>
-                <div className='flex flex-col gap-4'>
+                <Box className='flex flex-col gap-4'>
                   <Typography className='font-medium' color='text.primary'>
-                    Bill To:
+                    Informações de Pagamento:
                   </Typography>
-                  <div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Total Due:</Typography>
-                      <Typography>$12,110.55</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Bank name:</Typography>
-                      <Typography>American Bank</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>Country:</Typography>
-                      <Typography>United States</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>IBAN:</Typography>
-                      <Typography>ETD95476213874685</Typography>
-                    </div>
-                    <div className='flex items-center gap-4'>
-                      <Typography className='min-is-[100px]'>SWIFT code:</Typography>
-                      <Typography>BR91905</Typography>
-                    </div>
-                  </div>
-                </div>
+                  <Box>
+                    <Box className='flex items-center gap-4'>
+                      <Typography className='min-is-[120px]'>Valor Total:</Typography>
+                      <Typography>R$ {invoice.planvalue}</Typography>
+                    </Box>
+                    {invoice.codigoboleto && (
+                      <Box className='flex items-center gap-4'>
+                        <Typography className='min-is-[120px]'>Cód. Boleto:</Typography>
+                        <Typography className='font-mono text-sm'>{invoice.codigoboleto}</Typography>
+                      </Box>
+                    )}
+                    {invoice.barcode && (
+                      <Box className='flex items-center gap-4'>
+                        <Typography className='min-is-[120px]'>Código Barras:</Typography>
+                        <Typography className='font-mono text-sm'>{invoice.barcode}</Typography>
+                      </Box>
+                    )}
+                    {invoice.link && (
+                      <Box className='flex items-center gap-4'>
+                        <Typography className='min-is-[120px]'>Boleto PDF:</Typography>
+                        <Button
+                          variant='contained'
+                          size='small'
+                          onClick={handleDownloadBoleto}
+                          disabled={isGenerating}
+                          startIcon={
+                            isGenerating ? (
+                              <i className='ri-loader-4-line animate-spin' />
+                            ) : (
+                              <i className='ri-download-line' />
+                            )
+                          }
+                        >
+                          {isGenerating ? 'Gerando PDF...' : 'Baixar PDF'}
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
               </Grid>
             </Grid>
           </Grid>
+
           <Grid size={{ xs: 12 }}>
-            <div className='overflow-x-auto border rounded'>
+            <Box className='overflow-x-auto border rounded'>
               <table className={tableStyles.table}>
                 <thead>
                   <tr className='border-be'>
-                    <th className='!bg-transparent'>Item</th>
-                    <th className='!bg-transparent'>Description</th>
-                    <th className='!bg-transparent'>Hours</th>
-                    <th className='!bg-transparent'>Qty</th>
+                    <th className='!bg-transparent'>Descrição</th>
+                    <th className='!bg-transparent'>Plano</th>
+                    <th className='!bg-transparent'>Quantidade</th>
+                    <th className='!bg-transparent'>Valor Unitário</th>
                     <th className='!bg-transparent'>Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        <Typography color='text.primary'>{item.Item}</Typography>
-                      </td>
-                      <td>
-                        <Typography color='text.primary'>{item.Description}</Typography>
-                      </td>
-                      <td>
-                        <Typography color='text.primary'>{item.Hours}</Typography>
-                      </td>
-                      <td>
-                        <Typography color='text.primary'>{item.Qty}</Typography>
-                      </td>
-                      <td>
-                        <Typography color='text.primary'>{item.Total}</Typography>
-                      </td>
-                    </tr>
-                  ))}
+                  <tr>
+                    <td>
+                      <Typography color='text.primary'>{invoice.description}</Typography>
+                    </td>
+                    <td>
+                      <Typography color='text.primary'>{invoice.plan}</Typography>
+                    </td>
+                    <td>
+                      <Typography color='text.primary'>1</Typography>
+                    </td>
+                    <td>
+                      <Typography color='text.primary'>R$ {invoice.planvalue}</Typography>
+                    </td>
+                    <td>
+                      <Typography color='text.primary'>R$ {invoice.planvalue}</Typography>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
-            </div>
+            </Box>
           </Grid>
+
+          {/* SEÇÃO QR CODE E CÓDIGO DE BARRAS */}
           <Grid size={{ xs: 12 }}>
-            <div className='flex justify-between flex-col gap-y-4 sm:flex-row'>
-              <div className='flex flex-col gap-1 order-2 sm:order-[unset]'>
-                <div className='flex items-center gap-2'>
+            <Grid container spacing={6}>
+              {/* QR CODE PIX */}
+
+              {/* CÓDIGO DE BARRAS BOLETO */}
+              {invoice.barcode && (
+                <Grid size={{ xs: 12 }}>
+                  <Grid container spacing={6} className='justify-center'>
+                    <Grid
+                      size={{ xs: 12, md: 12, lg: 6, sm: 12, xl: 6 }}
+                      className='flex  gap-4 justify-between p-4  rounded '
+                    >
+                      <Box className='flex flex-col gap-4 items-center'>
+                        <Typography variant='h6' className='font-medium' color='text.primary'>
+                          PIX - QR Code
+                        </Typography>
+                        <QRCodeSVG value={invoice.payload} size={150} bgColor='#ffffff' fgColor='#000000' level='L' />
+                        <Typography variant='body2' color='text.secondary' className='text-center'>
+                          Escaneie o código QR para pagamento via PIX
+                        </Typography>
+                        <Box className='flex flex-col items-center w-full'>
+                          <Box className='flex items-center gap-2 mb-2'>
+                            <Typography variant='h6' className='font-medium'>
+                              Código Copia e Cola:
+                            </Typography>
+                            <Tooltip title={isCopied ? 'Copiado!' : 'Copiar código PIX'}>
+                              <IconButton
+                                onClick={() => copyText(invoice.payload)}
+                                size='small'
+                                color={isCopied ? 'success' : 'primary'}
+                                disabled={isLoading}
+                              >
+                                {isLoading ? (
+                                  <i className='ri-loader-4-line animate-spin' style={{ fontSize: '16px' }} />
+                                ) : isCopied ? (
+                                  <i className='ri-check-line' style={{ fontSize: '16px' }} />
+                                ) : (
+                                  <i className='ri-file-copy-line' style={{ fontSize: '16px' }} />
+                                )}
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                          <Box
+                            className='w-full max-w-[100%]'
+                            sx={{
+                              wordBreak: 'break-all',
+                              overflowWrap: 'break-word',
+                              overflow: 'hidden',
+                              lineHeight: 1.2,
+                              maxHeight: '80px'
+                            }}
+                          >
+                            <Typography
+                              variant='caption'
+                              sx={{
+                                wordBreak: 'break-all',
+                                overflowWrap: 'break-word',
+                                textAlign: 'center'
+                              }}
+                            >
+                              {invoice.payload}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </Grid>
+                    <Grid
+                      size={{ xs: 12, md: 6, lg: 6, sm: 6, xl: 6 }}
+                      className='flex flex-col gap-4 items-center p-4 '
+                    >
+                      <Typography variant='h6' className='font-medium' color='text.primary'>
+                        Boleto - Código de Barras
+                      </Typography>
+                      <Box className='overflow-x-auto'>
+                        <Barcode
+                          value={invoice.barcode}
+                          format='CODE128'
+                          width={2}
+                          height={60}
+                          displayValue={true}
+                          fontSize={12}
+                          textAlign='center'
+                          textPosition='bottom'
+                          background='#ffffff'
+                          lineColor='#000000'
+                        />
+                      </Box>
+                      <Typography variant='body2' color='text.secondary' className='text-center'>
+                        Use este código para pagamento via boleto bancário
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Grid>
+              )}
+              {invoice.payload && <Grid size={{ xs: 12 }}></Grid>}
+            </Grid>
+          </Grid>
+
+          <Grid size={{ xs: 12 }}>
+            <Box className='flex justify-between flex-col gap-y-4 sm:flex-row'>
+              <Box className='flex flex-col gap-1 order-2 sm:order-[unset]'>
+                <Box className='flex items-center gap-2'>
                   <Typography className='font-medium' color='text.primary'>
-                    Salesperson:
+                    ID Pagamento:
                   </Typography>
-                  <Typography>Tommy Shelby</Typography>
-                </div>
-                <Typography>Thanks for your business</Typography>
-              </div>
-              <div className='min-is-[200px]'>
-                <div className='flex items-center justify-between'>
+                  <Typography>{invoice.id}</Typography>
+                </Box>
+                <Typography>Obrigado por escolher nossos serviços!</Typography>
+              </Box>
+
+              <Box className='min-is-[200px]'>
+                <Box className='flex items-center justify-between'>
                   <Typography>Subtotal:</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    $1800
+                    R$ {invoice.planvalue}
                   </Typography>
-                </div>
-                <div className='flex items-center justify-between'>
-                  <Typography>Discount:</Typography>
+                </Box>
+                <Box className='flex items-center justify-between'>
+                  <Typography>Desconto:</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    $28
+                    R$ 0,00
                   </Typography>
-                </div>
-                <div className='flex items-center justify-between'>
-                  <Typography>Tax:</Typography>
+                </Box>
+                <Box className='flex items-center justify-between'>
+                  <Typography>Taxa:</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    21%
+                    0%
                   </Typography>
-                </div>
-                <Divider className='mlb-2' />
-                <div className='flex items-center justify-between'>
+                </Box>
+                <Box className='mlb-2' />
+                <Box className='flex items-center justify-between'>
                   <Typography>Total:</Typography>
                   <Typography className='font-medium' color='text.primary'>
-                    $1690
+                    R$ {invoice.planvalue}
                   </Typography>
-                </div>
-              </div>
-            </div>
+                </Box>
+              </Box>
+            </Box>
           </Grid>
+
           <Grid size={{ xs: 12 }}>
-            <Divider className='border-dashed' />
+            <Box className='border-dashed' />
           </Grid>
+
           <Grid size={{ xs: 12 }}>
             <Typography>
               <Typography component='span' className='font-medium' color='text.primary'>
-                Note:
+                Observação:
               </Typography>{' '}
-              It was a pleasure working with you and your team. We hope you will keep us in mind for future freelance
-              projects. Thank You!
+              Esta fatura foi gerada automaticamente. Em caso de dúvidas, entre em contato conosco. Agradecemos pela
+              preferência!
             </Typography>
           </Grid>
         </Grid>

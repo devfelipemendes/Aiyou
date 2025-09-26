@@ -27,9 +27,9 @@ export type CustomerInvoice = {
   customer: string
   checkoutSession: string | null
   paymentLink: string | null
-  value: number
-  netValue: number
-  originalValue: number | null
+  value: string // Mudança: agora é string
+  netValue: string // Mudança: agora é string
+  originalValue?: number | null
   interestValue: number | null
   description: string
   billingType: 'UNDEFINED' | 'BOLETO' | 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD'
@@ -51,45 +51,37 @@ export type CustomerInvoice = {
     | 'DUNNING_REQUESTED'
     | 'DUNNING_RECEIVED'
     | 'AWAITING_RISK_ANALYSIS'
+    | ''
   dueDate: string
-  originalDueDate: string
+  originalDueDate?: string
   paymentDate: string | null
   clientPaymentDate: string | null
   installmentNumber: number | null
   invoiceUrl: string
   invoiceNumber: string
-  externalReference: string
-  deleted: boolean
-  anticipated: boolean
-  anticipable: boolean
-  creditDate: string | null
-  estimatedCreditDate: string | null
+  externalReference?: string
+  deleted?: boolean
+  anticipated?: boolean
+  anticipable?: boolean
+  creditDate?: string | null
+  estimatedCreditDate?: string | null
   transactionReceiptUrl: string | null
-  nossoNumero: string
-  bankSlipUrl: string
+  nossoNumero?: string
+  bankSlipUrl?: string
   lastInvoiceViewedDate: string | null
   lastBankSlipViewedDate: string | null
-  discount: Discount
-  fine: Fine
-  interest: Interest
-  postalService: boolean
-  escrow: any | null
-  refunds: any | null
-}
-
-export type CustomerInvoicesData = {
-  object: 'list'
-  hasMore: boolean
-  totalCount: number
-  limit: number
-  offset: number
-  data: CustomerInvoice[]
+  discount?: Discount
+  fine?: Fine
+  interest?: Interest
+  postalService?: boolean
+  escrow?: any | null
+  refunds?: any | null
 }
 
 export type GetCustomerInvoicesResponse = {
   message: string
   status: number
-  data: CustomerInvoicesData
+  data: CustomerInvoice[]
 }
 
 export type CustomerInvoicesParams = {
@@ -134,16 +126,13 @@ export const customerInvoicesApi = apiSlice.injectEndpoints({
       transformResponse: (response: GetCustomerInvoicesResponse) => {
         console.log('🔍 DEBUG - Estrutura da resposta GET /listCustomerInvoices:', response)
 
-        const { data } = response.data
+        const { data } = response
         const totalInvoices = data.length
         const pendingInvoices = data.filter(invoice => invoice.status === 'PENDING').length
         const receivedInvoices = data.filter(invoice => invoice.status === 'RECEIVED').length
-        const totalValue = data.reduce((acc, invoice) => acc + invoice.value, 0)
 
         console.log('✅ Faturas carregadas:', totalInvoices)
         console.log('📊 Status: Pendentes:', pendingInvoices, '| Recebidas:', receivedInvoices)
-        console.log('💰 Valor total:', `R$ ${(totalValue / 100).toFixed(2)}`)
-        console.log('📈 Paginação: Total:', response.data.totalCount, '| Limite:', response.data.limit)
 
         return response
       },
@@ -156,9 +145,9 @@ export const customerInvoicesApi = apiSlice.injectEndpoints({
       },
 
       providesTags: result =>
-        result?.data?.data
+        result?.data
           ? [
-              ...result.data.data.map(({ id }) => ({ type: 'CustomerInvoice' as const, id })),
+              ...result.data.map(({ id }) => ({ type: 'CustomerInvoice' as const, id })),
               { type: 'CustomerInvoice', id: 'LIST' }
             ]
           : [{ type: 'CustomerInvoice', id: 'LIST' }],
@@ -181,15 +170,8 @@ export const selectCustomerInvoicesData = createSelector(
 
 export const selectCustomerInvoicesList = createSelector(
   [selectCustomerInvoicesData],
-  invoicesData => invoicesData?.data || []
+  invoicesData => invoicesData || []
 )
-
-export const selectCustomerInvoicesPagination = createSelector([selectCustomerInvoicesData], invoicesData => ({
-  hasMore: invoicesData?.hasMore || false,
-  totalCount: invoicesData?.totalCount || 0,
-  limit: invoicesData?.limit || 100,
-  offset: invoicesData?.offset || 0
-}))
 
 export const selectPendingInvoices = createSelector([selectCustomerInvoicesList], invoices =>
   invoices.filter(invoice => invoice.status === 'PENDING')
@@ -206,22 +188,23 @@ export const selectOverdueInvoices = createSelector([selectCustomerInvoicesList]
 })
 
 export const selectTotalInvoicesValue = createSelector([selectCustomerInvoicesList], invoices =>
-  invoices.reduce((acc, invoice) => acc + invoice.value, 0)
+  invoices.reduce((acc, invoice) => acc + parseFloat(invoice.value || '0'), 0)
 )
 
 export const selectPendingInvoicesValue = createSelector([selectPendingInvoices], pendingInvoices =>
-  pendingInvoices.reduce((acc, invoice) => acc + invoice.value, 0)
+  pendingInvoices.reduce((acc, invoice) => acc + parseFloat(invoice.value || '0'), 0)
 )
 
 export const selectReceivedInvoicesValue = createSelector([selectReceivedInvoices], receivedInvoices =>
-  receivedInvoices.reduce((acc, invoice) => acc + invoice.value, 0)
+  receivedInvoices.reduce((acc, invoice) => acc + parseFloat(invoice.value || '0'), 0)
 )
 
-export const formatCurrency = (valueInCents: number): string => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
-  }).format(valueInCents / 100)
+export const getInvoiceValueAsNumber = (invoice: CustomerInvoice): number => {
+  return parseFloat(invoice.value || '0')
+}
+
+export const getNetValueAsNumber = (invoice: CustomerInvoice): number => {
+  return parseFloat(invoice.netValue || '0')
 }
 
 export const formatDate = (dateString: string): string => {

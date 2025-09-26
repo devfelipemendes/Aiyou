@@ -22,6 +22,9 @@ import AvailableSoon from '@/components/AvailableSoon'
 import { useGetActivitiesQuery } from '@/api/endpoints/activity/activity'
 import FirstAccessModal from '@/components/dialogs/firstAccess'
 import { useUserMe } from '@/hooks/useUserMe'
+import { useAppDispatch, useAppSelector } from '@/redux-store'
+import { selectFirstAccess } from '@/api/endpoints/authUser/me'
+import { openModal, setFirstAccess } from '@/redux-store/slices/firstAccessSlice'
 import EstatisticsDash from './EstatisticsDash'
 import { useGetStatisticsQuery } from '@/api/endpoints/statistics/statistics'
 
@@ -36,8 +39,6 @@ export type DataTypeEstatisticsDash = {
 }
 
 const DashboardCRM = () => {
-  const { firstAccess } = useUserMe()
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data, error, isLoading: isLoadingStatistics, isFetching } = useGetStatisticsQuery({})
   const [totalText, setTotalText] = useState<string>('0')
@@ -113,6 +114,24 @@ const DashboardCRM = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataInteractions])
 
+  const { firstAccess } = useUserMe()
+  const dispatch = useAppDispatch()
+
+  console.log('First Access: do hook', firstAccess)
+
+  const apiFirstAccess = useAppSelector(selectFirstAccess)
+
+  useEffect(() => {
+    if (apiFirstAccess === true) {
+      dispatch(setFirstAccess(true))
+      dispatch(openModal())
+    }
+
+    if (apiFirstAccess === false) {
+      dispatch(setFirstAccess(false))
+    }
+  }, [apiFirstAccess, dispatch])
+
   return (
     <>
       <Grid container spacing={6}>
@@ -171,11 +190,10 @@ const DashboardCRM = () => {
           <MeetingSchedule />
         </Grid>
         <Grid className='relative' size={{ xs: 12, sm: 6, lg: 6 }}>
-          <AvailableSoon />
           <UpgradePlan />
         </Grid>
       </Grid>
-      {firstAccess && <FirstAccessModal />}
+      <FirstAccessModal />
     </>
   )
 }

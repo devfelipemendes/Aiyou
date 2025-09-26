@@ -1,4 +1,6 @@
 // src/api/endpoints/Projects/project.ts
+import { toast } from 'react-toastify'
+
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 // 🎯 TIPOS PARA O REQUEST DE CRIAÇÃO
@@ -79,7 +81,7 @@ type ProjectError = {
 // 🎯 API ENDPOINTS
 export const projectApi = apiSlice.injectEndpoints({
   endpoints: builder => ({
-    // 🎯 NOVO ENDPOINT - GET PROJECTS (listagem)
+    // 🎯 GET PROJECTS (listagem)
     getProjects: builder.query<GetProjectsResponse, void>({
       query: () => ({
         url: '/project',
@@ -95,15 +97,38 @@ export const projectApi = apiSlice.injectEndpoints({
 
         console.log('✅ Projetos carregados:', count, count === 1 ? 'projeto' : 'projetos')
 
+        // Toast de sucesso apenas quando há projetos ou é a primeira vez carregando
+        if (count > 0) {
+          toast.success(`${count} ${count === 1 ? 'projeto carregado' : 'projetos carregados'} com sucesso!`, {
+            position: 'top-right',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+          })
+        }
+
         return response
       },
 
       transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao carregar projetos:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao carregar projetos'
+
+        toast.error(`Erro ao carregar projetos: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao carregar projetos'
+          message: errorMessage
         }
       },
 
@@ -113,7 +138,7 @@ export const projectApi = apiSlice.injectEndpoints({
           : [{ type: 'Project', id: 'LIST' }]
     }),
 
-    // 🎯 NOVO ENDPOINT - GET PROJECT BY ID
+    // 🎯 GET PROJECT BY ID
     getProjectById: builder.query<GetProjectByIdResponse, string>({
       query: id => ({
         url: `/project/${id}`,
@@ -126,22 +151,43 @@ export const projectApi = apiSlice.injectEndpoints({
       transformResponse: (response: GetProjectByIdResponse) => {
         console.log('🔍 Projeto carregado pelo ID:', response)
 
+        // Toast de sucesso para projeto específico
+        toast.success(`Projeto "${response.data.name}" carregado com sucesso!`, {
+          position: 'top-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return response
       },
 
       transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao buscar projeto pelo ID:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao buscar projeto'
+
+        toast.error(`Erro ao carregar projeto: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao buscar projeto'
+          message: errorMessage
         }
       },
 
       providesTags: (result, error, id) => [{ type: 'Project', id }]
     }),
 
-    // 🎯 ENDPOINT EXISTENTE - CREATE PROJECT
+    // 🎯 CREATE PROJECT
     createProject: builder.mutation<CreateProjectResponse, CreateProjectRequest>({
       query: projectData => {
         if (projectData.image) {
@@ -177,22 +223,43 @@ export const projectApi = apiSlice.injectEndpoints({
         console.log('🔍 DEBUG - Estrutura da resposta CREATE:', response)
         console.log('✅ Projeto criado com sucesso:', response?.data?.name || '')
 
+        // Toast de sucesso para criação
+        toast.success(`🎉 Projeto "${response.data.name}" criado com sucesso!`, {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return response
       },
 
       transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao criar projeto:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao criar projeto'
+
+        toast.error(`❌ Erro ao criar projeto: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao criar projeto'
+          message: errorMessage
         }
       },
 
       invalidatesTags: [{ type: 'Project', id: 'LIST' }]
     }),
 
-    // 🎯 ENDPOINT EXISTENTE - UPDATE PROJECT
+    // 🎯 UPDATE PROJECT
     updateProject: builder.mutation<UpdateProjectResponse, UpdateProjectRequest>({
       query: ({ id, ...projectData }) => {
         if (projectData.image) {
@@ -231,15 +298,36 @@ export const projectApi = apiSlice.injectEndpoints({
         console.log('🔍 DEBUG - Estrutura da resposta UPDATE:', response)
         console.log('✅ Projeto atualizado com sucesso:', response?.data?.name || '')
 
+        // Toast de sucesso para atualização
+        toast.success(`✏️ Projeto "${response.data.name}" atualizado com sucesso!`, {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return response
       },
 
       transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao atualizar projeto:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao atualizar projeto'
+
+        toast.error(`❌ Erro ao atualizar projeto: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao atualizar projeto'
+          message: errorMessage
         }
       },
 
@@ -249,7 +337,7 @@ export const projectApi = apiSlice.injectEndpoints({
       ]
     }),
 
-    // 🎯 NOVO ENDPOINT - DELETE PROJECT
+    // 🎯 DELETE PROJECT
     deleteProject: builder.mutation<DeleteProjectResponse, DeleteProjectRequest>({
       query: ({ id }) => ({
         url: `/project/${id}`,
@@ -263,15 +351,36 @@ export const projectApi = apiSlice.injectEndpoints({
         console.log('🔍 DEBUG - Estrutura da resposta DELETE:', response)
         console.log('✅ Projeto deletado com sucesso!')
 
+        // Toast de sucesso para exclusão
+        toast.success(`🗑️ Projeto deletado com sucesso!`, {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return response
       },
 
       transformErrorResponse: (response: any): ProjectError => {
         console.error('❌ Erro ao deletar projeto:', response)
 
+        const errorMessage = response?.data?.message || response?.message || 'Erro ao deletar projeto'
+
+        toast.error(`❌ Erro ao deletar projeto: ${errorMessage}`, {
+          position: 'top-right',
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
+        })
+
         return {
           status: response.status || 500,
-          message: response?.data?.message || response?.message || 'Erro ao deletar projeto'
+          message: errorMessage
         }
       },
 
@@ -286,7 +395,7 @@ export const projectApi = apiSlice.injectEndpoints({
 // 🎯 EXPORT DOS HOOKS
 export const {
   useGetProjectsQuery,
-  useGetProjectByIdQuery, // 🆕 Hook para GET por ID
+  useGetProjectByIdQuery,
   useCreateProjectMutation,
   useUpdateProjectMutation,
   useDeleteProjectMutation

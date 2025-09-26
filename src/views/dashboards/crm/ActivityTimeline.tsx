@@ -200,28 +200,64 @@ const ActivityTimeline = ({
             {filteredNoUser && filteredNoUser.length === 0 ? (
               <Typography>Sem dados</Typography>
             ) : (
-              <Timeline>
-                {filteredNoUser?.map((activity: Activity) => (
-                  <TimelineItem key={activity.id}>
-                    <TimelineSeparator>
-                      <TimelineDot color={getColorDot(activity.event)} />
-                      <TimelineConnector />
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
-                        <Typography className='font-medium' color='text.primary'>
-                          {getSentenceActivity(activity)}
-                        </Typography>
-                        <Typography className='flex flex-row text-wrap items-center gap-2'>
-                          <Typography variant='body1'>Atividade realizada em:</Typography>
-                          {formatDateTime(activity.created_at)}
-                        </Typography>
-                      </div>
-                      <div className='flex flex-col flex-wrap gap-0.5'>{renderAttributes(activity.properties)}</div>
-                    </TimelineContent>
-                  </TimelineItem>
-                ))}
-              </Timeline>
+              <>
+                <Timeline>
+                  {filteredNoUser?.map((activty: Activity) => {
+                    return (
+                      <TimelineItem key={activty.id}>
+                        <TimelineSeparator>
+                          <TimelineDot color={getColorDot(activty.event)} />
+                          <TimelineConnector />
+                        </TimelineSeparator>
+                        <TimelineContent>
+                          <div className='flex flex-wrap items-center justify-between gap-x-2 mbe-2.5'>
+                            <Typography className='font-medium' color='text.primary'>
+                              {getSentenceActivity(activty)}
+                            </Typography>
+
+                            <Typography className=' flex flex-row text-wrap items-center gap-2' component='span'>
+                              <Typography variant='body1' component='span'>
+                                Atividade realizada em:
+                              </Typography>
+                              {formatDateTime(activty.created_at)}
+                            </Typography>
+                          </div>
+
+                          {/* ✅ CORREÇÃO: Optional chaining completo + component="span" */}
+                          <Typography className=' flex flex-row text-wrap items-center gap-2' component='span'>
+                            <Typography variant='body1' component='span'>
+                              Nome:
+                            </Typography>
+                            {activty.properties?.attributes?.name ?? '-'}
+                          </Typography>
+
+                          <div className='flex items-center gap-2.5'>
+                            {/* ✅ CORREÇÃO: Optional chaining para img_url */}
+                            {activty.properties?.attributes?.img_url && (
+                              <Avatar
+                                src={activty.properties.attributes.img_url ?? '/images/avatars/1.png'}
+                                className='bs-8 is-8'
+                              />
+                            )}
+
+                            {/* ✅ CORREÇÃO: Optional chaining para description + component="span" */}
+                            {activty.properties?.attributes?.description && (
+                              <div className='flex flex-col flex-wrap gap-0.5'>
+                                <Typography className=' flex flex-row text-wrap items-center gap-2' component='span'>
+                                  <Typography variant='body1' component='span'>
+                                    Descrição:
+                                  </Typography>
+                                  {activty.properties.attributes.description ?? ''}
+                                </Typography>
+                              </div>
+                            )}
+                          </div>
+                        </TimelineContent>
+                      </TimelineItem>
+                    )
+                  })}
+                </Timeline>
+              </>
             )}
           </CardContent>
         </>

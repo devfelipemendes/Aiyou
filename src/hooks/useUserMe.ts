@@ -11,7 +11,9 @@ import {
   selectTokensUsagePercentage,
   selectAssistantsUsagePercentage,
   selectIsAdmin,
-  selectFirstAccess
+  selectFirstAccess,
+  selectUserPlanId,
+  selectTokensUsage
 } from '@/api/endpoints/authUser/me'
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
@@ -39,6 +41,8 @@ export function useUserMe(options: UseUserMeOptions = {}) {
   const assistantsUsage = useAppSelector(selectAssistantsUsagePercentage)
   const isAdmin = useAppSelector(selectIsAdmin)
   const firstAccess = useAppSelector(selectFirstAccess)
+  const userPlanId = useAppSelector(selectUserPlanId)
+  const userTokensUsage = useAppSelector(selectTokensUsage)
 
   useEffect(() => {
     if (data && onSuccess) {
@@ -77,6 +81,8 @@ export function useUserMe(options: UseUserMeOptions = {}) {
     fetchUserData,
     invalidateUserData,
     rawData: data,
-    firstAccess
+    firstAccess,
+    userPlanId,
+    userTokensUsage
   }
 }
