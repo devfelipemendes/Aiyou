@@ -11,7 +11,7 @@ import PerfectScrollbar from 'react-perfect-scrollbar'
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
 // Component Imports
-import { Menu, MenuItem, MenuSection } from '@menu/vertical-menu'
+import { Menu, MenuItem, MenuSection, SubMenu } from '@menu/vertical-menu'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
@@ -277,24 +277,40 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
               <MenuItem href='/projetoss' icon={<i className='ri-folder-6-line' />}>
                 Projetos
               </MenuItem>
-              <MenuItem href='/monitoramento' icon={<i className='ri-bar-chart-line' />}>
-                Monitoramento
-              </MenuItem>
               <MenuItem href='/operadores/' icon={<i className='ri-customer-service-2-fill' />}>
                 Operadores
+              </MenuItem>
+              <MenuItem href='/monitoramento' icon={<i className='ri-bar-chart-line' />}>
+                Monitoramento
               </MenuItem>
             </MenuSection>
 
             <MenuSection label={'Utilidades'}>
-              <MenuItem href='/painel' icon={<i className='ri-tools-fill' />}>
-                Integração API
+              <MenuItem href='/integracao' icon={<i className='ri-tools-fill' />}>
+                Integração
               </MenuItem>
+              <MenuItem href='/automacao' icon={<i className='ri-brain-line' />}>
+                Automações
+              </MenuItem>
+              <SubMenu label={'Campanha'} icon={<i className='ri-shopping-bag-4-line' />}>
+                <MenuItem href='/campanha/leads' icon={<i className='ri-money-dollar-circle-line' />}>
+                  Leads
+                </MenuItem>
+              </SubMenu>
             </MenuSection>
 
             <MenuSection label={'Gerenciamento'}>
-              <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
-                Financeiro
-              </MenuItem>
+              <SubMenu label={'Configurações'} icon={<i className='ri-settings-line' />}>
+                <MenuItem href='/keys' icon={<i className='ri-key-fill' />}>
+                  Chaves API
+                </MenuItem>
+                <MenuItem href='/financeiro' icon={<i className='ri-money-dollar-circle-line' />}>
+                  Financeiro
+                </MenuItem>
+                <MenuItem href='/permissoes' icon={<i className='ri-lock-line' />}>
+                  Acessos & Permissões
+                </MenuItem>
+              </SubMenu>
             </MenuSection>
           </Menu>
         </ScrollWrapper>

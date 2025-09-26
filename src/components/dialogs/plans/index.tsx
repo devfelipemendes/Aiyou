@@ -417,13 +417,12 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
 
           <Box sx={{ position: 'absolute', left: 16, right: 16, bottom: 16 }}>
             <Button
-              component={Link}
-              href='/front-pages/payment'
               variant={plan.current ? 'contained' : isSelected ? 'contained' : 'outlined'}
               color={plan.current ? 'info' : 'primary'}
               fullWidth
               size='large'
               disabled={plan.current}
+              onClick={() => handlePlanSelection(plan.id, plan.current)}
             >
               {plan.current ? 'Plano Atual' : isSelected ? 'Plano Selecionado' : 'Selecionar Plano'}
             </Button>
