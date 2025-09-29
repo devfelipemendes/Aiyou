@@ -319,7 +319,6 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         </ScrollWrapper>
       </Box>
 
-      {/* Card de Upgrade Fixo */}
       {!isEffectivelyCollapsed && (
         <AnimatedReveal animation='fade' duration={1200} show={true}>
           <Box
