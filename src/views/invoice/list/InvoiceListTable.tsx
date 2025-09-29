@@ -44,6 +44,7 @@ import type { InvoiceType } from '@/types/invoiceTypes'
 import { useGetCustomerInvoicesQuery, type CustomerInvoice } from '@/api/endpoints/invoices/invoice'
 import { InvoiceViewModal } from '@/components/dialogs/invoiceViewInSistem'
 import { currencyFormatter } from '@/utils/currency'
+import { InvoicePreviewDialog } from '@/components/dialogs/InvoicePreviewDialog'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -437,8 +438,7 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         />
       </Card>
 
-      {/* Modal de visualização da fatura */}
-      <InvoiceViewModal
+      <InvoicePreviewDialog
         open={showInvoiceModal}
         onClose={() => {
           setShowInvoiceModal(false)
@@ -446,8 +446,6 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         }}
         paymentId={selectedPaymentId}
         title='Detalhes da Fatura'
-        showDownloadButton={true}
-        showCloseButton={true}
       />
     </>
   )
