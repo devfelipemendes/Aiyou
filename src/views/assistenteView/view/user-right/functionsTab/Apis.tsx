@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 
+import type { ButtonProps } from '@mui/material'
 import {
   Table,
   TableHead,
@@ -16,15 +17,17 @@ import {
   Typography,
   Chip,
   Paper,
-  Divider
+  Divider,
+  Button
 } from '@mui/material'
 
-import { CheckCircle, LucideClipboard, Sliders } from 'lucide-react'
+import { CheckCircle, LucideClipboard, Network, Sliders } from 'lucide-react'
 
-import CustomAvatar from '@core/components/mui/Avatar'
 import { useGetTasksByAssistantQuery } from '@/api/endpoints/taskAssistant/taskAssistant'
 import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
 import { taskApi } from '@/api/endpoints/task/task'
+import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
+import LinkApiToAssistant from '@/components/dialogs/create-api-to-assistant'
 
 const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | undefined }) => {
   const [page, setPage] = useState(0)
@@ -86,9 +89,24 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
     )
   }
 
+  const buttonProps: ButtonProps = {
+    variant: 'contained',
+    endIcon: <Network size={15} />,
+    children: 'Vincular Api Ao Assistetnte',
+    size: 'small'
+  }
+
   return (
     <>
       <TableContainer>
+        <Box className='flex items-center justify-end mb-2'>
+          <OpenDialogOnElementClick
+            element={Button}
+            elementProps={buttonProps}
+            dialog={LinkApiToAssistant}
+            dialogProps={{}}
+          />
+        </Box>
         <Table>
           <TableHead>
             <TableRow>
@@ -196,9 +214,9 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                           </Typography>
                           {task.details?.pai_parameters?.length ? (
                             task.details.pai_parameters.map((p: any, idx: any) => (
-                              <>
+                              <React.Fragment key={idx}>
                                 <Divider orientation='horizontal' className='mt-4 mb-4' />
-                                <Box key={idx} sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
                                   <Typography variant='body2'>
                                     <strong style={{ fontSize: '0.95rem' }}>Nome:</strong> {p.name}
                                   </Typography>
@@ -213,7 +231,7 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                                     {renderBooleanChip(p.required)}
                                   </Typography>
                                 </Box>
-                              </>
+                              </React.Fragment>
                             ))
                           ) : (
                             <Typography variant='body2'>Nenhum parâmetro</Typography>
