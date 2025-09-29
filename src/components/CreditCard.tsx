@@ -235,7 +235,9 @@ const CreditCard: React.FC<CreditCardProps> = ({ selectedPlanId, onPlanSuccess }
           variant='contained'
           size='medium'
           onClick={handleCreatePlan}
-          disabled={!selectedPlanId || isLoading || isUpdating || (!isFreePlan && !selectedCardId)}
+          disabled={
+            !selectedPlanId || isLoading || isUpdating || (!isFreePlan && !selectedCardId) || selectedCardId === '1'
+          }
         >
           {isLoading || isUpdating ? 'Processando...' : 'Finalizar Compra'}
         </Button>

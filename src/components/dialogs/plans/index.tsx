@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState, type ChangeEvent } from 'react'
 
-import Image from 'next/image'
-
 import {
   Dialog,
   DialogContent,
@@ -26,7 +24,6 @@ import { Navigation, Pagination } from 'swiper/modules'
 
 import { toast } from 'react-toastify'
 
-import Link from '@/components/Link'
 import Curve from '@/assets/svg/front-pages/landing-page/Curve'
 import Arrow from '@/assets/svg/front-pages/landing-page/Arrow'
 
@@ -111,6 +108,8 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
   const [selectedMethod, setSelectedMethod] = useState<string>(initialSelected)
   const [showInstructiveModal, setShowInstructiveModal] = useState<boolean>(false)
   const [isProcessingBoleto, setIsProcessingBoleto] = useState<boolean>(false)
+
+  console.log(showInstructiveModal)
 
   const handleChange = (prop: string | ChangeEvent<HTMLInputElement>) => {
     if (typeof prop === 'string') {
