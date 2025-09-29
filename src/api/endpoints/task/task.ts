@@ -73,11 +73,10 @@ export type Task = {
   created_at: string
   updated_at: string
 
-  pai_parameters?: TaskParameterFull[] // Parâmetros completos da API (com IDs do BD)
-  returns?: TaskReturn[] // Retornos configurados
+  pai_parameters?: TaskParameterFull[]
+  returns?: TaskReturn[]
 }
 
-// 🎯 TIPOS PARA PARÂMETROS COMPLETOS (com dados do BD)
 export type TaskParameterFull = {
   id: string
   name: string
@@ -397,7 +396,7 @@ export const taskApi = apiSlice.injectEndpoints({
 export const {
   useGetTasksQuery,
   useGetSingleTaskQuery,
-  useLazyGetSingleTaskQuery, // <-- aqui está o lazy hook
+  useLazyGetSingleTaskQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation

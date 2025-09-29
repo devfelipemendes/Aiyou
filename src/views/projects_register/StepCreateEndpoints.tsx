@@ -32,14 +32,16 @@ import { toast } from 'react-toastify'
 
 import ParameterFormRecursive from '@/components/ParameterFormRecursive'
 import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
-import EndpointsList from '@/components/EndpointsList'
 
 import {
   useGetTasksQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
-  type Task
+  type Task,
+  useLazyGetSingleTaskQuery,
+  type TaskParameterFull,
+  type TaskParameter
 } from '@/api/endpoints/task/task'
 import { useGetApisQuery } from '@/api/endpoints/fdc/api'
 import { useGetMethodsQuery } from '@/api/endpoints/method/method'
@@ -114,9 +116,12 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
   const { data: methodsResponse, isLoading: loadingMethods } = useGetMethodsQuery()
   const [createTask] = useCreateTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
+  const [fetchTaskDetails] = useLazyGetSingleTaskQuery()
   const [deleteTask] = useDeleteTaskMutation()
 
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set())
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [tempParameters, setTempParameters] = useState<TempParameter[]>([])
   const [tempParamReturns, setTempParamReturns] = useState<string[]>([])
@@ -128,6 +133,8 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
   const [subParamParentId, setSubParamParentId] = useState<string | null>(null)
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [localParameters, setLocalParameters] = useState<Map<string, TaskParameter[]>>(new Map())
+  const [loadingTaskDetails, setLoadingTaskDetails] = useState<Set<string>>(new Set())
 
   const tasks = tasksResponse?.data || []
   const apis = useMemo(() => apisResponse?.data || [], [apisResponse?.data])
@@ -201,6 +208,310 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
   }
 
   const open = Boolean(anchorEl)
+
+  // Adicionar após a linha 266 (após os estados existentes)
+  const renderParameter = (param: TaskParameter, taskId: string, depth = 0) => (
+    <div key={param.id || Math.random()} className={`${depth > 0 ? 'ml-8' : ''} mb-2`}>
+      <div className='flex items-center gap-2 p-2 bg-gray-50 rounded'>
+        <TextField
+          value={param.name}
+          onChange={e => updateParameter(taskId, param.id!, 'name', e.target.value)}
+          placeholder='Nome'
+          size='small'
+          className='flex-1'
+        />
+        <TextField
+          value={param.description}
+          onChange={e => updateParameter(taskId, param.id!, 'description', e.target.value)}
+          placeholder='Descrição'
+          size='small'
+          className='flex-1'
+        />
+        <Select
+          value={param.type}
+          onChange={e => updateParameter(taskId, param.id!, 'type', e.target.value)}
+          size='small'
+        >
+          <MenuItem value='String'>String</MenuItem>
+          <MenuItem value='Number'>Number</MenuItem>
+          <MenuItem value='Boolean'>Boolean</MenuItem>
+          <MenuItem value='Array'>Array</MenuItem>
+          <MenuItem value='Object'>Object</MenuItem>
+        </Select>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={param.required}
+              onChange={e => updateParameter(taskId, param.id!, 'required', e.target.checked)}
+              size='small'
+            />
+          }
+          label='Obrigatório'
+        />
+        <IconButton onClick={() => addParameter(taskId, param.id)} size='small' color='primary'>
+          <i className='ri-add-line' />
+        </IconButton>
+        {param.id && (
+          <IconButton onClick={() => removeParameter(taskId, param.id!)} size='small' color='error'>
+            <i className='ri-delete-bin-line' />
+          </IconButton>
+        )}
+      </div>
+      {param.data?.map(subParam => renderParameter(subParam, taskId, depth + 1))}
+    </div>
+  )
+
+  const renderParameterReadOnly = (param: TaskParameter, depth = 0): JSX.Element => (
+    <Box key={param.id || Math.random()} className={`${depth > 0 ? 'ml-8' : ''} mb-1`}>
+      <Box className='flex   items-start justify-between  gap-2 p-2 bg-white rounded border'>
+        <Box>
+          <Typography variant='body2' className='font-medium'>
+            Nome: <strong>{param.name || 'Sem nome'}</strong>
+          </Typography>
+          {param.description && (
+            <Typography variant='body2' className='font-medium'>
+              Descrição: <strong>{param.description}</strong>
+            </Typography>
+          )}
+        </Box>
+        <Box className='flex flex-col gap-1 flex-wrap'>
+          <Chip label={param.type} size='small' />
+          {param.is_header && <Chip label='Header' size='small' color='info' />}
+          {param.required && <Chip label='Obrigatório' size='small' color='error' />}
+        </Box>
+      </Box>
+      {param.data?.map(subParam => renderParameterReadOnly(subParam, depth + 1))}
+    </Box>
+  )
+
+  const convertToEditableParams = (params: TaskParameterFull[]): TaskParameter[] => {
+    return params.map(param => ({
+      id: param.id,
+      name: param.name,
+      description: param.description,
+      type: param.type,
+      required: param.required,
+      in_api: param.in_api,
+      is_header: param.is_header,
+      is_subparameter: param.is_subparameter,
+      paip_id: param.paip_id,
+      default_value: param.default_value,
+      data: param.sub_parameters_recursivo ? convertToEditableParams(param.sub_parameters_recursivo) : []
+    }))
+  }
+
+  const toggleTask = async (taskId: string) => {
+    const newExpanded = new Set(expandedTasks)
+
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId)
+      setEditingTasks(prev => {
+        const newSet = new Set(prev)
+
+        newSet.delete(taskId)
+
+        return newSet
+      })
+    } else {
+      newExpanded.add(taskId)
+
+      // Adicionar loading
+      setLoadingTaskDetails(prev => new Set(prev).add(taskId))
+
+      try {
+        const result = await fetchTaskDetails(taskId)
+
+        if (result.data) {
+          const parameters = convertToEditableParams(result.data.data.pai_parameters)
+
+          setLocalParameters(prev => new Map(prev).set(taskId, parameters))
+        }
+      } catch (error) {
+        toast.error('Erro ao carregar detalhes da task')
+
+        // Remover da lista de expandidos se der erro
+        newExpanded.delete(taskId)
+      } finally {
+        // Remover loading
+        setLoadingTaskDetails(prev => {
+          const newSet = new Set(prev)
+
+          newSet.delete(taskId)
+
+          return newSet
+        })
+      }
+    }
+
+    setExpandedTasks(newExpanded)
+  }
+
+  const toggleEditMode = (taskId: string) => {
+    setEditingTasks(prev => {
+      const newSet = new Set(prev)
+
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId)
+
+        // Recarregar parâmetros originais
+        fetchTaskDetails(taskId).then(result => {
+          if (result.data) {
+            const parameters = convertToEditableParams(result.data.data.pai_parameters)
+
+            setLocalParameters(prev => new Map(prev).set(taskId, parameters))
+          }
+        })
+      } else {
+        newSet.add(taskId)
+      }
+
+      return newSet
+    })
+  }
+
+  const addParameter = (taskId: string, parentId?: string) => {
+    const newParam: TaskParameter = {
+      name: '',
+      description: '',
+      type: 'String',
+      required: false,
+      in_api: false,
+      is_header: false,
+      is_subparameter: !!parentId,
+      paip_id: parentId || null,
+      default_value: null,
+      data: []
+    }
+
+    setLocalParameters(prev => {
+      const map = new Map(prev)
+      const params = map.get(taskId) || []
+
+      if (parentId) {
+        const addToParent = (parameters: TaskParameter[]): TaskParameter[] => {
+          return parameters.map(p => {
+            if (p.id === parentId) {
+              return {
+                ...p,
+                data: [...(p.data || []), newParam]
+              }
+            }
+
+            if (p.data && p.data.length > 0) {
+              return { ...p, data: addToParent(p.data) }
+            }
+
+            return p
+          })
+        }
+
+        map.set(taskId, addToParent(params))
+      } else {
+        map.set(taskId, [...params, newParam])
+      }
+
+      return map
+    })
+  }
+
+  const removeParameter = (taskId: string, paramId: string) => {
+    setLocalParameters(prev => {
+      const map = new Map(prev)
+      const params = map.get(taskId) || []
+
+      const removeParam = (parameters: TaskParameter[]): TaskParameter[] => {
+        return parameters
+          .filter(p => p.id !== paramId)
+          .map(p => ({
+            ...p,
+            data: p.data ? removeParam(p.data) : []
+          }))
+      }
+
+      map.set(taskId, removeParam(params))
+
+      return map
+    })
+  }
+
+  const updateParameter = (taskId: string, paramId: string, field: keyof TaskParameter, value: any) => {
+    setLocalParameters(prev => {
+      const map = new Map(prev)
+      const params = map.get(taskId) || []
+
+      const updateParam = (parameters: TaskParameter[]): TaskParameter[] => {
+        return parameters.map(p => {
+          if (p.id === paramId) {
+            return { ...p, [field]: value }
+          }
+
+          if (p.data && p.data.length > 0) {
+            return { ...p, data: updateParam(p.data) }
+          }
+
+          return p
+        })
+      }
+
+      map.set(taskId, updateParam(params))
+
+      return map
+    })
+  }
+
+  const saveTaskParameters = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    const parameters = localParameters.get(taskId)
+
+    if (!task || !parameters) return
+
+    // Limpar IDs temporários
+    const cleanParameters = (params: TaskParameter[]): any[] => {
+      return params.map(p => ({
+        ...p,
+        id: p.id?.startsWith('temp_') ? undefined : p.id,
+        data: p.data ? cleanParameters(p.data) : []
+      }))
+    }
+
+    try {
+      await updateTask({
+        id: taskId,
+        name: task.name,
+        description: task.description,
+        endpoint: task.endpoint,
+        method_id: task.method_id,
+        api_id: task.api_id,
+        instruction: task.instruction,
+        variable: task.variable,
+        Parameters: cleanParameters(parameters),
+        ParamReturns: task.returns?.map(r => r.name) || []
+      }).unwrap()
+
+      toast.success('Parâmetros atualizados com sucesso!')
+
+      // Recarregar dados
+      const result = await fetchTaskDetails(taskId)
+
+      if (result.data) {
+        const updatedParams = convertToEditableParams(result.data.data.pai_parameters)
+
+        setLocalParameters(prev => new Map(prev).set(taskId, updatedParams))
+      }
+
+      setEditingTasks(prev => {
+        const newSet = new Set(prev)
+
+        newSet.delete(taskId)
+
+        return newSet
+      })
+    } catch (error) {
+      toast.error('Erro ao salvar parâmetros')
+    }
+  }
+
+  console.log(saveTaskParameters, toggleEditMode)
 
   const parseUrlVariables = useCallback((url: string): UrlVariable[] => {
     const regex = /\{\{([^}]+)\}\}/g
@@ -507,32 +818,6 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
     [deleteTask, refetch]
   )
 
-  const handleEditTask = useCallback(
-    (task: Task) => {
-      setEditingTask(task)
-      setCurrentEndpoint(task.endpoint)
-
-      const existingVariables = parseUrlVariables(task.endpoint)
-
-      setUrlVariables(existingVariables)
-
-      taskForm.reset({
-        name: task.name,
-        description: task.description,
-        endpoint: task.endpoint,
-        method_id: task.method_id,
-        api_id: task.api_id,
-        instruction: task.instruction,
-        variable: task.variable
-      })
-
-      setTempParameters([])
-      setTempParamReturns([])
-      setIsModalOpen(true)
-    },
-    [taskForm, parseUrlVariables]
-  )
-
   useEffect(() => {
     const hasUrlVariables = urlVariables.length > 0
 
@@ -561,7 +846,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
 
   return (
     <Box sx={{ mx: 'auto', width: '100%' }}>
-      <CardHeader title='Gerenciar Endpoints' subheader='Cadastre e configure os endpoints das suas APIs' />
+      <CardHeader title='Gerenciar Tasks' subheader='Cadastre e configure os endpoints das suas APIs' />
       <CardContent sx={{ width: '100%' }}>
         <Grid container spacing={4}>
           <Grid size={{ xs: 12 }}>
@@ -602,13 +887,79 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
 
           {tasks.length > 0 && !isLoading && (
             <Grid size={{ xs: 12 }}>
-              <EndpointsList
-                tasks={tasks}
-                apis={apis}
-                methods={filteredMethods}
-                onEdit={handleEditTask}
-                onDelete={handleDeleteTask}
-              />
+              {tasks.map(task => {
+                const isExpanded = expandedTasks.has(task.id)
+                const isEditing = editingTasks.has(task.id)
+                const parameters = localParameters.get(task.id) || []
+
+                return (
+                  <Paper key={task.id} className='mb-4'>
+                    <Box className='p-4 cursor-pointer hover:bg-gray-50' onClick={() => toggleTask(task.id)}>
+                      <Box className='flex items-center justify-between'>
+                        <Box className='flex items-center gap-2'>
+                          {isExpanded ? (
+                            <i className='ri-arrow-down-s-line' />
+                          ) : (
+                            <i className='ri-arrow-right-s-line' />
+                          )}
+                          <Typography variant='h6'>{task.name}</Typography>
+                          <Chip label={methods.find(m => m.id === task.method_id)?.name || 'N/A'} size='small' />
+                        </Box>
+                        <Box className='flex gap-2'>
+                          <IconButton
+                            onClick={e => {
+                              e.stopPropagation()
+                              handleDeleteTask(task.id)
+                            }}
+                            color='error'
+                          >
+                            <i className='ri-delete-bin-line' />
+                          </IconButton>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {isExpanded && (
+                      <Box className='px-4 pb-4 border-t'>
+                        {loadingTaskDetails.has(task.id) ? (
+                          <Box className='flex justify-center items-center py-8'>
+                            <CircularProgress size={32} />
+                            <Typography variant='body2' className='ml-3 text-gray-600'>
+                              Carregando parâmetros...
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <>
+                            <Box className='flex justify-between items-center my-3'>
+                              <Typography variant='subtitle1'>Parâmetros ({parameters.length})</Typography>
+                            </Box>
+
+                            {isEditing ? (
+                              <Box>
+                                {parameters.map(param => renderParameter(param, task.id))}
+                                {parameters.length === 0 && (
+                                  <Typography variant='body2' color='text.secondary'>
+                                    Nenhum parâmetro. Clique em adicionar.
+                                  </Typography>
+                                )}
+                              </Box>
+                            ) : (
+                              <Box>
+                                {parameters.map(param => renderParameterReadOnly(param))}
+                                {parameters.length === 0 && (
+                                  <Typography variant='body2' color='text.secondary'>
+                                    Nenhum parâmetro configurado
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </>
+                        )}
+                      </Box>
+                    )}
+                  </Paper>
+                )
+              })}
             </Grid>
           )}
         </Grid>
