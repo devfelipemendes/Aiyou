@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 
-import { Box, Container, Tab, Tabs, Paper } from '@mui/material'
+import { Box, Tab, Tabs, Paper } from '@mui/material'
 
 import StepCreateApi from '@/views/projects_register/StepCreateApi'
 import StepCreateEndpoints from '@/views/projects_register/StepCreateEndpoints'
@@ -31,23 +31,22 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <Container maxWidth='xl' sx={{ py: 4 }}>
+    <Box>
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={currentTab} onChange={handleTabChange} aria-label='integration tabs' sx={{ px: 2 }}>
-            <Tab label='Cadastro de API' id='tab-0' />
-            <Tab label='Cadastro de Endpoints' id='tab-1' />
-            <Tab label='Cadastro de Funções' id='tab-2' />
+        <Box>
+          <Tabs value={currentTab} onChange={handleTabChange} sx={{ py: 2, px: 6 }}>
+            <Tab label="API's" id='tab-0' />
+            <Tab label='Endpoints' id='tab-1' />
           </Tabs>
         </Box>
 
         <Box sx={{ px: 3 }}>
           <TabPanel value={currentTab} index={0}>
-            <StepCreateApi />
+            <StepCreateApi isTela />
           </TabPanel>
 
           <TabPanel value={currentTab} index={1}>
-            <StepCreateEndpoints />
+            <StepCreateEndpoints isTela />
           </TabPanel>
 
           <TabPanel value={currentTab} index={2}>
@@ -64,6 +63,6 @@ export default function IntegrationsPage() {
           </TabPanel>
         </Box>
       </Paper>
-    </Container>
+    </Box>
   )
 }

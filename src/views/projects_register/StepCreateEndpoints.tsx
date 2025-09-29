@@ -1,9 +1,7 @@
 'use client'
 
-// React Imports
 import { useState, useCallback, useMemo, useEffect } from 'react'
 
-// MUI Imports
 import {
   Box,
   Button,
@@ -27,19 +25,15 @@ import {
   IconButton
 } from '@mui/material'
 import Grid from '@mui/material/Grid2'
-
-// Third-party Imports
 import * as v from 'valibot'
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { toast } from 'react-toastify'
 
-// Component Imports
-import { createColumnHelper, type ColumnDef } from '@tanstack/react-table'
+import ParameterFormRecursive from '@/components/ParameterFormRecursive'
+import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
+import EndpointsList from '@/components/EndpointsList'
 
-import ListTable from '@/components/ListTable'
-
-// API Imports
 import {
   useGetTasksQuery,
   useCreateTaskMutation,
@@ -49,10 +43,7 @@ import {
 } from '@/api/endpoints/task/task'
 import { useGetApisQuery } from '@/api/endpoints/fdc/api'
 import { useGetMethodsQuery } from '@/api/endpoints/method/method'
-import ParameterFormRecursive from '@/components/ParameterFormRecursive'
-import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 
-// Schemas
 const TaskSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, 'Nome é obrigatório')),
   description: v.pipe(v.string(), v.minLength(1, 'Descrição é obrigatória')),
@@ -100,6 +91,7 @@ interface UrlVariable {
 
 type Props = {
   onNextStep?: () => void
+  isTela?: boolean
 }
 
 const modalStyle = {
@@ -116,8 +108,7 @@ const modalStyle = {
   overflow: 'auto'
 }
 
-const StepCreateEndpoints = ({ onNextStep }: Props) => {
-  // RTK Queries
+const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
   const { data: tasksResponse, isLoading: loadingTasks, refetch } = useGetTasksQuery()
   const { data: apisResponse, isLoading: loadingApis } = useGetApisQuery()
   const { data: methodsResponse, isLoading: loadingMethods } = useGetMethodsQuery()
@@ -125,7 +116,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const [updateTask] = useUpdateTaskMutation()
   const [deleteTask] = useDeleteTaskMutation()
 
-  // Estados
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [tempParameters, setTempParameters] = useState<TempParameter[]>([])
@@ -135,22 +125,17 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const [urlVariables, setUrlVariables] = useState<UrlVariable[]>([])
   const [urlError, setUrlError] = useState<string>('')
   const [currentEndpoint, setCurrentEndpoint] = useState<string>('')
-
   const [subParamParentId, setSubParamParentId] = useState<string | null>(null)
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [showPreview, setShowPreview] = useState(false)
 
-  // Dados
   const tasks = tasksResponse?.data || []
   const apis = useMemo(() => apisResponse?.data || [], [apisResponse?.data])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const methods = methodsResponse?.data || []
   const isLoading = loadingTasks || loadingApis || loadingMethods
 
   const allowed = ['get', 'post', 'put', 'patch', 'delete']
   const filteredMethods = methods.filter(item => allowed.includes(item.name.toLowerCase()))
-
-  //Icons
 
   const ICONS: Record<string, JSX.Element> = {
     GET: <i className='ri-search-line' />,
@@ -160,11 +145,8 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     DELETE: <i className='ri-close-circle-line' />
   }
 
-  const IconRender = (name: string) => {
-    return ICONS[name ?? <i className='ri-box-3-fill' />]
-  }
+  const IconRender = (name: string) => ICONS[name] ?? <i className='ri-box-3-fill' />
 
-  // Formulários
   const taskForm = useForm<TaskFormData>({
     resolver: valibotResolver(TaskSchema),
     defaultValues: {
@@ -180,7 +162,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
   const parameterForm = useForm<ParameterFormData>({
     resolver: valibotResolver(ParameterSchema),
-
     defaultValues: {
       name: '',
       description: '',
@@ -210,7 +191,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const watchChildrenValue = parameterForm.watch('is_subparameter')
 
   const handleOpenSubParam = (event: React.MouseEvent<HTMLElement>, parentId: string) => {
-    setAnchorEl(event.currentTarget) // botão clicado
+    setAnchorEl(event.currentTarget)
     setSubParamParentId(parentId)
   }
 
@@ -221,7 +202,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
   const open = Boolean(anchorEl)
 
-  // Funções para URLs variáveis
   const parseUrlVariables = useCallback((url: string): UrlVariable[] => {
     const regex = /\{\{([^}]+)\}\}/g
     const variables: UrlVariable[] = []
@@ -307,7 +287,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     return `${baseUrl}${preview}`
   }, [currentEndpoint, urlVariables, taskForm, apis])
 
-  // Handlers Modal
   const handleOpenModal = useCallback(() => {
     setEditingTask(null)
     setTempParameters([])
@@ -336,8 +315,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     setShowPreview(prev => !prev)
   }
 
-  // Handlers Parâmetros
-  // Raiz
   const handleAddParameter = useCallback(
     (data: ParameterFormData) => {
       const newParam: TempParameter = {
@@ -355,7 +332,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     [parameterForm]
   )
 
-  // Subparam
   const handleAddSubParameter = useCallback(
     (data: ParameterFormData) => {
       const newParam: TempParameter = {
@@ -375,10 +351,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     },
     [subParamParentId, subParamForm]
   )
-
-  // const handleRemoveParameter = useCallback((id: string) => {
-  //   setTempParameters(prev => prev.filter(p => p.id !== id))
-  // }, [])
 
   const handleAddParamReturn = useCallback(() => {
     const trimmed = newParamReturn.trim()
@@ -410,7 +382,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     []
   )
 
-  // Handler Submit
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
       try {
@@ -479,7 +450,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     ]
   )
 
-  // Pega todos os valores do form em tempo real
   const watchedTask = taskForm.watch()
 
   const requestPreview = useMemo(() => {
@@ -563,7 +533,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     [taskForm, parseUrlVariables]
   )
 
-  // Effects
   useEffect(() => {
     const hasUrlVariables = urlVariables.length > 0
 
@@ -586,7 +555,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     const selectedApi = apis.find(api => api.id === selectedApiId)
 
     if (selectedApi) {
-      // apenas força rerender do preview
       setCurrentEndpoint(prev => prev || '')
     }
   }, [taskForm.watch('api_id'), apis])
@@ -596,7 +564,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
       <CardHeader title='Gerenciar Endpoints' subheader='Cadastre e configure os endpoints das suas APIs' />
       <CardContent sx={{ width: '100%' }}>
         <Grid container spacing={4}>
-          {/* Header com botão */}
           <Grid size={{ xs: 12 }}>
             <Box className='flex justify-between items-center'>
               <Typography variant='body2' color='text.secondary'>
@@ -608,7 +575,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Box>
           </Grid>
 
-          {/* Loading */}
           {isLoading && (
             <Grid size={{ xs: 12 }}>
               <Box className='text-center py-12'>
@@ -620,7 +586,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Grid>
           )}
 
-          {/* Empty State */}
           {tasks.length === 0 && !isLoading && (
             <Grid size={{ xs: 12 }}>
               <Box className='text-center py-12'>
@@ -635,23 +600,33 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Grid>
           )}
 
-          {/* Botão próximo */}
+          {tasks.length > 0 && !isLoading && (
+            <Grid size={{ xs: 12 }}>
+              <EndpointsList
+                tasks={tasks}
+                apis={apis}
+                methods={filteredMethods}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
+              />
+            </Grid>
+          )}
         </Grid>
-        {tasks.length > 0 && (
-          <Box className='flex items-end '>
+
+        {tasks.length > 0 && !isTela && (
+          <Box className='flex items-end mt-4'>
             <Button
               variant='contained'
               size='small'
               onClick={onNextStep}
               endIcon={<i className='ri-arrow-right-line' />}
             >
-              Finalizar cadatro de endpoints
+              Finalizar cadastro de endpoints
             </Button>
           </Box>
         )}
       </CardContent>
 
-      {/* Modal */}
       <Modal open={isModalOpen} onClose={handleCloseModal}>
         <Box sx={modalStyle}>
           <Box className='flex items-center flex-col'>
@@ -666,14 +641,12 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
           <form onSubmit={taskForm.handleSubmit(handleSubmit)}>
             <Grid container spacing={4}>
-              {/* Dados básicos */}
-
               <Grid size={{ xs: 12 }}>
                 <Box className='flex gap-2 items-center'>
                   <Typography variant='h5' className='text-primary'>
-                    {'Dados da Basicos'}
+                    Dados Básicos
                   </Typography>
-                  <Tooltip title='Esses dados serão usados para identificação das suas funções de consulta extena (FDC), irão facilitar o encontro e usabilidade das suas funções dentro do sistema Aiyou '>
+                  <Tooltip title='Esses dados serão usados para identificação'>
                     <i className='ri-information-line w-5 cursor-help text-primary' />
                   </Tooltip>
                 </Box>
@@ -697,7 +670,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   )}
                 />
                 <Typography variant='subtitle1' className='mt-1'>
-                  O nome que será cadastrado será usado para identificar o endpoint nas funcionalidades do sistema
+                  O nome será usado para identificar o endpoint
                 </Typography>
               </Grid>
 
@@ -732,7 +705,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       {...field}
                       fullWidth
                       label='Descrição'
-                      placeholder='Digite aqui a descrição na qual você poderá identificar e entender a funcionalidade destinada a este endpoint'
+                      placeholder='Digite a descrição para identificar a funcionalidade'
                       required
                       multiline
                       rows={4}
@@ -742,26 +715,27 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   )}
                 />
                 <Typography variant='subtitle1' className='mt-1'>
-                  Determine como a será descrição de identificação para este endpoint
+                  Determine a descrição de identificação para este endpoint
                 </Typography>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Box className='flex gap-2 items-center'>
                   <Typography variant='h5' className='text-primary'>
-                    {'Dados de Funcionalidade'}
+                    Dados de Funcionalidade
                   </Typography>
-                  <Tooltip title='Aqui, você deverá cadastrar os dados exatamente como está na documentação do endpoint no qual deseja usar. Com esses dados, a AiYou fará requisições diretamente para API e usará as respostas dessas requisições para interagir com seu publico'>
+                  <Tooltip title='Cadastre os dados conforme documentação'>
                     <i className='ri-information-line w-5 cursor-help text-primary' />
                   </Tooltip>
                 </Box>
               </Grid>
 
-              {/* Sistema de URL com variáveis */}
               <Grid size={{ xs: 12 }}>
-                <Box className='mb-2 '>
+                <Box className='mb-2'>
                   <Box className='flex flex-col w-full justify-between'>
                     <Box className='flex gap-2'>
                       <TextField
@@ -784,7 +758,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       </Button>
                     </Box>
                     <Typography variant='subtitle1' className='mt-1'>
-                      Cadastre penas a parte do endpoint da URL de requisição
+                      Cadastre apenas a parte do endpoint da URL
                     </Typography>
                   </Box>
                   {urlVariables.length > 0 && (
@@ -795,16 +769,15 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   )}
                 </Box>
 
-                {/* Configuração das variáveis */}
                 {urlVariables.length > 0 && (
                   <Paper className='p-3 mb-2'>
                     <Typography variant='subtitle2' className='mb-2'>
-                      Adicione um nome a variavel da URL
+                      Adicione um nome à variável da URL
                     </Typography>
                     <Box className='space-y-2'>
                       {urlVariables.map((variable, index) => (
                         <Box key={variable.id} className='flex gap-2 items-center'>
-                          <Typography variant='h5' className='min-w-16 '>
+                          <Typography variant='h5' className='min-w-16'>
                             #{index + 1}:
                           </Typography>
                           <TextField
@@ -833,7 +806,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   </Paper>
                 )}
 
-                {/* Preview da URL */}
                 {(currentEndpoint || urlVariables.length > 0 || taskForm.watch('endpoint') !== '') && (
                   <Paper className='p-2 bg-black'>
                     <Typography variant='caption' className='block mb-1 text-gray-400'>
@@ -853,23 +825,17 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   rules={{ required: true }}
                   render={({ field }) => (
                     <Grid container spacing={2} className='flex justify-center'>
-                      {filteredMethods.map((item, index) => {
-                        return (
-                          <Grid size={{ xs: 12, sm: 6, md: 6, xl: 3, lg: 4 }} key={index}>
-                            <CustomInputVertical
-                              type='radio'
-                              name={item.name}
-                              selected={field.value} // valor vindo do react-hook-form
-                              handleChange={(value: any) => field.onChange(value)} // atualiza o form
-                              data={{
-                                value: item.id,
-                                title: item.name,
-                                content: IconRender(item.name)
-                              }}
-                            />
-                          </Grid>
-                        )
-                      })}
+                      {filteredMethods.map((item, index) => (
+                        <Grid size={{ xs: 12, sm: 6, md: 6, xl: 3, lg: 4 }} key={index}>
+                          <CustomInputVertical
+                            type='radio'
+                            name={item.name}
+                            selected={field.value}
+                            handleChange={(value: any) => field.onChange(value)}
+                            data={{ value: item.id, title: item.name, content: IconRender(item.name) }}
+                          />
+                        </Grid>
+                      ))}
                     </Grid>
                   )}
                 />
@@ -879,23 +845,15 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                 <Divider />
               </Grid>
 
-              {/* Seção Parâmetros */}
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-between items-center mb-3'>
                   <Typography variant='subtitle1'>Parâmetros ({tempParameters.length})</Typography>
-                  <Button
-                    variant='outlined'
-                    size='small'
-                    onClick={() => {
-                      setIsAddingParameter(!isAddingParameter)
-                    }}
-                  >
+                  <Button variant='outlined' size='small' onClick={() => setIsAddingParameter(!isAddingParameter)}>
                     {isAddingParameter ? 'Cancelar' : 'Adicionar Parâmetro'}
                   </Button>
                 </Box>
               </Grid>
 
-              {/* Form adicionar parâmetro */}
               {isAddingParameter && (
                 <Grid size={{ xs: 12 }}>
                   <Paper className='p-3 mb-3'>
@@ -909,7 +867,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                           )}
                         />
                       </Grid>
-
                       <Grid size={{ xs: 6 }}>
                         <Controller
                           name='type'
@@ -949,7 +906,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                               />
                             )}
                           />
-
                           <Controller
                             name='is_header'
                             control={parameterForm.control}
@@ -990,28 +946,26 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   </Paper>
                 </Grid>
               )}
+
               <Controller
                 name='is_subparameter'
                 control={parameterForm.control}
                 render={({ field }) => (
                   <FormControlLabel
                     control={<Switch checked={field.value} onChange={field.onChange} size='small' />}
-                    label='Habilitar parâmetros com subparâmetros (filhos)'
+                    label='Habilitar subparâmetros'
                   />
                 )}
               />
-              {/* Lista parâmetros */}
+
               {tempParameters.length > 0 && (
                 <Grid size={{ xs: 12 }}>
                   <ParameterFormRecursive
                     parameters={tempParameters}
                     haveChildren={watchChildrenValue}
                     onAdd={(parentId?: string, event?: React.MouseEvent<HTMLElement>) => {
-                      if (parentId && event) {
-                        handleOpenSubParam(event, parentId)
-                      } else {
-                        setIsAddingParameter(true)
-                      }
+                      if (parentId && event) handleOpenSubParam(event, parentId)
+                      else setIsAddingParameter(true)
                     }}
                     onRemove={(id: string, parentId?: string) => {
                       if (parentId) {
@@ -1027,19 +981,22 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   />
                 </Grid>
               )}
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Box className='flex gap-2 items-center'>
                   <Typography variant='h5' className='text-primary'>
-                    {'Dados de Retorno da requisição'}
+                    Dados de Retorno
                   </Typography>
-                  <Tooltip title='Configure como os dados serão usados pela AiYou e quais são os parametros que deseja utilizar da resposta da requisição. Caso queira usar todos, deixe em branco'>
+                  <Tooltip title='Configure os dados de retorno'>
                     <i className='ri-information-line w-5 cursor-help text-primary' />
                   </Tooltip>
                 </Box>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Controller
                   name='instruction'
@@ -1052,21 +1009,21 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       required
                       multiline
                       rows={2}
-                      placeholder='Ex: Use o os dados deste endpoint para responde perguntas sobre faturas'
+                      placeholder='Ex: Use os dados para responder sobre faturas'
                       error={!!taskForm.formState.errors.instruction}
                       helperText={taskForm.formState.errors.instruction?.message}
                     />
                   )}
                 />
                 <Typography variant='subtitle1' className='mt-1'>
-                  Instrua como o seu assistente deverá utilizar as respostas deste endpoint
+                  Instrua como usar as respostas
                 </Typography>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
 
-              {/* Campos de retorno */}
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-between'>
                   <Box>
@@ -1082,15 +1039,11 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                         size='small'
                         onKeyPress={e => e.key === 'Enter' && handleAddParamReturn()}
                       />
-                      <Box>
-                        <Tooltip
-                          title={`Adicione os parâmetros de retorno que o assistente poderá usar (opcional). Se nenhum parâmetro for adicionado, o assistente usará todos os parâmetros da resposta.`}
-                        >
-                          <IconButton size='small' onClick={handleAddParamReturn} className='bg-primary text-white'>
-                            <i className='ri-add-fill' />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                      <Tooltip title='Adicione parâmetros de retorno (opcional)'>
+                        <IconButton size='small' onClick={handleAddParamReturn} className='bg-primary text-white'>
+                          <i className='ri-add-fill' />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                     {tempParamReturns.length > 0 && (
                       <Box className='flex flex-wrap gap-1'>
@@ -1106,14 +1059,12 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       </Box>
                     )}
                   </Box>
-
                   <Box className='flex items-end justify-end'>
-                    <Button variant='outlined' onClick={handleShowPreviewJson}>
-                      {`{} JSON`}
-                    </Button>
+                    <Button variant='outlined' onClick={handleShowPreviewJson}>{`{} JSON`}</Button>
                   </Box>
                 </Box>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
@@ -1134,7 +1085,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
             <Divider className='my-4' />
 
-            {/* Botões */}
             <Box className='flex justify-end gap-2'>
               <Button type='button' onClick={handleCloseModal}>
                 Cancelar
@@ -1148,6 +1098,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
               </Button>
             </Box>
           </form>
+
           <Popover
             open={open}
             anchorEl={anchorEl}
@@ -1191,7 +1142,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       render={({ field }) => <TextField {...field} fullWidth size='small' label='Descrição' required />}
                     />
                   </Grid>
-                  {/* switches igual ao form raiz */}
                   <Grid size={{ xs: 12 }}>
                     <Box display='flex' gap={2}>
                       <Controller
