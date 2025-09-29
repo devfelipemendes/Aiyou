@@ -95,14 +95,27 @@ const CardTwo = ({ operator, refetch }: { operator: any; refetch: () => Promise<
       <CardContent className='relative'>
         {/* Informações do operador */}
         <Box sx={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', gap: 2 }}>
-          <Box className='flex flex-row w-full items-center gap-2'>
+          <Box className='flex flex-row w-full items-center gap-2 flex-wrap'>
             <OperatorAvatar>{operator.name.split(' ')[0][0]}</OperatorAvatar>
             <Box sx={{ flex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant='h6' sx={{ fontWeight: 600 }}>
                   {operator.name}
                 </Typography>
-                <i className='ri-customer-service-2-fill absolute right-0 mr-8 mt-2 text-[35px] text-primary' />
+                <i
+                  className='
+    ri-customer-service-2-fill
+    absolute
+    text-[35px]
+    text-primary
+    top-0          
+    right-0
+    lg:top-auto    /* remove top quando for grande */
+    lg:right-0
+    lg:mr-8
+    lg:mt-2
+  '
+                />
               </Box>
               <Box className='flex flex-col gap-1 mt-2'>
                 <Typography className='flex flex-row gap-2 items-center mb-1' variant='body1' color='textSecondary'>
@@ -119,7 +132,11 @@ const CardTwo = ({ operator, refetch }: { operator: any; refetch: () => Promise<
                     {operator.identifier}
                   </Typography>
                 </Typography>
-                <Typography className='flex flex-row gap-2 items-center mb-1' variant='body1' color='textSecondary'>
+                <Typography
+                  className='flex flex-row gap-2 items-center mb-1 flex-wrap'
+                  variant='body1'
+                  color='textSecondary'
+                >
                   <Smartphone size={20} className='text-primary' /> Telefone:{' '}
                   <Typography component='span' variant='body2'>
                     {operator.phone_number}
