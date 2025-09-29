@@ -147,7 +147,6 @@ const DashboardCRM = () => {
   useEffect(() => {
     if (!dataInteractions) return
     calculaAudioAndText()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataInteractions])
 
   const { firstAccess } = useUserMe()
@@ -158,12 +157,12 @@ const DashboardCRM = () => {
   const apiFirstAccess = useAppSelector(selectFirstAccess)
 
   useEffect(() => {
-    if (apiFirstAccess === true) {
+    if (apiFirstAccess === false) {
       dispatch(setFirstAccess(true))
       dispatch(openModal())
     }
 
-    if (apiFirstAccess === false) {
+    if (apiFirstAccess === true) {
       dispatch(setFirstAccess(false))
     }
   }, [apiFirstAccess, dispatch])

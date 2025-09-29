@@ -1,9 +1,7 @@
 'use client'
 
-// React Imports
 import { useState, useCallback, useMemo, useEffect } from 'react'
 
-// MUI Imports
 import {
   Box,
   Button,
@@ -27,32 +25,27 @@ import {
   IconButton
 } from '@mui/material'
 import Grid from '@mui/material/Grid2'
-
-// Third-party Imports
 import * as v from 'valibot'
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 import { toast } from 'react-toastify'
 
-// Component Imports
-import { createColumnHelper, type ColumnDef } from '@tanstack/react-table'
+import ParameterFormRecursive from '@/components/ParameterFormRecursive'
+import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 
-import ListTable from '@/components/ListTable'
-
-// API Imports
 import {
   useGetTasksQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
-  type Task
+  type Task,
+  useLazyGetSingleTaskQuery,
+  type TaskParameterFull,
+  type TaskParameter
 } from '@/api/endpoints/task/task'
 import { useGetApisQuery } from '@/api/endpoints/fdc/api'
 import { useGetMethodsQuery } from '@/api/endpoints/method/method'
-import ParameterFormRecursive from '@/components/ParameterFormRecursive'
-import CustomInputVertical from '@/@core/components/custom-inputs/Vertical'
 
-// Schemas
 const TaskSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1, 'Nome é obrigatório')),
   description: v.pipe(v.string(), v.minLength(1, 'Descrição é obrigatória')),
@@ -100,6 +93,7 @@ interface UrlVariable {
 
 type Props = {
   onNextStep?: () => void
+  isTela?: boolean
 }
 
 const modalStyle = {
@@ -116,17 +110,18 @@ const modalStyle = {
   overflow: 'auto'
 }
 
-const StepCreateEndpoints = ({ onNextStep }: Props) => {
-  // RTK Queries
+const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
   const { data: tasksResponse, isLoading: loadingTasks, refetch } = useGetTasksQuery()
   const { data: apisResponse, isLoading: loadingApis } = useGetApisQuery()
   const { data: methodsResponse, isLoading: loadingMethods } = useGetMethodsQuery()
   const [createTask] = useCreateTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
+  const [fetchTaskDetails] = useLazyGetSingleTaskQuery()
   const [deleteTask] = useDeleteTaskMutation()
 
-  // Estados
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set())
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [tempParameters, setTempParameters] = useState<TempParameter[]>([])
   const [tempParamReturns, setTempParamReturns] = useState<string[]>([])
@@ -135,22 +130,19 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const [urlVariables, setUrlVariables] = useState<UrlVariable[]>([])
   const [urlError, setUrlError] = useState<string>('')
   const [currentEndpoint, setCurrentEndpoint] = useState<string>('')
-
   const [subParamParentId, setSubParamParentId] = useState<string | null>(null)
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [localParameters, setLocalParameters] = useState<Map<string, TaskParameter[]>>(new Map())
+  const [loadingTaskDetails, setLoadingTaskDetails] = useState<Set<string>>(new Set())
 
-  // Dados
   const tasks = tasksResponse?.data || []
   const apis = useMemo(() => apisResponse?.data || [], [apisResponse?.data])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const methods = methodsResponse?.data || []
   const isLoading = loadingTasks || loadingApis || loadingMethods
 
   const allowed = ['get', 'post', 'put', 'patch', 'delete']
   const filteredMethods = methods.filter(item => allowed.includes(item.name.toLowerCase()))
-
-  //Icons
 
   const ICONS: Record<string, JSX.Element> = {
     GET: <i className='ri-search-line' />,
@@ -160,11 +152,8 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     DELETE: <i className='ri-close-circle-line' />
   }
 
-  const IconRender = (name: string) => {
-    return ICONS[name ?? <i className='ri-box-3-fill' />]
-  }
+  const IconRender = (name: string) => ICONS[name] ?? <i className='ri-box-3-fill' />
 
-  // Formulários
   const taskForm = useForm<TaskFormData>({
     resolver: valibotResolver(TaskSchema),
     defaultValues: {
@@ -180,7 +169,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
   const parameterForm = useForm<ParameterFormData>({
     resolver: valibotResolver(ParameterSchema),
-
     defaultValues: {
       name: '',
       description: '',
@@ -210,7 +198,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
   const watchChildrenValue = parameterForm.watch('is_subparameter')
 
   const handleOpenSubParam = (event: React.MouseEvent<HTMLElement>, parentId: string) => {
-    setAnchorEl(event.currentTarget) // botão clicado
+    setAnchorEl(event.currentTarget)
     setSubParamParentId(parentId)
   }
 
@@ -221,7 +209,310 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
   const open = Boolean(anchorEl)
 
-  // Funções para URLs variáveis
+  // Adicionar após a linha 266 (após os estados existentes)
+  const renderParameter = (param: TaskParameter, taskId: string, depth = 0) => (
+    <div key={param.id || Math.random()} className={`${depth > 0 ? 'ml-8' : ''} mb-2`}>
+      <div className='flex items-center gap-2 p-2 bg-gray-50 rounded'>
+        <TextField
+          value={param.name}
+          onChange={e => updateParameter(taskId, param.id!, 'name', e.target.value)}
+          placeholder='Nome'
+          size='small'
+          className='flex-1'
+        />
+        <TextField
+          value={param.description}
+          onChange={e => updateParameter(taskId, param.id!, 'description', e.target.value)}
+          placeholder='Descrição'
+          size='small'
+          className='flex-1'
+        />
+        <Select
+          value={param.type}
+          onChange={e => updateParameter(taskId, param.id!, 'type', e.target.value)}
+          size='small'
+        >
+          <MenuItem value='String'>String</MenuItem>
+          <MenuItem value='Number'>Number</MenuItem>
+          <MenuItem value='Boolean'>Boolean</MenuItem>
+          <MenuItem value='Array'>Array</MenuItem>
+          <MenuItem value='Object'>Object</MenuItem>
+        </Select>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={param.required}
+              onChange={e => updateParameter(taskId, param.id!, 'required', e.target.checked)}
+              size='small'
+            />
+          }
+          label='Obrigatório'
+        />
+        <IconButton onClick={() => addParameter(taskId, param.id)} size='small' color='primary'>
+          <i className='ri-add-line' />
+        </IconButton>
+        {param.id && (
+          <IconButton onClick={() => removeParameter(taskId, param.id!)} size='small' color='error'>
+            <i className='ri-delete-bin-line' />
+          </IconButton>
+        )}
+      </div>
+      {param.data?.map(subParam => renderParameter(subParam, taskId, depth + 1))}
+    </div>
+  )
+
+  const renderParameterReadOnly = (param: TaskParameter, depth = 0): JSX.Element => (
+    <Box key={param.id || Math.random()} className={`${depth > 0 ? 'ml-8' : ''} mb-1`}>
+      <Box className='flex   items-start justify-between  gap-2 p-2 bg-white rounded border'>
+        <Box>
+          <Typography variant='body2' className='font-medium'>
+            Nome: <strong>{param.name || 'Sem nome'}</strong>
+          </Typography>
+          {param.description && (
+            <Typography variant='body2' className='font-medium'>
+              Descrição: <strong>{param.description}</strong>
+            </Typography>
+          )}
+        </Box>
+        <Box className='flex flex-col gap-1 flex-wrap'>
+          <Chip label={param.type} size='small' />
+          {param.is_header && <Chip label='Header' size='small' color='info' />}
+          {param.required && <Chip label='Obrigatório' size='small' color='error' />}
+        </Box>
+      </Box>
+      {param.data?.map(subParam => renderParameterReadOnly(subParam, depth + 1))}
+    </Box>
+  )
+
+  const convertToEditableParams = (params: TaskParameterFull[]): TaskParameter[] => {
+    return params.map(param => ({
+      id: param.id,
+      name: param.name,
+      description: param.description,
+      type: param.type,
+      required: param.required,
+      in_api: param.in_api,
+      is_header: param.is_header,
+      is_subparameter: param.is_subparameter,
+      paip_id: param.paip_id,
+      default_value: param.default_value,
+      data: param.sub_parameters_recursivo ? convertToEditableParams(param.sub_parameters_recursivo) : []
+    }))
+  }
+
+  const toggleTask = async (taskId: string) => {
+    const newExpanded = new Set(expandedTasks)
+
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId)
+      setEditingTasks(prev => {
+        const newSet = new Set(prev)
+
+        newSet.delete(taskId)
+
+        return newSet
+      })
+    } else {
+      newExpanded.add(taskId)
+
+      // Adicionar loading
+      setLoadingTaskDetails(prev => new Set(prev).add(taskId))
+
+      try {
+        const result = await fetchTaskDetails(taskId)
+
+        if (result.data) {
+          const parameters = convertToEditableParams(result.data.data.pai_parameters)
+
+          setLocalParameters(prev => new Map(prev).set(taskId, parameters))
+        }
+      } catch (error) {
+        toast.error('Erro ao carregar detalhes da task')
+
+        // Remover da lista de expandidos se der erro
+        newExpanded.delete(taskId)
+      } finally {
+        // Remover loading
+        setLoadingTaskDetails(prev => {
+          const newSet = new Set(prev)
+
+          newSet.delete(taskId)
+
+          return newSet
+        })
+      }
+    }
+
+    setExpandedTasks(newExpanded)
+  }
+
+  const toggleEditMode = (taskId: string) => {
+    setEditingTasks(prev => {
+      const newSet = new Set(prev)
+
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId)
+
+        // Recarregar parâmetros originais
+        fetchTaskDetails(taskId).then(result => {
+          if (result.data) {
+            const parameters = convertToEditableParams(result.data.data.pai_parameters)
+
+            setLocalParameters(prev => new Map(prev).set(taskId, parameters))
+          }
+        })
+      } else {
+        newSet.add(taskId)
+      }
+
+      return newSet
+    })
+  }
+
+  const addParameter = (taskId: string, parentId?: string) => {
+    const newParam: TaskParameter = {
+      name: '',
+      description: '',
+      type: 'String',
+      required: false,
+      in_api: false,
+      is_header: false,
+      is_subparameter: !!parentId,
+      paip_id: parentId || null,
+      default_value: null,
+      data: []
+    }
+
+    setLocalParameters(prev => {
+      const map = new Map(prev)
+      const params = map.get(taskId) || []
+
+      if (parentId) {
+        const addToParent = (parameters: TaskParameter[]): TaskParameter[] => {
+          return parameters.map(p => {
+            if (p.id === parentId) {
+              return {
+                ...p,
+                data: [...(p.data || []), newParam]
+              }
+            }
+
+            if (p.data && p.data.length > 0) {
+              return { ...p, data: addToParent(p.data) }
+            }
+
+            return p
+          })
+        }
+
+        map.set(taskId, addToParent(params))
+      } else {
+        map.set(taskId, [...params, newParam])
+      }
+
+      return map
+    })
+  }
+
+  const removeParameter = (taskId: string, paramId: string) => {
+    setLocalParameters(prev => {
+      const map = new Map(prev)
+      const params = map.get(taskId) || []
+
+      const removeParam = (parameters: TaskParameter[]): TaskParameter[] => {
+        return parameters
+          .filter(p => p.id !== paramId)
+          .map(p => ({
+            ...p,
+            data: p.data ? removeParam(p.data) : []
+          }))
+      }
+
+      map.set(taskId, removeParam(params))
+
+      return map
+    })
+  }
+
+  const updateParameter = (taskId: string, paramId: string, field: keyof TaskParameter, value: any) => {
+    setLocalParameters(prev => {
+      const map = new Map(prev)
+      const params = map.get(taskId) || []
+
+      const updateParam = (parameters: TaskParameter[]): TaskParameter[] => {
+        return parameters.map(p => {
+          if (p.id === paramId) {
+            return { ...p, [field]: value }
+          }
+
+          if (p.data && p.data.length > 0) {
+            return { ...p, data: updateParam(p.data) }
+          }
+
+          return p
+        })
+      }
+
+      map.set(taskId, updateParam(params))
+
+      return map
+    })
+  }
+
+  const saveTaskParameters = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    const parameters = localParameters.get(taskId)
+
+    if (!task || !parameters) return
+
+    // Limpar IDs temporários
+    const cleanParameters = (params: TaskParameter[]): any[] => {
+      return params.map(p => ({
+        ...p,
+        id: p.id?.startsWith('temp_') ? undefined : p.id,
+        data: p.data ? cleanParameters(p.data) : []
+      }))
+    }
+
+    try {
+      await updateTask({
+        id: taskId,
+        name: task.name,
+        description: task.description,
+        endpoint: task.endpoint,
+        method_id: task.method_id,
+        api_id: task.api_id,
+        instruction: task.instruction,
+        variable: task.variable,
+        Parameters: cleanParameters(parameters),
+        ParamReturns: task.returns?.map(r => r.name) || []
+      }).unwrap()
+
+      toast.success('Parâmetros atualizados com sucesso!')
+
+      // Recarregar dados
+      const result = await fetchTaskDetails(taskId)
+
+      if (result.data) {
+        const updatedParams = convertToEditableParams(result.data.data.pai_parameters)
+
+        setLocalParameters(prev => new Map(prev).set(taskId, updatedParams))
+      }
+
+      setEditingTasks(prev => {
+        const newSet = new Set(prev)
+
+        newSet.delete(taskId)
+
+        return newSet
+      })
+    } catch (error) {
+      toast.error('Erro ao salvar parâmetros')
+    }
+  }
+
+  console.log(saveTaskParameters, toggleEditMode)
+
   const parseUrlVariables = useCallback((url: string): UrlVariable[] => {
     const regex = /\{\{([^}]+)\}\}/g
     const variables: UrlVariable[] = []
@@ -307,7 +598,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     return `${baseUrl}${preview}`
   }, [currentEndpoint, urlVariables, taskForm, apis])
 
-  // Handlers Modal
   const handleOpenModal = useCallback(() => {
     setEditingTask(null)
     setTempParameters([])
@@ -336,8 +626,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     setShowPreview(prev => !prev)
   }
 
-  // Handlers Parâmetros
-  // Raiz
   const handleAddParameter = useCallback(
     (data: ParameterFormData) => {
       const newParam: TempParameter = {
@@ -355,7 +643,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     [parameterForm]
   )
 
-  // Subparam
   const handleAddSubParameter = useCallback(
     (data: ParameterFormData) => {
       const newParam: TempParameter = {
@@ -375,10 +662,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     },
     [subParamParentId, subParamForm]
   )
-
-  // const handleRemoveParameter = useCallback((id: string) => {
-  //   setTempParameters(prev => prev.filter(p => p.id !== id))
-  // }, [])
 
   const handleAddParamReturn = useCallback(() => {
     const trimmed = newParamReturn.trim()
@@ -410,7 +693,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     []
   )
 
-  // Handler Submit
   const handleSubmit = useCallback(
     async (data: TaskFormData) => {
       try {
@@ -479,7 +761,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     ]
   )
 
-  // Pega todos os valores do form em tempo real
   const watchedTask = taskForm.watch()
 
   const requestPreview = useMemo(() => {
@@ -537,33 +818,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     [deleteTask, refetch]
   )
 
-  const handleEditTask = useCallback(
-    (task: Task) => {
-      setEditingTask(task)
-      setCurrentEndpoint(task.endpoint)
-
-      const existingVariables = parseUrlVariables(task.endpoint)
-
-      setUrlVariables(existingVariables)
-
-      taskForm.reset({
-        name: task.name,
-        description: task.description,
-        endpoint: task.endpoint,
-        method_id: task.method_id,
-        api_id: task.api_id,
-        instruction: task.instruction,
-        variable: task.variable
-      })
-
-      setTempParameters([])
-      setTempParamReturns([])
-      setIsModalOpen(true)
-    },
-    [taskForm, parseUrlVariables]
-  )
-
-  // Effects
   useEffect(() => {
     const hasUrlVariables = urlVariables.length > 0
 
@@ -586,17 +840,15 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
     const selectedApi = apis.find(api => api.id === selectedApiId)
 
     if (selectedApi) {
-      // apenas força rerender do preview
       setCurrentEndpoint(prev => prev || '')
     }
   }, [taskForm.watch('api_id'), apis])
 
   return (
     <Box sx={{ mx: 'auto', width: '100%' }}>
-      <CardHeader title='Gerenciar Endpoints' subheader='Cadastre e configure os endpoints das suas APIs' />
+      <CardHeader title='Gerenciar Tasks' subheader='Cadastre e configure os endpoints das suas APIs' />
       <CardContent sx={{ width: '100%' }}>
         <Grid container spacing={4}>
-          {/* Header com botão */}
           <Grid size={{ xs: 12 }}>
             <Box className='flex justify-between items-center'>
               <Typography variant='body2' color='text.secondary'>
@@ -608,7 +860,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Box>
           </Grid>
 
-          {/* Loading */}
           {isLoading && (
             <Grid size={{ xs: 12 }}>
               <Box className='text-center py-12'>
@@ -620,7 +871,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Grid>
           )}
 
-          {/* Empty State */}
           {tasks.length === 0 && !isLoading && (
             <Grid size={{ xs: 12 }}>
               <Box className='text-center py-12'>
@@ -635,23 +885,99 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
             </Grid>
           )}
 
-          {/* Botão próximo */}
+          {tasks.length > 0 && !isLoading && (
+            <Grid size={{ xs: 12 }}>
+              {tasks.map(task => {
+                const isExpanded = expandedTasks.has(task.id)
+                const isEditing = editingTasks.has(task.id)
+                const parameters = localParameters.get(task.id) || []
+
+                return (
+                  <Paper key={task.id} className='mb-4'>
+                    <Box className='p-4 cursor-pointer hover:bg-gray-50' onClick={() => toggleTask(task.id)}>
+                      <Box className='flex items-center justify-between'>
+                        <Box className='flex items-center gap-2'>
+                          {isExpanded ? (
+                            <i className='ri-arrow-down-s-line' />
+                          ) : (
+                            <i className='ri-arrow-right-s-line' />
+                          )}
+                          <Typography variant='h6'>{task.name}</Typography>
+                          <Chip label={methods.find(m => m.id === task.method_id)?.name || 'N/A'} size='small' />
+                        </Box>
+                        <Box className='flex gap-2'>
+                          <IconButton
+                            onClick={e => {
+                              e.stopPropagation()
+                              handleDeleteTask(task.id)
+                            }}
+                            color='error'
+                          >
+                            <i className='ri-delete-bin-line' />
+                          </IconButton>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    {isExpanded && (
+                      <Box className='px-4 pb-4 border-t'>
+                        {loadingTaskDetails.has(task.id) ? (
+                          <Box className='flex justify-center items-center py-8'>
+                            <CircularProgress size={32} />
+                            <Typography variant='body2' className='ml-3 text-gray-600'>
+                              Carregando parâmetros...
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <>
+                            <Box className='flex justify-between items-center my-3'>
+                              <Typography variant='subtitle1'>Parâmetros ({parameters.length})</Typography>
+                            </Box>
+
+                            {isEditing ? (
+                              <Box>
+                                {parameters.map(param => renderParameter(param, task.id))}
+                                {parameters.length === 0 && (
+                                  <Typography variant='body2' color='text.secondary'>
+                                    Nenhum parâmetro. Clique em adicionar.
+                                  </Typography>
+                                )}
+                              </Box>
+                            ) : (
+                              <Box>
+                                {parameters.map(param => renderParameterReadOnly(param))}
+                                {parameters.length === 0 && (
+                                  <Typography variant='body2' color='text.secondary'>
+                                    Nenhum parâmetro configurado
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </>
+                        )}
+                      </Box>
+                    )}
+                  </Paper>
+                )
+              })}
+            </Grid>
+          )}
         </Grid>
-        {tasks.length > 0 && (
-          <Box className='flex items-end '>
+
+        {tasks.length > 0 && !isTela && (
+          <Box className='flex items-end mt-4'>
             <Button
               variant='contained'
               size='small'
               onClick={onNextStep}
               endIcon={<i className='ri-arrow-right-line' />}
             >
-              Finalizar cadatro de endpoints
+              Finalizar cadastro de endpoints
             </Button>
           </Box>
         )}
       </CardContent>
 
-      {/* Modal */}
       <Modal open={isModalOpen} onClose={handleCloseModal}>
         <Box sx={modalStyle}>
           <Box className='flex items-center flex-col'>
@@ -666,14 +992,12 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
           <form onSubmit={taskForm.handleSubmit(handleSubmit)}>
             <Grid container spacing={4}>
-              {/* Dados básicos */}
-
               <Grid size={{ xs: 12 }}>
                 <Box className='flex gap-2 items-center'>
                   <Typography variant='h5' className='text-primary'>
-                    {'Dados da Basicos'}
+                    Dados Básicos
                   </Typography>
-                  <Tooltip title='Esses dados serão usados para identificação das suas funções de consulta extena (FDC), irão facilitar o encontro e usabilidade das suas funções dentro do sistema Aiyou '>
+                  <Tooltip title='Esses dados serão usados para identificação'>
                     <i className='ri-information-line w-5 cursor-help text-primary' />
                   </Tooltip>
                 </Box>
@@ -697,7 +1021,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   )}
                 />
                 <Typography variant='subtitle1' className='mt-1'>
-                  O nome que será cadastrado será usado para identificar o endpoint nas funcionalidades do sistema
+                  O nome será usado para identificar o endpoint
                 </Typography>
               </Grid>
 
@@ -732,7 +1056,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       {...field}
                       fullWidth
                       label='Descrição'
-                      placeholder='Digite aqui a descrição na qual você poderá identificar e entender a funcionalidade destinada a este endpoint'
+                      placeholder='Digite a descrição para identificar a funcionalidade'
                       required
                       multiline
                       rows={4}
@@ -742,26 +1066,27 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   )}
                 />
                 <Typography variant='subtitle1' className='mt-1'>
-                  Determine como a será descrição de identificação para este endpoint
+                  Determine a descrição de identificação para este endpoint
                 </Typography>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Box className='flex gap-2 items-center'>
                   <Typography variant='h5' className='text-primary'>
-                    {'Dados de Funcionalidade'}
+                    Dados de Funcionalidade
                   </Typography>
-                  <Tooltip title='Aqui, você deverá cadastrar os dados exatamente como está na documentação do endpoint no qual deseja usar. Com esses dados, a AiYou fará requisições diretamente para API e usará as respostas dessas requisições para interagir com seu publico'>
+                  <Tooltip title='Cadastre os dados conforme documentação'>
                     <i className='ri-information-line w-5 cursor-help text-primary' />
                   </Tooltip>
                 </Box>
               </Grid>
 
-              {/* Sistema de URL com variáveis */}
               <Grid size={{ xs: 12 }}>
-                <Box className='mb-2 '>
+                <Box className='mb-2'>
                   <Box className='flex flex-col w-full justify-between'>
                     <Box className='flex gap-2'>
                       <TextField
@@ -784,7 +1109,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       </Button>
                     </Box>
                     <Typography variant='subtitle1' className='mt-1'>
-                      Cadastre penas a parte do endpoint da URL de requisição
+                      Cadastre apenas a parte do endpoint da URL
                     </Typography>
                   </Box>
                   {urlVariables.length > 0 && (
@@ -795,16 +1120,15 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   )}
                 </Box>
 
-                {/* Configuração das variáveis */}
                 {urlVariables.length > 0 && (
                   <Paper className='p-3 mb-2'>
                     <Typography variant='subtitle2' className='mb-2'>
-                      Adicione um nome a variavel da URL
+                      Adicione um nome à variável da URL
                     </Typography>
                     <Box className='space-y-2'>
                       {urlVariables.map((variable, index) => (
                         <Box key={variable.id} className='flex gap-2 items-center'>
-                          <Typography variant='h5' className='min-w-16 '>
+                          <Typography variant='h5' className='min-w-16'>
                             #{index + 1}:
                           </Typography>
                           <TextField
@@ -833,7 +1157,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   </Paper>
                 )}
 
-                {/* Preview da URL */}
                 {(currentEndpoint || urlVariables.length > 0 || taskForm.watch('endpoint') !== '') && (
                   <Paper className='p-2 bg-black'>
                     <Typography variant='caption' className='block mb-1 text-gray-400'>
@@ -853,23 +1176,17 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   rules={{ required: true }}
                   render={({ field }) => (
                     <Grid container spacing={2} className='flex justify-center'>
-                      {filteredMethods.map((item, index) => {
-                        return (
-                          <Grid size={{ xs: 12, sm: 6, md: 6, xl: 3, lg: 4 }} key={index}>
-                            <CustomInputVertical
-                              type='radio'
-                              name={item.name}
-                              selected={field.value} // valor vindo do react-hook-form
-                              handleChange={(value: any) => field.onChange(value)} // atualiza o form
-                              data={{
-                                value: item.id,
-                                title: item.name,
-                                content: IconRender(item.name)
-                              }}
-                            />
-                          </Grid>
-                        )
-                      })}
+                      {filteredMethods.map((item, index) => (
+                        <Grid size={{ xs: 12, sm: 6, md: 6, xl: 3, lg: 4 }} key={index}>
+                          <CustomInputVertical
+                            type='radio'
+                            name={item.name}
+                            selected={field.value}
+                            handleChange={(value: any) => field.onChange(value)}
+                            data={{ value: item.id, title: item.name, content: IconRender(item.name) }}
+                          />
+                        </Grid>
+                      ))}
                     </Grid>
                   )}
                 />
@@ -879,23 +1196,15 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                 <Divider />
               </Grid>
 
-              {/* Seção Parâmetros */}
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-between items-center mb-3'>
                   <Typography variant='subtitle1'>Parâmetros ({tempParameters.length})</Typography>
-                  <Button
-                    variant='outlined'
-                    size='small'
-                    onClick={() => {
-                      setIsAddingParameter(!isAddingParameter)
-                    }}
-                  >
+                  <Button variant='outlined' size='small' onClick={() => setIsAddingParameter(!isAddingParameter)}>
                     {isAddingParameter ? 'Cancelar' : 'Adicionar Parâmetro'}
                   </Button>
                 </Box>
               </Grid>
 
-              {/* Form adicionar parâmetro */}
               {isAddingParameter && (
                 <Grid size={{ xs: 12 }}>
                   <Paper className='p-3 mb-3'>
@@ -909,7 +1218,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                           )}
                         />
                       </Grid>
-
                       <Grid size={{ xs: 6 }}>
                         <Controller
                           name='type'
@@ -949,7 +1257,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                               />
                             )}
                           />
-
                           <Controller
                             name='is_header'
                             control={parameterForm.control}
@@ -990,28 +1297,26 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   </Paper>
                 </Grid>
               )}
+
               <Controller
                 name='is_subparameter'
                 control={parameterForm.control}
                 render={({ field }) => (
                   <FormControlLabel
                     control={<Switch checked={field.value} onChange={field.onChange} size='small' />}
-                    label='Habilitar parâmetros com subparâmetros (filhos)'
+                    label='Habilitar subparâmetros'
                   />
                 )}
               />
-              {/* Lista parâmetros */}
+
               {tempParameters.length > 0 && (
                 <Grid size={{ xs: 12 }}>
                   <ParameterFormRecursive
                     parameters={tempParameters}
                     haveChildren={watchChildrenValue}
                     onAdd={(parentId?: string, event?: React.MouseEvent<HTMLElement>) => {
-                      if (parentId && event) {
-                        handleOpenSubParam(event, parentId)
-                      } else {
-                        setIsAddingParameter(true)
-                      }
+                      if (parentId && event) handleOpenSubParam(event, parentId)
+                      else setIsAddingParameter(true)
                     }}
                     onRemove={(id: string, parentId?: string) => {
                       if (parentId) {
@@ -1027,19 +1332,22 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                   />
                 </Grid>
               )}
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Box className='flex gap-2 items-center'>
                   <Typography variant='h5' className='text-primary'>
-                    {'Dados de Retorno da requisição'}
+                    Dados de Retorno
                   </Typography>
-                  <Tooltip title='Configure como os dados serão usados pela AiYou e quais são os parametros que deseja utilizar da resposta da requisição. Caso queira usar todos, deixe em branco'>
+                  <Tooltip title='Configure os dados de retorno'>
                     <i className='ri-information-line w-5 cursor-help text-primary' />
                   </Tooltip>
                 </Box>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Controller
                   name='instruction'
@@ -1052,21 +1360,21 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       required
                       multiline
                       rows={2}
-                      placeholder='Ex: Use o os dados deste endpoint para responde perguntas sobre faturas'
+                      placeholder='Ex: Use os dados para responder sobre faturas'
                       error={!!taskForm.formState.errors.instruction}
                       helperText={taskForm.formState.errors.instruction?.message}
                     />
                   )}
                 />
                 <Typography variant='subtitle1' className='mt-1'>
-                  Instrua como o seu assistente deverá utilizar as respostas deste endpoint
+                  Instrua como usar as respostas
                 </Typography>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
 
-              {/* Campos de retorno */}
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-between'>
                   <Box>
@@ -1082,15 +1390,11 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                         size='small'
                         onKeyPress={e => e.key === 'Enter' && handleAddParamReturn()}
                       />
-                      <Box>
-                        <Tooltip
-                          title={`Adicione os parâmetros de retorno que o assistente poderá usar (opcional). Se nenhum parâmetro for adicionado, o assistente usará todos os parâmetros da resposta.`}
-                        >
-                          <IconButton size='small' onClick={handleAddParamReturn} className='bg-primary text-white'>
-                            <i className='ri-add-fill' />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                      <Tooltip title='Adicione parâmetros de retorno (opcional)'>
+                        <IconButton size='small' onClick={handleAddParamReturn} className='bg-primary text-white'>
+                          <i className='ri-add-fill' />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                     {tempParamReturns.length > 0 && (
                       <Box className='flex flex-wrap gap-1'>
@@ -1106,14 +1410,12 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       </Box>
                     )}
                   </Box>
-
                   <Box className='flex items-end justify-end'>
-                    <Button variant='outlined' onClick={handleShowPreviewJson}>
-                      {`{} JSON`}
-                    </Button>
+                    <Button variant='outlined' onClick={handleShowPreviewJson}>{`{} JSON`}</Button>
                   </Box>
                 </Box>
               </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
@@ -1134,7 +1436,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
 
             <Divider className='my-4' />
 
-            {/* Botões */}
             <Box className='flex justify-end gap-2'>
               <Button type='button' onClick={handleCloseModal}>
                 Cancelar
@@ -1148,6 +1449,7 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
               </Button>
             </Box>
           </form>
+
           <Popover
             open={open}
             anchorEl={anchorEl}
@@ -1191,7 +1493,6 @@ const StepCreateEndpoints = ({ onNextStep }: Props) => {
                       render={({ field }) => <TextField {...field} fullWidth size='small' label='Descrição' required />}
                     />
                   </Grid>
-                  {/* switches igual ao form raiz */}
                   <Grid size={{ xs: 12 }}>
                     <Box display='flex' gap={2}>
                       <Controller

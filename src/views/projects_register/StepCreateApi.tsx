@@ -52,6 +52,7 @@ type ApiFormData = v.InferInput<typeof ApiSchema>
 
 interface StepCreateApiProps {
   onNextStep?: () => void
+  isTela?: boolean
 }
 
 // Modal Style
@@ -70,7 +71,7 @@ const modalStyle = {
   overflow: 'auto'
 }
 
-const StepCreateApi = ({ onNextStep }: StepCreateApiProps) => {
+const StepCreateApi = ({ onNextStep, isTela }: StepCreateApiProps) => {
   // States
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingApi, setEditingApi] = useState<Api | null>(null)
@@ -262,13 +263,6 @@ const StepCreateApi = ({ onNextStep }: StepCreateApiProps) => {
         <CardContent>
           <Grid container spacing={4}>
             {/* Formulário de Cadastro */}
-            <Grid size={{ xs: 12 }}>
-              <Box className='flex justify-end'>
-                <Button variant='contained' startIcon={<i className='ri-add-line' />} onClick={handleOpenModal}>
-                  Cadastrar API
-                </Button>
-              </Box>
-            </Grid>
 
             {/* Tabela de APIs */}
             {apis.length > 0 && (
@@ -283,6 +277,13 @@ const StepCreateApi = ({ onNextStep }: StepCreateApiProps) => {
                     <CardHeader title={`APIs Cadastradas (${apis.length})`} subheader='Gerencie suas APIs externas' />
                   }
                   headerHasDivider
+                  actions={
+                    <Box className='flex justify-end'>
+                      <Button variant='contained' startIcon={<i className='ri-add-line' />} onClick={handleOpenModal}>
+                        Cadastrar API
+                      </Button>
+                    </Box>
+                  }
                 />
               </Grid>
             )}
@@ -306,7 +307,7 @@ const StepCreateApi = ({ onNextStep }: StepCreateApiProps) => {
             )}
 
             {/* Next Step Button */}
-            {apis.length > 0 && (
+            {apis.length > 0 && !isTela && (
               <Grid size={{ xs: 12 }}>
                 <Box className='flex justify-end'>
                   <Button
