@@ -15,7 +15,8 @@ import {
   Box,
   Typography,
   Chip,
-  Paper
+  Paper,
+  Divider
 } from '@mui/material'
 
 import { CheckCircle, LucideClipboard, Sliders } from 'lucide-react'
@@ -92,7 +93,7 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
           <TableHead>
             <TableRow>
               <TableCell />
-              <TableCell>Avatar</TableCell>
+
               <TableCell>Nome</TableCell>
               <TableCell>Ativa</TableCell>
             </TableRow>
@@ -104,12 +105,12 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                 <TableRow>
                   <TableCell>
                     <IconButton size='small' onClick={() => toggleExpand(task.id)}>
-                      {expandedRows[task.id] ? '-' : '+'}
+                      {expandedRows[task.id] ? (
+                        <i className='ri-subtract-line text-[18px] text-primary' />
+                      ) : (
+                        <i className='ri-add-line text-[18px] text-primary' />
+                      )}
                     </IconButton>
-                  </TableCell>
-
-                  <TableCell>
-                    <CustomAvatar size={34} src='/images/avatars/1.png' />
                   </TableCell>
 
                   <TableCell>{task.details?.name}</TableCell>
@@ -127,7 +128,17 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                     <Collapse in={expandedRows[task.id]} timeout='auto' unmountOnExit>
                       <Box sx={{ p: 2 }}>
                         {/* Seção Geral */}
-                        <Paper sx={{ p: 2, mb: 2, mt: 6 }} elevation={1}>
+                        <Paper
+                          sx={{
+                            p: 8,
+                            mb: 2,
+                            mt: 6,
+                            border: '1px solid',
+
+                            borderColor: 'primary.main' // usa a cor primary do tema
+                          }}
+                          elevation={1}
+                        >
                           <Typography
                             className='flex flex-row gap-2 items-center justify-start mb-4'
                             variant='subtitle1'
@@ -164,7 +175,17 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                         </Paper>
 
                         {/* Parâmetros */}
-                        <Paper sx={{ p: 2, mb: 2, mt: 6 }} elevation={1}>
+                        <Paper
+                          sx={{
+                            p: 8,
+                            mb: 2,
+                            mt: 6,
+                            border: '1px solid',
+
+                            borderColor: 'primary.main' // usa a cor primary do tema
+                          }}
+                          elevation={1}
+                        >
                           <Typography
                             className='flex flex-row gap-2 items-center justify-start mb-4'
                             variant='subtitle1'
@@ -175,21 +196,24 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                           </Typography>
                           {task.details?.pai_parameters?.length ? (
                             task.details.pai_parameters.map((p: any, idx: any) => (
-                              <Box key={idx} sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-                                <Typography variant='body2'>
-                                  <strong style={{ fontSize: '0.95rem' }}>Nome:</strong> {p.name}
-                                </Typography>
-                                <Typography variant='body2'>
-                                  <strong style={{ fontSize: '0.95rem' }}>Descrição:</strong> {p.description || '-'}
-                                </Typography>
-                                <Typography variant='body2'>
-                                  <strong style={{ fontSize: '0.95rem' }}>Tipo:</strong> {p.type}
-                                </Typography>
-                                <Typography variant='body2' sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                  <strong style={{ fontSize: '0.95rem' }}>Obrigatório:</strong>{' '}
-                                  {renderBooleanChip(p.required)}
-                                </Typography>
-                              </Box>
+                              <>
+                                <Divider orientation='horizontal' className='mt-4 mb-4' />
+                                <Box key={idx} sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
+                                  <Typography variant='body2'>
+                                    <strong style={{ fontSize: '0.95rem' }}>Nome:</strong> {p.name}
+                                  </Typography>
+                                  <Typography variant='body2'>
+                                    <strong style={{ fontSize: '0.95rem' }}>Descrição:</strong> {p.description || '-'}
+                                  </Typography>
+                                  <Typography variant='body2'>
+                                    <strong style={{ fontSize: '0.95rem' }}>Tipo:</strong> {p.type}
+                                  </Typography>
+                                  <Typography variant='body2' sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <strong style={{ fontSize: '0.95rem' }}>Obrigatório:</strong>{' '}
+                                    {renderBooleanChip(p.required)}
+                                  </Typography>
+                                </Box>
+                              </>
                             ))
                           ) : (
                             <Typography variant='body2'>Nenhum parâmetro</Typography>
@@ -197,7 +221,17 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                         </Paper>
 
                         {/* Retornos */}
-                        <Paper sx={{ p: 2 }} elevation={1}>
+                        <Paper
+                          sx={{
+                            p: 8,
+                            mb: 2,
+                            mt: 6,
+                            border: '1px solid',
+
+                            borderColor: 'primary.main' // usa a cor primary do tema
+                          }}
+                          elevation={1}
+                        >
                           <Typography
                             className='flex flex-row gap-2 items-center justify-start mb-4'
                             variant='subtitle1'
