@@ -45,7 +45,7 @@ export default function Operadores() {
 
   return (
     <Card>
-      <CardActions className='flex justify-between px-12'>
+      <CardActions className='flex justify-between px-12 flex-wrap'>
         <CardHeader title='Operadores Cadastrados' />
         <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={CreateOperatorDialog} />
       </CardActions>
@@ -61,7 +61,7 @@ export default function Operadores() {
           ) : (
             data?.data.map((operator: any) => {
               return (
-                <Grid key={operator.identifier} size={{ xs: 12, sm: 12, md: 12, lg: 6 }}>
+                <Grid key={operator.identifier} size={{ xs: 12, sm: 12, md: 12, lg: 12 }}>
                   <CardTwo operator={operator} refetch={refetch} />
                 </Grid>
               )

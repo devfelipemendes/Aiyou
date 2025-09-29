@@ -8,10 +8,14 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  InputAdornment,
   TextField,
+  Tooltip,
   Typography
 } from '@mui/material'
 import LoadingButton from '@mui/lab/LoadingButton'
+
+import { Info } from 'lucide-react'
 
 import { useCreateAssistantPhoneMutation } from '@/api/endpoints/assistantPhone/assistantPhone'
 import type { useGetSingleAssistantQuery } from '@/api/endpoints/assistant/assistant'
@@ -86,6 +90,26 @@ const CreatePhone = ({ open, setOpen, assistant_id, refetch }: CreatePhoneProps)
                 fullWidth
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Tooltip
+                        title={
+                          <div style={{ maxWidth: 220 }}>
+                            Insira aqui o número de telefone que será usado para enviar e receber mensagens no WhatsApp.
+                            Exemplo: +55 11 91234-5678
+                          </div>
+                        }
+                        arrow
+                        placement='top'
+                      >
+                        <IconButton size='small'>
+                          <Info size={17} />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  )
+                }}
               />
             )}
           />
@@ -93,14 +117,34 @@ const CreatePhone = ({ open, setOpen, assistant_id, refetch }: CreatePhoneProps)
           <Controller
             name='wa_id'
             control={control}
-            rules={{ required: 'WA ID é obrigatório' }}
+            rules={{ required: 'ID do número do WhatsApp da Meta é obrigatório' }}
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
-                label='WA ID'
+                label='ID do WhatsApp'
                 fullWidth
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Tooltip
+                        title={
+                          <div style={{ maxWidth: 220 }}>
+                            Este é o <strong>ID do número de WhatsApp</strong> gerado pela Meta (Facebook Business).
+                            Você pode encontrar esse ID no painel de desenvolvedores da Meta.
+                          </div>
+                        }
+                        arrow
+                        placement='top'
+                      >
+                        <IconButton size='small'>
+                          <Info size={17} />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  )
+                }}
               />
             )}
           />
@@ -108,14 +152,34 @@ const CreatePhone = ({ open, setOpen, assistant_id, refetch }: CreatePhoneProps)
           <Controller
             name='wa_key'
             control={control}
-            rules={{ required: 'WA Key é obrigatório' }}
+            rules={{ required: 'Token do WhatsApp é obrigatório' }}
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
-                label='WA Key'
+                label='Token do WhatsApp'
                 fullWidth
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Tooltip
+                        title={
+                          <div style={{ maxWidth: 220 }}>
+                            Insira aqui o <strong>token de autenticação</strong> fornecido pela API do WhatsApp da Meta.
+                            Esse token é necessário para validar as requisições.
+                          </div>
+                        }
+                        arrow
+                        placement='top'
+                      >
+                        <IconButton size='small'>
+                          <Info size={17} />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  )
+                }}
               />
             )}
           />
