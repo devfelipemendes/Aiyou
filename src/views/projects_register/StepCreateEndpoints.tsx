@@ -22,7 +22,8 @@ import {
   Paper,
   Tooltip,
   Popover,
-  IconButton
+  IconButton,
+  Card
 } from '@mui/material'
 import Grid from '@mui/material/Grid2'
 import * as v from 'valibot'
@@ -263,7 +264,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
 
   const renderParameterReadOnly = (param: TaskParameter, depth = 0): JSX.Element => (
     <Box key={param.id || Math.random()} className={`${depth > 0 ? 'ml-8' : ''} mb-1`}>
-      <Box className='flex   items-start justify-between  gap-2 p-2 bg-white rounded border'>
+      <Card className='flex items-start justify-between  gap-2 p-2  rounded border'>
         <Box>
           <Typography variant='body2' className='font-medium'>
             Nome: <strong>{param.name || 'Sem nome'}</strong>
@@ -279,7 +280,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
           {param.is_header && <Chip label='Header' size='small' color='info' />}
           {param.required && <Chip label='Obrigatório' size='small' color='error' />}
         </Box>
-      </Box>
+      </Card>
       {param.data?.map(subParam => renderParameterReadOnly(subParam, depth + 1))}
     </Box>
   )
@@ -894,7 +895,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
 
                 return (
                   <Paper key={task.id} className='mb-4'>
-                    <Box className='p-4 cursor-pointer hover:bg-gray-50' onClick={() => toggleTask(task.id)}>
+                    <Card className='p-4 cursor-pointer hover:shadow-md' onClick={() => toggleTask(task.id)}>
                       <Box className='flex items-center justify-between'>
                         <Box className='flex items-center gap-2'>
                           {isExpanded ? (
@@ -917,7 +918,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
                           </IconButton>
                         </Box>
                       </Box>
-                    </Box>
+                    </Card>
 
                     {isExpanded && (
                       <Box className='px-4 pb-4 border-t'>
