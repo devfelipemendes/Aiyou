@@ -236,8 +236,8 @@ const FinanceiroPage = () => {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label='financeiro tabs'>
             <Tab label='Cobranças' icon={<i className='ri-arrow-up-circle-line' />} />
-            <Tab label='Histórico de pagamentos' icon={<i className='ri-history-line' />} />
-            <Tab label='Métodos de Pagamento' icon={<i className='ri-bank-card-line' />} />
+            {/* <Tab label='Histórico de pagamentos' icon={<i className='ri-history-line' />} />
+            <Tab label='Métodos de Pagamento' icon={<i className='ri-bank-card-line' />} /> */}
           </Tabs>
         </Box>
 

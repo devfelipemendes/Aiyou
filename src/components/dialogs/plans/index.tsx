@@ -126,7 +126,6 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
   const [updateUserPlan] = useUpdateUserPlanMutation()
 
   const FREE_PLAN_ID = 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
-  const isFreePlan = user?.plan?.id === FREE_PLAN_ID
 
   useEffect(() => {
     if (open) {

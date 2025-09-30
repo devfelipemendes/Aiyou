@@ -82,6 +82,7 @@ export const apiSlice = createApi({
     'TaskAssistant',
     'Statistics',
     'AssistantPhone',
-    'BuildInvoice'
+    'BuildInvoice',
+    'Invoice'
   ]
 })
