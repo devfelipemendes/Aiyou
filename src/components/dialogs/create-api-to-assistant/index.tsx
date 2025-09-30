@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 
 import {
   Box,
@@ -44,11 +44,15 @@ const LinkApiToAssistant = ({
     setOpen(false)
   }
 
-  const { data: tasksResponse, isLoading: loadingTasks, refetch } = useGetTasksQuery()
-  const { data: methodsResponse, isLoading: loadingMethods } = useGetMethodsQuery()
+  const { data: tasksResponse } = useGetTasksQuery()
+  const { data: methodsResponse } = useGetMethodsQuery()
   const [createTaskAssistant, { isLoading }] = useCreateTaskAssistantMutation()
   const [linkingTaskId, setLinkingTaskId] = useState<string | null>(null)
-  const tasks = tasksResponse?.data || []
+
+  const tasks = useMemo(() => {
+    return tasksResponse?.data || []
+  }, [tasksResponse])
+
   const methods = methodsResponse?.data || []
 
   // 📌 IDs das tasks já vinculadas ao assistente
