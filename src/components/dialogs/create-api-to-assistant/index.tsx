@@ -4,10 +4,8 @@ import { useState, useMemo } from 'react'
 
 import {
   Box,
-  Button,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
@@ -16,7 +14,6 @@ import {
   Typography,
   CircularProgress
 } from '@mui/material'
-import LoadingButton from '@mui/lab/LoadingButton'
 
 import { useGetTasksQuery } from '@/api/endpoints/task/task'
 import { useGetMethodsQuery } from '@/api/endpoints/method/method'
@@ -46,7 +43,7 @@ const LinkApiToAssistant = ({
 
   const { data: tasksResponse } = useGetTasksQuery()
   const { data: methodsResponse } = useGetMethodsQuery()
-  const [createTaskAssistant, { isLoading }] = useCreateTaskAssistantMutation()
+  const [createTaskAssistant] = useCreateTaskAssistantMutation()
   const [linkingTaskId, setLinkingTaskId] = useState<string | null>(null)
 
   const tasks = useMemo(() => {
@@ -149,15 +146,6 @@ const LinkApiToAssistant = ({
             </Box>
           )}
         </Box>
-
-        <DialogActions className='justify-center mt-4'>
-          <LoadingButton variant='contained' type='submit' loading={isLoading}>
-            Salvar
-          </LoadingButton>
-          <Button variant='outlined' type='button' color='error' onClick={handleClose}>
-            Cancelar
-          </Button>
-        </DialogActions>
       </DialogContent>
     </Dialog>
   )
