@@ -1,9 +1,11 @@
 // file: src/views/invoice/list/InvoiceListTable.tsx (correções aplicadas)
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 
 import Link from 'next/link'
+
+import { useRouter } from 'next/navigation'
 
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -40,11 +42,10 @@ import type { RankingInfo } from '@tanstack/match-sorter-utils'
 import OptionMenu from '@core/components/option-menu'
 import CustomAvatar from '@core/components/mui/Avatar'
 import tableStyles from '@core/styles/table.module.css'
-import type { InvoiceType } from '@/types/invoiceTypes'
+
 import { useGetCustomerInvoicesQuery, type CustomerInvoice } from '@/api/endpoints/invoices/invoice'
 import { InvoiceViewModal } from '@/components/dialogs/invoiceViewInSistem'
 import { currencyFormatter } from '@/utils/currency'
-import { InvoicePreviewDialog } from '@/components/dialogs/InvoicePreviewDialog'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -90,7 +91,7 @@ const DebouncedInput = ({
   return <TextField {...props} value={value} onChange={e => setValue(e.target.value)} size='small' />
 }
 
-const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
+const InvoiceListTable = () => {
   const [status, setStatus] = useState<CustomerInvoice['status']>('')
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState('')
@@ -98,6 +99,8 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
   // Modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null)
+
+  const router = useRouter()
 
   const {
     data: invoicesResponse,
@@ -121,6 +124,10 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
     setSelectedPaymentId(paymentId)
     setShowInvoiceModal(true)
   }
+
+  const handleViewInvoiceOnline = useCallback((paymantId: string) => {
+    router.push(`/cobranca/${paymantId}`)
+  }, [])
 
   const columns = useMemo<ColumnDef<CustomerInvoice, any>[]>(
     () => [
@@ -236,14 +243,6 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
               </IconButton>
             </Tooltip>
 
-            <Tooltip title='Ver Fatura Online'>
-              <IconButton>
-                <Link href={row.original.invoiceUrl} target='_blank' className='flex'>
-                  <i className='ri-external-link-line text-textSecondary' />
-                </Link>
-              </IconButton>
-            </Tooltip>
-
             <OptionMenu
               iconButtonProps={{ size: 'medium' }}
               iconClassName='text-textSecondary'
@@ -260,18 +259,16 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
                   text: 'Ver Fatura Online',
                   icon: 'ri-external-link-line',
                   menuItemProps: {
-                    component: 'a',
-                    href: row.original.invoiceUrl,
-                    target: '_blank',
+                    onClick: () => handleViewInvoiceOnline(row.original.id),
                     className: 'flex items-center gap-2 text-textSecondary'
                   }
                 },
                 {
-                  text: 'Copiar Link da Fatura',
+                  text: 'Copiar ID da Fatura',
                   icon: 'ri-file-copy-line',
                   menuItemProps: {
                     onClick: () => {
-                      navigator.clipboard.writeText(row.original.invoiceUrl)
+                      navigator.clipboard.writeText(row.original.id)
                     },
                     className: 'flex items-center gap-2 text-textSecondary'
                   }
@@ -438,7 +435,7 @@ const InvoiceListTable = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
         />
       </Card>
 
-      <InvoicePreviewDialog
+      <InvoiceViewModal
         open={showInvoiceModal}
         onClose={() => {
           setShowInvoiceModal(false)

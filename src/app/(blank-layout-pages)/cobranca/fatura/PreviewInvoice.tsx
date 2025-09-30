@@ -21,7 +21,7 @@ import { useBuildInvoiceQuery } from '@/api/endpoints/invoices/buildInvoice'
 import { useCopyToClipboard } from '@/utils/copyToClipbard'
 import { usePrintToPDF } from '@/hooks/usePrintToPDFOptions'
 
-const PreviewCard = () => {
+const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined }) => {
   const params = useParams()
 
   const { isCopied, copyText } = useCopyToClipboard({
@@ -31,7 +31,9 @@ const PreviewCard = () => {
     onError: error => console.error('Erro copy PIX:', error)
   })
 
-  const paymentId = params?.id as string
+  const paymentId = IdInvoice || (params?.id as string) || ''
+
+  console.log('teste do IDINVOICE' + IdInvoice)
 
   const {
     data: invoiceResponse,
@@ -387,7 +389,7 @@ const PreviewCard = () => {
             <Typography>
               <Typography component='span' className='font-medium' color='text.primary'>
                 Observação:
-              </Typography>{' '}
+              </Typography>
               Esta fatura foi gerada automaticamente. Em caso de dúvidas, entre em contato conosco. Agradecemos pela
               preferência!
             </Typography>

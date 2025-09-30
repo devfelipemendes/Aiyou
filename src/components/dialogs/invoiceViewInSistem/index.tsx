@@ -16,9 +16,8 @@ import {
   Typography
 } from '@mui/material'
 
-import InvoiceContent from './InvoiceContent'
 import { useBuildInvoiceQuery } from '@/api/endpoints/invoices/buildInvoice'
-import PreviewCard from '@/views/invoice/preview/PreviewCard'
+import PreviewCard from '@/app/(blank-layout-pages)/cobranca/fatura/PreviewInvoice'
 
 interface InvoiceViewModalProps {
   open: boolean
@@ -56,6 +55,8 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
   }
 
   if (!open) return null
+
+  console.log('teste do IDINVOICE teste' + paymentId)
 
   return (
     <Dialog
@@ -105,33 +106,9 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
             <Alert severity='warning'>Dados da fatura não encontrados</Alert>
           </Box>
         ) : (
-          <PreviewCard id={''} />
+          <PreviewCard IdInvoice={paymentId} />
         )}
       </DialogContent>
-
-      {(showDownloadButton || showCloseButton) && invoice && (
-        <DialogActions sx={{ p: 3, borderTop: '1px solid', borderTopColor: 'divider' }}>
-          {showCloseButton && (
-            <Button onClick={handleClose} variant='outlined' color='secondary'>
-              Fechar
-            </Button>
-          )}
-
-          {showDownloadButton && (
-            <Button
-              variant='contained'
-              color='primary'
-              startIcon={<i className='ri-download-line' />}
-              onClick={() => {
-                // Implementar download da fatura
-                console.log('Download fatura:', invoice.id)
-              }}
-            >
-              Baixar PDF
-            </Button>
-          )}
-        </DialogActions>
-      )}
     </Dialog>
   )
 }

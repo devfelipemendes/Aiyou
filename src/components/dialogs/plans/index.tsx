@@ -125,6 +125,9 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
   const [createUserPlan] = useCreateUserPlanMutation()
   const [updateUserPlan] = useUpdateUserPlanMutation()
 
+  const FREE_PLAN_ID = 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
+  const isFreePlan = user?.plan?.id === FREE_PLAN_ID
+
   useEffect(() => {
     if (open) {
       const styleElement = document.createElement('style')
@@ -258,6 +261,18 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
         }
       }
 
+      if (plan.id === FREE_PLAN_ID && !plan.current) {
+        return {
+          ...baseStyles,
+          border: 1,
+          borderColor: 'divider',
+          backgroundColor: 'action.disabledBackground',
+          color: 'text.disabled',
+          cursor: 'not-allowed',
+          pointerEvents: 'none' // 🔴 impede clique
+        }
+      }
+
       if (isSelected) {
         return {
           ...baseStyles,
@@ -312,6 +327,26 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
           </Box>
         )}
 
+        {plan.id === FREE_PLAN_ID && !plan.current && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: '0%',
+              bgcolor: 'grey.500',
+              color: 'common.white',
+              px: 4,
+              py: 0.5,
+              borderBottomRightRadius: 10,
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              zIndex: 1
+            }}
+          >
+            INDISPONÍVEL
+          </Box>
+        )}
+
         {isSelected && (
           <Box
             sx={{
@@ -323,6 +358,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
               px: 4,
               py: 0.5,
               borderBottomLeftRadius: 10,
+
               fontSize: '0.75rem',
               fontWeight: 'bold',
               zIndex: 1
@@ -340,6 +376,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                 onChange={() => handlePlanSelection(plan.id, plan.current)}
                 value={plan.id}
                 color='primary'
+                disabled={plan.id === FREE_PLAN_ID}
                 size='medium'
               />
             </Box>
@@ -420,10 +457,16 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
               color={plan.current ? 'info' : 'primary'}
               fullWidth
               size='large'
-              disabled={plan.current}
+              disabled={plan.current || (plan.id === FREE_PLAN_ID && !plan.current)} // 🔴 só bloqueia free se não for o atual
               onClick={() => handlePlanSelection(plan.id, plan.current)}
             >
-              {plan.current ? 'Plano Atual' : isSelected ? 'Plano Selecionado' : 'Selecionar Plano'}
+              {plan.id === FREE_PLAN_ID && !plan.current
+                ? 'Indisponível'
+                : plan.current
+                  ? 'Plano Atual'
+                  : isSelected
+                    ? 'Plano Selecionado'
+                    : 'Selecionar Plano'}
             </Button>
           </Box>
         </CardContent>
