@@ -18,12 +18,16 @@ import {
   Chip,
   Paper,
   Divider,
-  Button
+  Button,
+  CircularProgress
 } from '@mui/material'
 
-import { CheckCircle, LucideClipboard, Network, Sliders } from 'lucide-react'
+import { CheckCircle, LucideClipboard, Network, Sliders, Trash2 } from 'lucide-react'
 
-import { useGetTasksByAssistantQuery } from '@/api/endpoints/taskAssistant/taskAssistant'
+import {
+  useGetTasksByAssistantQuery,
+  useDeleteTaskAssistantMutation
+} from '@/api/endpoints/taskAssistant/taskAssistant'
 import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
 import { taskApi } from '@/api/endpoints/task/task'
 import OpenDialogOnElementClick from '@/components/dialogs/OpenDialogOnElementClick'
@@ -35,9 +39,10 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [tasksWithDetails, setTasksWithDetails] = useState<any[]>([])
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
-  const { data: tasksData, error } = useGetTasksByAssistantQuery(dataAssistant?.data?.id || '')
+  const { data: tasksData, error, refetch } = useGetTasksByAssistantQuery(dataAssistant?.data?.id || '')
   const [fetchTaskDetails] = taskApi.useLazyGetSingleTaskQuery()
-
+  const [deleteTaskAssistant] = useDeleteTaskAssistantMutation()
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null) // <-- estado para task sendo deletada
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage)
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +51,18 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
   }
 
   const toggleExpand = (id: string) => setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }))
+
+  const handleUnlink = async (id: string) => {
+    try {
+      setDeletingTaskId(id) // indica que essa task está em processo de exclusão
+      await deleteTaskAssistant(id).unwrap()
+      refetch()
+    } catch (err) {
+      console.error('Erro ao desvincular API:', err)
+    } finally {
+      setDeletingTaskId(null) // reseta após terminar
+    }
+  }
 
   useEffect(() => {
     if (!tasksData?.data) return
@@ -80,10 +97,10 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
         color={isTrue ? 'success' : 'error'}
         size='small'
         sx={{
-          fontSize: 11, // menor fonte
-          height: 20, // altura menor
-          minWidth: 28, // largura mínima
-          px: 0.5 // padding horizontal
+          fontSize: 11,
+          height: 20,
+          minWidth: 28,
+          px: 0.5
         }}
       />
     )
@@ -98,22 +115,27 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
 
   return (
     <>
-      <TableContainer>
+      <TableContainer sx={{ width: '100%' }}>
         <Box className='flex items-center justify-end mb-2'>
           <OpenDialogOnElementClick
             element={Button}
             elementProps={buttonProps}
             dialog={LinkApiToAssistant}
-            dialogProps={{}}
+            dialogProps={{
+              assistant_id: dataAssistant?.data.id,
+              tasksDataAssistant: tasksData,
+              refetchTaskAssistant: refetch,
+              name: dataAssistant?.data.name
+            }}
           />
         </Box>
-        <Table>
+        <Table sx={{ minWidth: '100%' }}>
           <TableHead>
             <TableRow>
               <TableCell />
-
               <TableCell>Nome</TableCell>
               <TableCell>Ativa</TableCell>
+              <TableCell className='flex justify-end'>Desvincular API</TableCell>
             </TableRow>
           </TableHead>
 
@@ -139,6 +161,15 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                       <Chip label='Inativa' color='error' size='small' />
                     )}
                   </TableCell>
+                  <TableCell className='flex justify-end'>
+                    <IconButton
+                      color='error'
+                      onClick={() => handleUnlink(task.id)}
+                      disabled={deletingTaskId === task.id} // evita múltiplos cliques
+                    >
+                      {deletingTaskId === task.id ? <CircularProgress size={18} /> : <Trash2 size={18} />}
+                    </IconButton>
+                  </TableCell>
                 </TableRow>
 
                 <TableRow>
@@ -152,8 +183,7 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                             mb: 2,
                             mt: 6,
                             border: '1px solid',
-
-                            borderColor: 'primary.main' // usa a cor primary do tema
+                            borderColor: 'primary.main'
                           }}
                           elevation={1}
                         >
@@ -199,8 +229,7 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                             mb: 2,
                             mt: 6,
                             border: '1px solid',
-
-                            borderColor: 'primary.main' // usa a cor primary do tema
+                            borderColor: 'primary.main'
                           }}
                           elevation={1}
                         >
@@ -245,8 +274,7 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                             mb: 2,
                             mt: 6,
                             border: '1px solid',
-
-                            borderColor: 'primary.main' // usa a cor primary do tema
+                            borderColor: 'primary.main'
                           }}
                           elevation={1}
                         >
