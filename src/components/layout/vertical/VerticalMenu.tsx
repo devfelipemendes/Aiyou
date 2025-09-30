@@ -43,8 +43,8 @@ const RenderExpandIcon = ({ open, transitionDuration }: RenderExpandIconProps) =
 
 // Componente do Card de Upgrade
 const UpgradeCard = ({ OpenModalPlan }: { OpenModalPlan: () => void }) => {
-  const { plan, userTokensUsage } = useUserMe()
   const theme = useTheme()
+  const { plan, userTokensUsage } = useUserMe()
 
   // Valores mockados para demonstração - depois virão do useUserMe()
   const planName = plan?.name || 'Plano Free'
@@ -209,6 +209,10 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
   const verticalNavOptions = useVerticalNav()
   const [modalOpen, setModalOpen] = useState(false)
 
+  const { permissions } = useUserMe()
+
+  const isAdmin = permissions === 'admin'
+
   const handleOpenModal = () => {
     setModalOpen(true)
   }
@@ -217,15 +221,11 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
     setModalOpen(false)
   }
 
-  // Vars
   const { isBreakpointReached, transitionDuration, isCollapsed, isHovered } = verticalNavOptions
 
   const isEffectivelyCollapsed = isCollapsed && !isHovered
 
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
-
-  // Detectar se o menu está colapsado - você pode ajustar essa lógica conforme seu sistema
-  // Por exemplo, verificando se há uma prop ou estado que indica se está colapsado
 
   return (
     <Box
@@ -236,12 +236,11 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
         overflow: 'hidden'
       }}
     >
-      {/* Menu com Scroll */}
       <Box
         sx={{
           flexGrow: 1,
           overflow: 'hidden',
-          minHeight: 0 // Importante para permitir que o flex shrink funcione
+          minHeight: 0
         }}
       >
         <ScrollWrapper
@@ -313,6 +312,11 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
                 <MenuItem href='/perfil' icon={<i className='ri-user-3-line' />}>
                   Meu perfil
                 </MenuItem>
+                {isAdmin && (
+                  <MenuItem href='/adm' icon={<i className='ri-user-3-line' />}>
+                    Administrativo
+                  </MenuItem>
+                )}
               </SubMenu>
             </MenuSection>
           </Menu>

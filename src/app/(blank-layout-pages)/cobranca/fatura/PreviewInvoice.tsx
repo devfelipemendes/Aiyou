@@ -15,6 +15,8 @@ import { Box, Button, IconButton, Tooltip } from '@mui/material'
 import { QRCodeSVG } from 'qrcode.react'
 import Barcode from 'react-barcode'
 
+import { toast } from 'react-toastify'
+
 import tableStyles from '@core/styles/table.module.css'
 import './print.css'
 import { useBuildInvoiceQuery } from '@/api/endpoints/invoices/buildInvoice'
@@ -180,7 +182,7 @@ const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined 
                       </Box>
                     )}
                     {invoice.link && (
-                      <Box className='flex items-center gap-4'>
+                      <Box className='flex items-center gap-4 mt-5'>
                         <Typography className='min-is-[120px]'>Boleto PDF:</Typography>
                         <Button
                           variant='contained'
@@ -240,12 +242,8 @@ const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined 
             </Box>
           </Grid>
 
-          {/* SEÇÃO QR CODE E CÓDIGO DE BARRAS */}
           <Grid size={{ xs: 12 }}>
             <Grid container spacing={6}>
-              {/* QR CODE PIX */}
-
-              {/* CÓDIGO DE BARRAS BOLETO */}
               {invoice.barcode && (
                 <Grid size={{ xs: 12 }}>
                   <Grid container spacing={6} className='justify-center'>
@@ -257,7 +255,7 @@ const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined 
                         <Typography variant='h6' className='font-medium' color='text.primary'>
                           PIX - QR Code
                         </Typography>
-                        <QRCodeSVG value={invoice.payload} size={150} bgColor='#ffffff' fgColor='#000000' level='L' />
+                        <QRCodeSVG value={invoice.payload} size={150} bgColor='#ffffff' fgColor='#423b50' level='L' />
                         <Typography variant='body2' color='text.secondary' className='text-center'>
                           Escaneie o código QR para pagamento via PIX
                         </Typography>
@@ -268,7 +266,10 @@ const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined 
                             </Typography>
                             <Tooltip title={isCopied ? 'Copiado!' : 'Copiar código PIX'}>
                               <IconButton
-                                onClick={() => copyText(invoice.payload)}
+                                onClick={() => {
+                                  copyText(invoice.payload)
+                                  toast.success('Codigo Pix Copiado para área de transferência')
+                                }}
                                 size='small'
                                 color={isCopied ? 'success' : 'primary'}
                                 disabled={isLoading}
@@ -325,7 +326,7 @@ const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined 
                           textAlign='center'
                           textPosition='bottom'
                           background='#ffffff'
-                          lineColor='#000000'
+                          lineColor='#423b50'
                         />
                       </Box>
                       <Typography variant='body2' color='text.secondary' className='text-center'>

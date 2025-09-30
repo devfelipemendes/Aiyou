@@ -5,15 +5,14 @@ import { useAppSelector, useAppDispatch } from '@/redux-store'
 import {
   useGetMeQuery,
   selectUser,
-  selectUserPermissions,
   selectUserProjects,
   selectUserPlan,
   selectTokensUsagePercentage,
   selectAssistantsUsagePercentage,
-  selectIsAdmin,
   selectFirstAccess,
   selectUserPlanId,
-  selectTokensUsage
+  selectTokensUsage,
+  selectTypeUser
 } from '@/api/endpoints/authUser/me'
 import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
@@ -34,12 +33,12 @@ export function useUserMe(options: UseUserMeOptions = {}) {
   })
 
   const user = useAppSelector(selectUser)
-  const permissions = useAppSelector(selectUserPermissions)
   const projects = useAppSelector(selectUserProjects)
+  const permissions = useAppSelector(selectTypeUser)
   const plan = useAppSelector(selectUserPlan)
   const tokensUsage = useAppSelector(selectTokensUsagePercentage)
   const assistantsUsage = useAppSelector(selectAssistantsUsagePercentage)
-  const isAdmin = useAppSelector(selectIsAdmin)
+
   const firstAccess = useAppSelector(selectFirstAccess)
   const userPlanId = useAppSelector(selectUserPlanId)
   const userTokensUsage = useAppSelector(selectTokensUsage)
@@ -70,12 +69,12 @@ export function useUserMe(options: UseUserMeOptions = {}) {
 
   return {
     user,
-    permissions,
+
     projects,
     plan,
     tokensUsage,
     assistantsUsage,
-    isAdmin,
+    permissions,
     isLoading,
     error,
     fetchUserData,

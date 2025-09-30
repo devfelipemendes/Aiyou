@@ -1,9 +1,6 @@
-// file: src/views/invoice/list/InvoiceListTable.tsx (correções aplicadas)
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-
-import Link from 'next/link'
 
 import { useRouter } from 'next/navigation'
 
@@ -46,6 +43,7 @@ import tableStyles from '@core/styles/table.module.css'
 import { useGetCustomerInvoicesQuery, type CustomerInvoice } from '@/api/endpoints/invoices/invoice'
 import { InvoiceViewModal } from '@/components/dialogs/invoiceViewInSistem'
 import { currencyFormatter } from '@/utils/currency'
+import PricingPlansModal from '@/components/dialogs/plans'
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -95,6 +93,7 @@ const InvoiceListTable = () => {
   const [status, setStatus] = useState<CustomerInvoice['status']>('')
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
 
   // Modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
@@ -128,6 +127,14 @@ const InvoiceListTable = () => {
   const handleViewInvoiceOnline = useCallback((paymantId: string) => {
     router.push(`/cobranca/${paymantId}`)
   }, [])
+
+  const handleOpenModal = () => {
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+  }
 
   const columns = useMemo<ColumnDef<CustomerInvoice, any>[]>(
     () => [
@@ -338,9 +345,8 @@ const InvoiceListTable = () => {
         <CardContent className='flex justify-between gap-4 flex-wrap flex-col sm:flex-row items-center'>
           <Button
             variant='contained'
-            component={Link}
             startIcon={<i className='ri-add-line' />}
-            href='apps/invoice/add'
+            onClick={handleOpenModal}
             className='max-sm:is-full'
           >
             Quero mudar de plano
@@ -444,6 +450,8 @@ const InvoiceListTable = () => {
         paymentId={selectedPaymentId}
         title='Detalhes da Fatura'
       />
+
+      <PricingPlansModal open={modalOpen} onClose={handleCloseModal} />
     </>
   )
 }

@@ -198,8 +198,25 @@ export const planApi = apiSlice.injectEndpoints({
         }
       }),
 
-      transformResponse: (response: UpdatePlanResponse) => {
-        console.log(`✅ Plano ${response.data.name} atualizado com sucesso`)
+      transformResponse: (response: any, meta: any) => {
+        console.log('🔍 DEBUG - Resposta RAW do UPDATE plan:', response)
+        console.log('🔍 DEBUG - Meta do UPDATE:', meta)
+
+        // Verificar se response tem a estrutura esperada
+        if (response?.data?.name) {
+          console.log(`✅ Plano ${response.data.name} atualizado com sucesso`)
+        } else if (response?.name) {
+          console.log(`✅ Plano ${response.name} atualizado com sucesso`)
+
+          // Normalizar resposta se vier direta
+          return {
+            message: 'Updated',
+            status: meta?.response?.status || 200,
+            data: response
+          }
+        } else {
+          console.log('✅ Plano atualizado com sucesso')
+        }
 
         return response
       },
