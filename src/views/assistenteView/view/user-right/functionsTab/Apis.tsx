@@ -200,25 +200,39 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                               <strong style={{ fontSize: '0.95rem' }}>Descrição:</strong>{' '}
                               {task.details?.description || '-'}
                             </Typography>
+
                             <Typography variant='body2'>
                               <strong style={{ fontSize: '0.95rem' }}>Endpoint:</strong> {task.details?.endpoint || '-'}
                             </Typography>
+
                             <Typography variant='body2'>
                               <strong style={{ fontSize: '0.95rem' }}>Instrução:</strong>{' '}
                               {task.details?.instruction || '-'}
                             </Typography>
-                            <Typography variant='body2'>
-                              <strong style={{ fontSize: '0.95rem' }}>Ativa:</strong>{' '}
+
+                            {/* Ativa */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant='body2' component='span'>
+                                <strong style={{ fontSize: '0.95rem' }}>Ativa:</strong>
+                              </Typography>
                               {renderBooleanChip(task.details?.active)}
-                            </Typography>
-                            <Typography variant='body2'>
-                              <strong style={{ fontSize: '0.95rem' }}>Em funcionamento:</strong>{' '}
+                            </Box>
+
+                            {/* Em funcionamento */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant='body2' component='span'>
+                                <strong style={{ fontSize: '0.95rem' }}>Em funcionamento:</strong>
+                              </Typography>
                               {renderBooleanChip(task.details?.working)}
-                            </Typography>
-                            <Typography variant='body2'>
-                              <strong style={{ fontSize: '0.95rem' }}>Variável:</strong>{' '}
+                            </Box>
+
+                            {/* Variável */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <Typography variant='body2' component='span'>
+                                <strong style={{ fontSize: '0.95rem' }}>Variável:</strong>
+                              </Typography>
                               {renderBooleanChip(task.details?.variable)}
-                            </Typography>
+                            </Box>
                           </Box>
                         </Paper>
 
@@ -255,10 +269,14 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                                   <Typography variant='body2'>
                                     <strong style={{ fontSize: '0.95rem' }}>Tipo:</strong> {p.type}
                                   </Typography>
-                                  <Typography variant='body2' sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <strong style={{ fontSize: '0.95rem' }}>Obrigatório:</strong>{' '}
+
+                                  {/* Obrigatório com Chip → evitar p dentro de p */}
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Typography variant='body2' component='span'>
+                                      <strong style={{ fontSize: '0.95rem' }}>Obrigatório:</strong>
+                                    </Typography>
                                     {renderBooleanChip(p.required)}
-                                  </Typography>
+                                  </Box>
                                 </Box>
                               </React.Fragment>
                             ))

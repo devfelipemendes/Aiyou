@@ -29,6 +29,7 @@ const ChatLog_2 = ({ open, setOpen, protocol, assistantName }: Chat_2Props) => {
         minute: '2-digit'
       })
     }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
 
   const handleClose = () => {
@@ -45,8 +46,11 @@ const ChatLog_2 = ({ open, setOpen, protocol, assistantName }: Chat_2Props) => {
         </Box>
 
         <Grid size={{ xs: 12, sm: 12, md: 12 }} className='mb-6 mt-2 w-full'>
-          <Typography className='flex justify-start items-center gap-2' variant='h4'>
-            Protocolo - <Typography variant='h5'>{protocol}</Typography>
+          <Typography className='flex justify-start items-center gap-2' variant='h4' component='h4'>
+            Protocolo -{' '}
+            <Typography variant='h5' component='span'>
+              {protocol}
+            </Typography>
           </Typography>
           <Divider orientation='horizontal' />
         </Grid>
