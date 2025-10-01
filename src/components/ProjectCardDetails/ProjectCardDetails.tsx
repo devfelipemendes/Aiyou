@@ -2,15 +2,13 @@
 
 import React, { useEffect, useState } from 'react'
 
-import { Card, CardContent, Typography, Divider, Box, Avatar, CardHeader, CircularProgress } from '@mui/material'
+import { Card, CardContent, Typography, Divider, Box, CircularProgress } from '@mui/material'
 import Grid from '@mui/material/Grid2'
-import { green, yellow, teal } from '@mui/material/colors'
 
 import ChartInteracoes from './ChartInteracoes'
-import type { GetProtocolsResponse, ProtocolMessage } from '@/api/endpoints/protocols/protocols'
+import type { GetProtocolsResponse } from '@/api/endpoints/protocols/protocols'
 import { useGetProtocolsQuery, useLazyGetProtocolHistoryQuery } from '@/api/endpoints/protocols/protocols'
 import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
-import TotalSales from '@/views/dashboards/crm/TotalSales'
 
 type ResultStatus = {
   active: number
@@ -27,11 +25,7 @@ const ProjectCard = ({ data }: { data: GetSingleAssistantResponse | undefined })
   const [interactions, setInteractions] = useState<number | null>(null)
   const [arrayConversas, setArrayConversas] = useState<any[]>([])
 
-  const {
-    data: dataInteractions,
-
-    error: errorInteractions
-  } = useGetProtocolsQuery({
+  const { data: dataInteractions } = useGetProtocolsQuery({
     sort: '-created_at',
     assistant_id: data?.data.id
   })
@@ -166,7 +160,7 @@ const ProjectCard = ({ data }: { data: GetSingleAssistantResponse | undefined })
                     }}
                   >
                     Ativas:
-                    <Typography variant='h6' sx={{ color: '#4caf50' }}>
+                    <Typography variant='h6' component='span' sx={{ color: '#4caf50' }}>
                       {isLoadingAudioAndText ? <CircularProgress size={20} /> : (resultStatus?.active ?? 0)}
                     </Typography>
                   </Typography>
@@ -184,7 +178,7 @@ const ProjectCard = ({ data }: { data: GetSingleAssistantResponse | undefined })
                     }}
                   >
                     Inativas:
-                    <Typography variant='h6' sx={{ color: '#9e9e9e' }}>
+                    <Typography variant='h6' component='span' sx={{ color: '#9e9e9e' }}>
                       {isLoadingAudioAndText ? <CircularProgress size={20} /> : (resultStatus?.inactive ?? 0)}
                     </Typography>
                   </Typography>
@@ -202,7 +196,7 @@ const ProjectCard = ({ data }: { data: GetSingleAssistantResponse | undefined })
                     }}
                   >
                     Resolvidas:
-                    <Typography variant='h6' sx={{ color: '#1565c0' }}>
+                    <Typography variant='h6' component='span' sx={{ color: '#1565c0' }}>
                       {isLoadingAudioAndText ? <CircularProgress size={20} /> : (resultStatus?.resolved ?? 0)}
                     </Typography>
                   </Typography>
@@ -220,7 +214,7 @@ const ProjectCard = ({ data }: { data: GetSingleAssistantResponse | undefined })
                     }}
                   >
                     Não resolvidas:
-                    <Typography variant='h6' sx={{ color: '#f44336' }}>
+                    <Typography variant='h6' component='span' sx={{ color: '#f44336' }}>
                       {isLoadingAudioAndText ? <CircularProgress size={20} /> : (resultStatus?.unresolved ?? 0)}
                     </Typography>
                   </Typography>

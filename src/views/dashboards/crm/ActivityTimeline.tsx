@@ -152,7 +152,9 @@ const renderAttributes = (properties: any) => {
 
           return (
             <Typography key={key} className='flex flex-row text-wrap items-center gap-2'>
-              <Typography variant='body1'>{label}:</Typography>
+              <Typography component='span' variant='body1'>
+                {label}:
+              </Typography>
               {String(value)}
             </Typography>
           )
@@ -166,7 +168,9 @@ const renderAttributes = (properties: any) => {
 
           return (
             <Typography key={`old-${key}`} className='flex flex-row text-wrap items-center gap-2'>
-              <Typography variant='body1'>{label}:</Typography>
+              <Typography component='span' variant='body1'>
+                {label}:
+              </Typography>
               {String(value)}
             </Typography>
           )
@@ -176,7 +180,9 @@ const renderAttributes = (properties: any) => {
         prop =>
           properties[prop] && (
             <Typography key={prop} className='flex flex-row text-wrap items-center gap-2'>
-              <Typography variant='body1'>{prop.charAt(0).toUpperCase() + prop.slice(1)}:</Typography>
+              <Typography component='span' variant='body1'>
+                {prop.charAt(0).toUpperCase() + prop.slice(1)}:
+              </Typography>
               {properties[prop]}
             </Typography>
           )
@@ -224,7 +230,9 @@ const ActivityTimeline = ({
                           {getSentenceActivity(activity)}
                         </Typography>
                         <Typography className='flex flex-row text-wrap items-center gap-2'>
-                          <Typography variant='body1'>Atividade realizada em:</Typography>
+                          <Typography component='span' variant='body1'>
+                            Atividade realizada em:
+                          </Typography>
                           {formatDateTime(activity.created_at)}
                         </Typography>
                       </div>
