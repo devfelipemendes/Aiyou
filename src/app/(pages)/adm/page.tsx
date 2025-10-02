@@ -598,7 +598,7 @@ const PlansManagement: React.FC = () => {
     return (
       <Card
         variant='outlined'
-        sx={{ height: '100%', minHeight: '525px', position: 'relative', border: 2, borderColor: 'primary.main' }}
+        sx={{ height: '100%', minHeight: '525px', position: 'relative', border: 1, borderColor: 'primary.main' }}
       >
         <CardContent sx={{ display: 'flex', flexDirection: 'column', p: 3, height: '100%' }}>
           {/* Action Buttons */}

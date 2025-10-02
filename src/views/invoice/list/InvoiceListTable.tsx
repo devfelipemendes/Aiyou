@@ -11,10 +11,7 @@ import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
+
 import Tooltip from '@mui/material/Tooltip'
 import TablePagination from '@mui/material/TablePagination'
 import type { TextFieldProps } from '@mui/material/TextField'
@@ -358,7 +355,7 @@ const InvoiceListTable = () => {
               placeholder='Procurar faturas...'
               className='max-sm:is-full min-is-[200px]'
             />
-            <FormControl fullWidth size='small' className='min-is-[175px]'>
+            {/* <FormControl fullWidth size='small' className='min-is-[175px]'>
               <InputLabel id='status-select'>Status da Fatura</InputLabel>
               <Select
                 fullWidth
@@ -373,7 +370,7 @@ const InvoiceListTable = () => {
                 <MenuItem value='RECEIVED'>Pagas</MenuItem>
                 <MenuItem value='OVERDUE'>Vencidas</MenuItem>
               </Select>
-            </FormControl>
+            </FormControl> */}
           </div>
         </CardContent>
 
