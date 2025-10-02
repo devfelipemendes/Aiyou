@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 
-import Grid from '@mui/material/Grid2'
 import {
   Avatar,
   Box,
   CardContent,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,

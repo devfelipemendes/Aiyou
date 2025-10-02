@@ -129,14 +129,14 @@ const ProjectCard = ({ data }: { data: GetSingleAssistantResponse | undefined })
               <Grid size={{ xs: 12, sm: 12 }} sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Box className='w-full px-10 flex flex-row justify-between'>
                   <Box>
-                    <Typography variant='caption'>Interações Feitas</Typography>
+                    <Typography variant='caption'>Mensagens enviadas</Typography>
                     <Typography variant='h4'>
-                      {isLoadingAudioAndText ? <CircularProgress size={20} /> : (interactions ?? 0)}
-                      {` `}Interações
+                      {isLoadingAudioAndText ? <CircularProgress size={20} /> : `${interactions ?? 0}`}
+                      {` `}
                     </Typography>
                   </Box>
                   <Box>
-                    <Typography variant='caption'>Chats</Typography>
+                    <Typography variant='caption'>Interações Feitas</Typography>
                     <Typography variant='h4'>
                       {isLoadingAudioAndText ? <CircularProgress size={20} /> : (resultStatus?.chats ?? 0)}
                     </Typography>
