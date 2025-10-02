@@ -9,13 +9,14 @@ import { MessageSquare } from 'lucide-react'
 
 import ChatLog from '@/components/chatLog/chatLog'
 
-import type { ChatHistoryMessage, ChatWithHistory } from '@/api/endpoints/chat/history'
+import type { ChatWithHistory } from '@/api/endpoints/chat/history'
 
 import ChatMonitoringSidebar from './(components)/ChatMonitoringSidebar'
 import SendMsgForm from '@/components/SendMessageFormChat'
-import { useAppSelector } from '@/redux-store'
 
 import { useOperatorReplyMutation } from '@/api/endpoints/chat/operatorMode'
+import { useGetHistoryByProtocolQuery, type ProtocolHistoryMessage } from '@/api/endpoints/chat/protocolHistory'
+import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSocket'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -54,36 +55,71 @@ interface ChatMonitoringModalProps {
   open: boolean
   onClose: () => void
   chatData: ChatWithHistory | null
-  clientHistories?: Record<string, any>
 }
 
-const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: ChatMonitoringModalProps) => {
+const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalProps) => {
   const [selectedProtocol, setSelectedProtocol] = useState<string>(chatData?.protocol || '')
   const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  const monitoringChats = useAppSelector((state: any) => state.monitoring?.chatsByProtocol || {})
   const [operatorReply] = useOperatorReplyMutation()
 
   const messageInputRef = useRef<HTMLDivElement>(null)
 
+  const {
+    data: protocolHistoryData,
+    isLoading: protocolHistoryLoading,
+    error: protocolHistoryError
+  } = useGetHistoryByProtocolQuery(selectedProtocol, {
+    skip: !selectedProtocol || !open
+  })
+
+  const { refetch: refetchProtocolHistory } = useMonitoringChatWithWebSocket()
+
+  const convertHistoryMessage = useCallback(
+    (msg: ProtocolHistoryMessage): any => ({
+      id: msg.id,
+      content: msg.content,
+      message_type: msg.message_type,
+      audio_url: msg.audio_url,
+      role: msg.role,
+      operator: msg.operator !== null && msg.operator > 0,
+      operator_name: msg.operator_name,
+      created_at: msg.created_at,
+      instruction: null
+    }),
+    []
+  )
+
+  const processedHistoryData = useMemo(() => {
+    if (!protocolHistoryData?.data) return []
+
+    return Object.entries(protocolHistoryData.data).map(([protocol, item]) => ({
+      protocol,
+      identifier: item.identifier,
+      source: item.source,
+      assistant: { name: item.assistant_name },
+      operator_name: item.operator_name, // Corrigido: usar operator_name ao invés de last_operator_name
+      history: (item.history || []).map(convertHistoryMessage),
+      messageCount: item.history?.length || 0,
+      created_at: item.history?.[0]?.created_at || '',
+      status: 'active' as const,
+      historyLoading: false,
+      historyError: null,
+      isAwaitingHistory: false,
+      operator: false,
+      question_operator: false,
+      project_id: '',
+      updated_at: item.history?.[item.history.length - 1]?.created_at || '',
+      lastMessage: item.history?.length > 0 ? convertHistoryMessage(item.history[item.history.length - 1]) : undefined
+    }))
+  }, [protocolHistoryData, convertHistoryMessage])
+
   const currentChat = useMemo(() => {
-    const foundChat = monitoringChats[selectedProtocol]
+    const foundChat = processedHistoryData.find(p => p.protocol === selectedProtocol)
 
-    console.log('🔍 MODAL - Chat atual:', {
-      protocol: selectedProtocol,
-      hasChat: !!foundChat,
-      totalMessages: foundChat?.history?.length || 0,
-      audioMessages: foundChat?.history?.filter(h => h.message_type === 'audio').length || 0,
-      primeirasMensagens: foundChat?.history?.slice(0, 3).map(h => ({
-        id: h.id,
-        type: h.message_type,
-        hasAudio: !!(h.message_type === 'audio' && h.audio_url)
-      }))
-    })
-
-    return foundChat
-  }, [monitoringChats, selectedProtocol])
+    return foundChat || displayChatData
+  }, [selectedProtocol, processedHistoryData, displayChatData])
 
   const isAssumed = currentChat?.operator || false
 
@@ -169,124 +205,32 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
   const isBelowMdScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('md'))
   const isBelowSmScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'))
 
-  const historyData = useMemo(() => {
-    if (!clientHistories || Object.keys(clientHistories).length === 0) {
-      return {
-        data: [],
-        stats: {
-          totalProtocols: 0,
-          totalMessages: 0,
-          oldestProtocol: undefined,
-          newestProtocol: undefined
-        }
-      }
-    }
-
-    const protocolsArray = Object.entries(clientHistories).map(([protocol, data]) => ({
-      protocol,
-      identifier: data.identifier,
-      source: data.source,
-      assistant_name: data.assistant_name,
-      operator_name: data.operator_name,
-      history:
-        data.history?.map((msg: any) => ({
-          ...msg,
-          message_type: msg.message_type || 'text', // Garantir tipo
-          audio_url: msg.audio_url || null // Garantir URL
-        })) || [],
-      messageCount: data.history?.length || 0,
-      lastActivity: data.history?.[data.history.length - 1]?.created_at || '',
-      createdAt: data.history?.[0]?.created_at || ''
-    }))
-
-    return {
-      data: protocolsArray,
-      stats: {
-        totalProtocols: protocolsArray.length,
-        totalMessages: protocolsArray.reduce((sum, p) => sum + p.messageCount, 0),
-        oldestProtocol: protocolsArray[protocolsArray.length - 1]?.protocol,
-        newestProtocol: protocolsArray[0]?.protocol
-      }
-    }
-  }, [clientHistories])
-
-  const historyLoading = false
-  const historyError = null
-
-  const refreshHistory = () => {
-    console.log('🔄 Refresh via prop clientHistories')
-  }
-
-  const convertProtocolToDisplay = useCallback(
-    (protocolData: any): ChatWithHistory => {
-      console.log('🔄 Convertendo protocolo:', protocolData)
-
-      const historyMessages = protocolData.history || []
-
-      const convertedHistory: ChatHistoryMessage[] = historyMessages.map((msg: any) => ({
-        id: msg.id,
-        content: msg.content,
-        message_type: msg.message_type || 'text',
-        audio_url: msg.audio_url || null,
-        operator_name: msg.operator_name || null,
-        role: msg.role,
-        operator: msg.operator,
-        created_at: msg.created_at
-      }))
-
-      const result: ChatWithHistory = {
-        protocol: protocolData.protocol,
-        assistant: chatData?.assistant || { name: 'Assistente' },
-        source: chatData?.source || 'whatsapp',
-        identifier: chatData?.identifier || `cliente_${protocolData.protocol?.slice(-4)}`,
-        status: chatData?.status || 'active',
-        history: convertedHistory,
-        historyLoading: false,
-        historyError: null,
-        lastMessage: convertedHistory.length > 0 ? convertedHistory[convertedHistory.length - 1] : undefined,
-        messageCount: convertedHistory.length,
-        project_id: chatData?.project_id || '',
-        operator: chatData?.operator || false,
-        question_operator: chatData?.question_operator || false,
-        updated_at: chatData?.updated_at || new Date().toISOString(),
-        created_at: protocolData.createdAt || new Date().toISOString(),
-        isAwaitingHistory: false
-      }
-
-      return result
-    },
-    [chatData]
-  )
-
   const handleProtocolSelect = useCallback(
-    (protocol: string, protocolData?: any) => {
-      console.log('🔄 Selecionando protocolo:', protocol)
+    (protocol: string, protocolData: any) => {
+      setSelectedProtocol(protocol)
 
-      try {
-        setSelectedProtocol(protocol)
+      if (protocolData?.history) {
+        const convertedHistory = protocolData.history.map(convertHistoryMessage)
 
-        let selectedData = protocolData
-
-        if (!selectedData && clientHistories[protocol]) {
-          selectedData = {
-            protocol,
-            ...clientHistories[protocol],
-            createdAt: clientHistories[protocol].history?.[0]?.created_at || ''
-          }
-        }
-
-        if (selectedData) {
-          const convertedChatData = convertProtocolToDisplay(selectedData)
-
-          setDisplayChatData(convertedChatData)
-          console.log('✅ Protocolo selecionado:', convertedChatData)
-        }
-      } catch (error) {
-        console.error('💥 Erro ao selecionar protocolo:', error)
+        setDisplayChatData({
+          ...chatData,
+          protocol,
+          history: convertedHistory,
+          messageCount: convertedHistory.length,
+          identifier: protocolData.identifier,
+          source: protocolData.source,
+          lastMessage: convertedHistory[convertedHistory.length - 1]
+        } as ChatWithHistory)
       }
     },
-    [clientHistories, convertProtocolToDisplay]
+    [chatData, convertHistoryMessage]
   )
+
+  const handleEndChat = useCallback(async () => {
+    // Implementar lógica de encerramento se necessário
+    console.log('Encerrando chat:', selectedProtocol)
+    onClose()
+  }, [selectedProtocol, onClose])
 
   useEffect(() => {
     if (open && chatData) {
@@ -294,12 +238,6 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       setDisplayChatData(chatData)
     }
   }, [open, chatData])
-
-  const handleSidebarClose = useCallback(() => {
-    if (isBelowMdScreen) {
-      setSidebarOpen(false)
-    }
-  }, [isBelowMdScreen])
 
   if (!chatData) return null
 
@@ -312,17 +250,18 @@ const ChatMonitoringModal = ({ open, onClose, chatData, clientHistories = {} }: 
       <ModalDialogContent>
         <ChatMonitoringSidebar
           open={sidebarOpen}
-          onClose={handleSidebarClose}
-          chatData={chatData}
+          onClose={() => setSidebarOpen(false)}
+          chatData={currentChat}
           selectedProtocol={selectedProtocol}
-          historyData={historyData}
-          historyLoading={historyLoading}
-          historyError={historyError}
-          onRefreshHistory={refreshHistory}
+          historyData={processedHistoryData}
+          historyLoading={protocolHistoryLoading}
+          historyError={(protocolHistoryError as any)?.message || null}
+          onRefreshHistory={refetchProtocolHistory}
           onProtocolSelect={handleProtocolSelect}
           isBelowLgScreen={isBelowLgScreen}
           isBelowMdScreen={isBelowMdScreen}
           isBelowSmScreen={isBelowSmScreen}
+          onEndChat={handleEndChat}
         />
 
         <Box flex={1} display='flex' flexDirection='column'>
