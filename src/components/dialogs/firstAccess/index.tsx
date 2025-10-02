@@ -128,19 +128,13 @@ const FirstAccessModal = () => {
             onNextStep={handleNext} // ✅ Passa a prop correta
           />
         ) : step === 1 ? (
-          <StepCreateAssistant onNextStep={handleNext} />
+          <StepCreateAssistant onNextStep={handleNext} onPrevStep={handlePrev} />
         ) : step === 2 ? (
-          <StepCreateApi onNextStep={handleNext} />
+          <StepCreateApi onNextStep={handleNext} onPrevStep={handlePrev} />
         ) : step === 3 ? (
-          <StepCreateEndpoints onNextStep={handleNext} />
+          <StepCreateEndpoints onNextStep={handleNext} onPrevStep={handlePrev} />
         ) : step === 4 ? (
-          <StepReviewProject
-            projectData={[]}
-            assistantData={[]}
-            apiData={[]}
-            endpointData={[]}
-            onPrevStep={handlePrev}
-          />
+          <StepReviewProject onPrevStep={handlePrev} />
         ) : (
           <Typography variant='h6' className='text-center'>
             Etapa não encontrada
@@ -193,7 +187,7 @@ const FirstAccessModal = () => {
           <Stepper activeStep={activeStep} connector={<ConnectorHeight />} orientation='vertical'>
             {steps.map((step, index) => {
               return (
-                <Step key={index} onClick={() => setActiveStep(index)}>
+                <Step key={index}>
                   <StepLabel
                     className='p-0'
                     slots={{

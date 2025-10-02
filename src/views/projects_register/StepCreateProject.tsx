@@ -652,7 +652,7 @@ export default function StepCreateProject({
           </Grid>
 
           {!isCreatingProject && onNextStep && showFinishButton && (
-            <Box className='flex flex-col w-full items-start mt-6'>
+            <Box className='flex   items-start justify-end mt-6'>
               <Button variant='contained' color='primary' size='small' onClick={handleFinalSubmit}>
                 {finishButtonText}
               </Button>

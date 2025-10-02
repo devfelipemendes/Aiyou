@@ -52,6 +52,7 @@ type ApiFormData = v.InferInput<typeof ApiSchema>
 
 interface StepCreateApiProps {
   onNextStep?: () => void
+  onPrevStep?: () => void
   isTela?: boolean
 }
 
@@ -71,7 +72,7 @@ const modalStyle = {
   overflow: 'auto'
 }
 
-const StepCreateApi = ({ onNextStep, isTela }: StepCreateApiProps) => {
+const StepCreateApi = ({ onNextStep, isTela, onPrevStep }: StepCreateApiProps) => {
   // States
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingApi, setEditingApi] = useState<Api | null>(null)
@@ -309,7 +310,10 @@ const StepCreateApi = ({ onNextStep, isTela }: StepCreateApiProps) => {
             {/* Next Step Button */}
             {apis.length > 0 && !isTela && (
               <Grid size={{ xs: 12 }}>
-                <Box className='flex justify-end'>
+                <Box className='flex  justify-between'>
+                  <Button variant='outlined' onClick={onPrevStep} startIcon={<i className='ri-arrow-left-line' />}>
+                    Voltar
+                  </Button>
                   <Button
                     variant='contained'
                     size='small'

@@ -8,6 +8,8 @@ import { Card, CardContent, Typography, Button, CircularProgress, Box, LinearPro
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
 // Type Imports
+import { Unplug } from 'lucide-react'
+
 import type { VerticalMenuContextProps } from '@menu/components/vertical-menu/Menu'
 
 // Component Imports
@@ -285,7 +287,7 @@ const VerticalMenu = ({ scrollMenu }: Props) => {
             </MenuSection>
 
             <MenuSection label={'Utilidades'}>
-              <MenuItem href='/integracao' icon={<i className='ri-tools-fill' />}>
+              <MenuItem href='/integracao' icon={<Unplug />}>
                 Integração
               </MenuItem>
               <MenuItem href='/automacao' icon={<i className='ri-brain-line' />}>
