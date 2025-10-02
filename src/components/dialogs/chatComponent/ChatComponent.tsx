@@ -1,7 +1,18 @@
 import { useMemo } from 'react'
 
 import Grid from '@mui/material/Grid2'
-import { Avatar, Box, CardContent, Dialog, DialogContent, Divider, IconButton, Typography } from '@mui/material'
+import {
+  Avatar,
+  Box,
+  CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  Typography
+} from '@mui/material'
 import classnames from 'classnames'
 
 import { useGetProtocolHistoryQuery } from '@/api/endpoints/protocols/protocols'
@@ -38,23 +49,23 @@ const ChatLog_2 = ({ open, setOpen, protocol, assistantName }: Chat_2Props) => {
 
   return (
     <Dialog open={open} maxWidth='md' fullWidth>
-      <DialogContent className='overflow-visible relative'>
-        <Box className='absolute top-[1%] right-[5%] z-[999999999]'>
-          <IconButton onClick={handleClose} className='fixed'>
-            <i className='ri-close-line' />
-          </IconButton>
-        </Box>
-
-        <Grid size={{ xs: 12, sm: 12, md: 12 }} className='mb-6 mt-2 w-full'>
+      <DialogTitle className='flex items-baseline justify-center'>
+        <Box className=' mt-2 w-full'>
           <Typography className='flex justify-start items-center gap-2' variant='h4' component='h4'>
             Protocolo -{' '}
             <Typography variant='h5' component='span'>
               {protocol}
             </Typography>
           </Typography>
-          <Divider orientation='horizontal' />
-        </Grid>
-
+        </Box>
+        <Box className='flex items-start'>
+          <IconButton onClick={handleClose}>
+            <i className='ri-close-line' />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <Divider orientation='horizontal' />
+      <DialogContent className='overflow-visible relative'>
         <CardContent>
           {isLoading && <Typography>Carregando...</Typography>}
 
