@@ -31,6 +31,13 @@ export const maskCelular = (value: any) => {
 }
 
 export const maskTelefone = (value: any) => (!!value ? mask(value, ['(99) 9999-9999']) : '')
+
+export const unmaskTelefone = (value: string) => {
+  if (!value) return ''
+
+  return value.replace(/\D/g, '') // remove tudo que não for número
+}
+
 export const maskCep = (value: any) => (!!value ? mask(value, ['99999-999']) : '')
 export const maskUF = (value: any) => (!!value ? mask(value, ['AA']) : '')
 

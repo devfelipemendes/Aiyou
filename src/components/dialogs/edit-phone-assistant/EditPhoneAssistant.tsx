@@ -22,6 +22,7 @@ import {
   useUpdateAssistantPhoneMutation
 } from '@/api/endpoints/assistantPhone/assistantPhone'
 import type { useGetSingleAssistantQuery } from '@/api/endpoints/assistant/assistant'
+import { maskTelefone, unmaskTelefone } from '@/utils/masks'
 
 type EditPhoneProps = {
   open: boolean
@@ -38,7 +39,7 @@ type FormValues = {
 }
 
 const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhoneProps) => {
-  const { data, isLoading: isLoadingPhone, isFetching } = useGetAssistantPhoneQuery(phone_id)
+  const { data, isLoading } = useGetAssistantPhoneQuery(phone_id)
   const [updatePhone, { isLoading: isUpdating }] = useUpdateAssistantPhoneMutation()
 
   const { control, handleSubmit, reset } = useForm<FormValues>({
@@ -50,29 +51,42 @@ const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhone
   })
 
   // Limpa o formulário sempre que o modal abre ou o phone_id muda
-  useEffect(() => {
-    reset({ phone: '', wa_id: '', wa_key: '' })
-  }, [phone_id, reset, open])
 
   // Popula os campos quando os dados forem carregados
   useEffect(() => {
+    if (!open) return
+
+    // limpa sempre que mudar o phone_id
+    reset({
+      phone: '',
+      wa_id: '',
+      wa_key: ''
+    })
+
     if (data?.data) {
       reset({
-        phone: data.data.phone,
+        phone: maskTelefone(data.data.phone),
         wa_id: data.data.wa_id,
         wa_key: data.data.wa_key
       })
     }
-  }, [data, reset])
+  }, [open, phone_id, data, reset])
 
   const handleClose = () => {
+    reset({
+      phone: '',
+      wa_id: '',
+      wa_key: ''
+    })
     setOpen(false)
-    reset()
   }
 
   const onSubmit = async (formData: FormValues) => {
     try {
-      await updatePhone({ phone_id, data: { assistant_id, ...formData } }).unwrap()
+      await updatePhone({
+        phone_id,
+        data: { assistant_id, phone: unmaskTelefone(formData.phone), wa_id: formData.wa_id, wa_key: formData.wa_key }
+      }).unwrap()
       reset()
       refetch()
       setOpen(false)
@@ -96,7 +110,7 @@ const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhone
 
       <DialogContent className='overflow-visible'>
         <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-3'>
-          {isLoadingPhone || isFetching ? (
+          {isLoading ? (
             <Box className='flex w-full h-full justify-center items-center'>
               <CircularProgress size={15} />
             </Box>
@@ -113,7 +127,9 @@ const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhone
                     fullWidth
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
-                    disabled={isLoadingPhone || isFetching}
+                    disabled={isLoading}
+                    onChange={e => field.onChange(maskTelefone(e.target.value))}
+                    value={field.value} // mantém o valor controlado
                   />
                 )}
               />
@@ -129,7 +145,7 @@ const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhone
                     fullWidth
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
-                    disabled={isLoadingPhone || isFetching}
+                    disabled={isLoading}
                   />
                 )}
               />
@@ -145,7 +161,7 @@ const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhone
                     fullWidth
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
-                    disabled={isLoadingPhone || isFetching}
+                    disabled={isLoading}
                   />
                 )}
               />
@@ -153,7 +169,7 @@ const EditPhone = ({ open, setOpen, phone_id, assistant_id, refetch }: EditPhone
           )}
 
           <DialogActions className='justify-center mt-2'>
-            <LoadingButton variant='contained' type='submit' loading={isUpdating || isLoadingPhone || isFetching}>
+            <LoadingButton variant='contained' type='submit' loading={isUpdating || isLoading}>
               Salvar
             </LoadingButton>
             <Button variant='outlined' type='button' color='error' onClick={handleClose}>
