@@ -1,3 +1,4 @@
+// file: src/views/projects_register/StepReviewConfigs.tsx
 'use client'
 
 import React, { useState, useMemo } from 'react'
@@ -14,215 +15,288 @@ import {
   Alert,
   IconButton,
   Collapse,
-  CircularProgress
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material'
-
 import { toast } from 'react-toastify'
 
 import { useCompleteFirstAccessMutation } from '@/api/endpoints/firstAccess/firstAcess'
-
 import { useAppDispatch } from '@/redux-store'
-
 import { completeFirstAccess as completeFirstAccessAction } from '@/redux-store/slices/firstAccessSlice'
 
 interface StepReviewProjectProps {
   onPrevStep: () => void
-  onFinish: () => Promise<void>
+  onFinish?: () => Promise<void>
   projectData: any
   assistantData: any
-  apiData: any
-  endpointData: any
+  apiData: any[]
+  endpointData: any[]
 }
 
 const StepReviewProject: React.FC<StepReviewProjectProps> = ({
   onPrevStep,
-
+  onFinish,
   projectData,
   assistantData,
   apiData,
   endpointData
 }) => {
   const [isFinishing, setIsFinishing] = useState(false)
-  const [expandedProject, setExpandedProject] = useState(true)
+
+  const [expandedSections, setExpandedSections] = useState({
+    project: true,
+    assistant: true,
+    apis: false,
+    endpoints: false
+  })
 
   const [completeFirstAccess] = useCompleteFirstAccessMutation()
-
   const dispatch = useAppDispatch()
 
   // Estatísticas do projeto
-  const statistics = useMemo(() => {
-    const totalApis = apiData?.length || 0
-    const totalEndpoints = endpointData?.length || 0
+  const statistics = useMemo(
+    () => ({
+      totalApis: apiData?.length || 0,
+      totalEndpoints: endpointData?.length || 0,
+      totalParameters: endpointData?.reduce((acc, endpoint) => acc + (endpoint.parameters?.length || 0), 0) || 0,
+      hasAssistant: !!assistantData?.name,
+      isComplete: !!(projectData && assistantData)
+    }),
+    [apiData, endpointData, assistantData, projectData]
+  )
 
-    const totalParameters =
-      endpointData?.reduce((acc: number, endpoint: any) => acc + (endpoint.parameters?.length || 0), 0) || 0
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
 
-    return {
-      totalApis,
-      totalEndpoints,
-      totalParameters,
-      hasAssistant: !!assistantData?.name
-    }
-  }, [apiData, endpointData, assistantData])
-
-  // Adicionar este import no topo
-
-  // Atualizar o método handleFinishProject
   const handleFinishProject = async () => {
     setIsFinishing(true)
 
     try {
       const response = await completeFirstAccess().unwrap()
 
-      console.log('🎯 Resposta da API firstAccess:', response)
-
-      // 3. ✅ ATUALIZAR REDUX PARA FECHAR O MODAL
       dispatch(completeFirstAccessAction())
-
-      console.log('✅ Primeiro acesso concluído com sucesso!')
-
-      // 4. Mostrar mensagem de sucesso
       toast.success('Configuração inicial concluída com sucesso!')
+
+      if (onFinish) {
+        await onFinish()
+      }
     } catch (error: any) {
-      console.error('❌ Erro ao finalizar primeiro acesso:', error)
-
-      const errorMessage = error?.message || 'Erro ao finalizar configuração'
-
-      toast.error(errorMessage)
-
-      return
+      toast.error(error?.message || 'Erro ao finalizar configuração')
     } finally {
       setIsFinishing(false)
     }
   }
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: 2 }}>
       {/* Header */}
       <Box textAlign='center' mb={4}>
         <Typography variant='h4' gutterBottom>
-          🎉 Parabéns! Seu projeto está pronto
+          🎉 Revisão Final do Projeto
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          Revise as configurações finais antes de criar seu primeiro projeto
+          Confirme todas as configurações antes de finalizar
         </Typography>
-        <Alert severity='info' sx={{ mt: 3 }}>
-          <Typography variant='body2'>
-            💡 <strong>Dica:</strong> Após finalizar, você poderá acessar e gerenciar seus projetos na área principal do
-            sistema.
-          </Typography>
-        </Alert>
       </Box>
 
-      {/* Estatísticas */}
-      <Card sx={{ mb: 3 }}>
-        <CardHeader title='📊 Resumo da Configuração' />
-        <CardContent>
-          <Grid container spacing={3}>
-            <Grid item xs={6} sm={3}>
-              <Box textAlign='center'>
-                <Typography variant='h3' color='primary.main'>
-                  1
-                </Typography>
-                <Typography variant='body2'>Projeto</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Box textAlign='center'>
-                <Typography variant='h3' color='success.main'>
-                  {statistics.hasAssistant ? 1 : 0}
-                </Typography>
-                <Typography variant='body2'>Assistente</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Box textAlign='center'>
-                <Typography variant='h3' color='info.main'>
-                  {statistics.totalApis}
-                </Typography>
-                <Typography variant='body2'>APIs</Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Box textAlign='center'>
-                <Typography variant='h3' color='secondary.main'>
-                  {statistics.totalEndpoints}
-                </Typography>
-                <Typography variant='body2'>Endpoints</Typography>
-              </Box>
-            </Grid>
+      {/* Status Geral */}
+      <Paper sx={{ p: 3, mb: 3, bgcolor: statistics.isComplete ? 'success.light' : 'warning.light' }}>
+        <Grid container spacing={3} alignItems='center'>
+          <Grid item xs={12} md={8}>
+            <Typography variant='h6' gutterBottom>
+              Status da Configuração
+            </Typography>
+            <Typography variant='body2'>
+              {statistics.isComplete
+                ? '✅ Todas as configurações obrigatórias foram preenchidas'
+                : '⚠️ Complete todas as etapas antes de finalizar'}
+            </Typography>
           </Grid>
-        </CardContent>
-      </Card>
+          <Grid item xs={12} md={4}>
+            <Box display='flex' gap={1} flexWrap='wrap' justifyContent='flex-end'>
+              <Chip label={`${statistics.totalApis} APIs`} size='small' />
+              <Chip label={`${statistics.totalEndpoints} Endpoints`} size='small' />
+              <Chip label={`${statistics.totalParameters} Parâmetros`} size='small' />
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
 
-      {/* Detalhes do Projeto */}
-      <Card sx={{ mb: 3 }}>
+      {/* Seção Projeto */}
+      <Card sx={{ mb: 2 }}>
         <CardHeader
-          title='🏢 Detalhes do Projeto'
+          title='📁 Dados do Projeto'
           action={
-            <IconButton onClick={() => setExpandedProject(!expandedProject)}>
-              <i className={expandedProject ? 'ri-eye-off-line' : 'ri-eye-line'} />
+            <IconButton onClick={() => toggleSection('project')}>
+              <i className={expandedSections.project ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
             </IconButton>
           }
         />
-        <Collapse in={expandedProject}>
+        <Collapse in={expandedSections.project}>
           <CardContent>
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  Nome do Projeto
-                </Typography>
-                <Typography variant='h6' gutterBottom>
-                  {projectData?.name || 'Nome não definido'}
-                </Typography>
-
-                <Typography variant='body2' color='text.secondary'>
-                  Email
-                </Typography>
-                <Typography variant='body1'>{projectData?.email || 'Email não definido'}</Typography>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant='body2' color='text.secondary'>
-                  CNPJ
-                </Typography>
-                <Typography variant='body1' gutterBottom>
-                  {projectData?.cnpj || 'CNPJ não definido'}
-                </Typography>
-
-                {projectData?.description && (
-                  <>
-                    <Typography variant='body2' color='text.secondary'>
+            {projectData ? (
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant='caption' color='text.secondary'>
+                    Nome
+                  </Typography>
+                  <Typography variant='body1'>{projectData.name}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant='caption' color='text.secondary'>
+                    CNPJ
+                  </Typography>
+                  <Typography variant='body1'>{projectData.cnpj}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant='caption' color='text.secondary'>
+                    Email
+                  </Typography>
+                  <Typography variant='body1'>{projectData.email}</Typography>
+                </Grid>
+                {projectData.description && (
+                  <Grid item xs={12}>
+                    <Typography variant='caption' color='text.secondary'>
                       Descrição
                     </Typography>
                     <Typography variant='body1'>{projectData.description}</Typography>
-                  </>
+                  </Grid>
                 )}
               </Grid>
-            </Grid>
+            ) : (
+              <Alert severity='warning'>Dados do projeto não configurados</Alert>
+            )}
           </CardContent>
         </Collapse>
       </Card>
 
-      {/* Assistente */}
-      {assistantData && (
-        <Card sx={{ mb: 3 }}>
-          <CardHeader title='🤖 Assistente Configurado' />
+      {/* Seção Assistente */}
+      <Card sx={{ mb: 2 }}>
+        <CardHeader
+          title='🤖 Assistente IA'
+          action={
+            <IconButton onClick={() => toggleSection('assistant')}>
+              <i className={expandedSections.assistant ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+            </IconButton>
+          }
+        />
+        <Collapse in={expandedSections.assistant}>
           <CardContent>
-            <Box display='flex' alignItems='center' gap={2}>
-              <Typography variant='h6'>{assistantData.name}</Typography>
-              <Chip label='Configurado' color='success' size='small' />
-            </Box>
-            {assistantData.description && (
-              <Typography variant='body2' color='text.secondary' mt={1}>
-                {assistantData.description}
-              </Typography>
+            {assistantData ? (
+              <Box>
+                <Typography variant='h6'>{assistantData.name}</Typography>
+                {assistantData.description && (
+                  <Typography variant='body2' color='text.secondary' mt={1}>
+                    {assistantData.description}
+                  </Typography>
+                )}
+                <Box mt={2}>
+                  <Chip label={assistantData.status || 'Configurado'} color='success' size='small' />
+                </Box>
+              </Box>
+            ) : (
+              <Alert severity='warning'>Assistente não configurado</Alert>
             )}
           </CardContent>
+        </Collapse>
+      </Card>
+
+      {/* Seção APIs */}
+      {apiData && apiData.length > 0 && (
+        <Card sx={{ mb: 2 }}>
+          <CardHeader
+            title={`🔌 APIs Configuradas (${apiData.length})`}
+            action={
+              <IconButton onClick={() => toggleSection('apis')}>
+                <i className={expandedSections.apis ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+              </IconButton>
+            }
+          />
+          <Collapse in={expandedSections.apis}>
+            <CardContent>
+              <List>
+                {apiData.map((api, index) => (
+                  <ListItem key={index}>
+                    <ListItemIcon>
+                      <i className='ri-api-line' />
+                    </ListItemIcon>
+                    <ListItemText primary={api.name} secondary={api.base_url || api.description} />
+                    {api.active && <Chip label='Ativa' color='success' size='small' />}
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Collapse>
         </Card>
       )}
 
-      {/* Botões de navegação */}
+      {/* Seção Endpoints */}
+      {endpointData && endpointData.length > 0 && (
+        <Card sx={{ mb: 2 }}>
+          <CardHeader
+            title={`🔗 Endpoints Configurados (${endpointData.length})`}
+            action={
+              <IconButton onClick={() => toggleSection('endpoints')}>
+                <i className={expandedSections.endpoints ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+              </IconButton>
+            }
+          />
+          <Collapse in={expandedSections.endpoints}>
+            <CardContent>
+              <TableContainer>
+                <Table size='small'>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Endpoint</TableCell>
+                      <TableCell>Método</TableCell>
+                      <TableCell>Parâmetros</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {endpointData.map((endpoint, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{endpoint.name || endpoint.endpoint}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={endpoint.method}
+                            size='small'
+                            color={endpoint.method === 'GET' ? 'info' : 'warning'}
+                          />
+                        </TableCell>
+                        <TableCell>{endpoint.parameters?.length || 0}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={endpoint.active ? 'Ativo' : 'Inativo'}
+                            size='small'
+                            color={endpoint.active ? 'success' : 'default'}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Collapse>
+        </Card>
+      )}
+
+      {/* Botões de Ação */}
       <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
         <Button variant='outlined' onClick={onPrevStep} startIcon={<i className='ri-arrow-left-line' />}>
           Voltar
@@ -232,17 +306,16 @@ const StepReviewProject: React.FC<StepReviewProjectProps> = ({
           variant='contained'
           size='large'
           onClick={handleFinishProject}
-          disabled={isFinishing}
+          // disabled={isFinishing || !statistics.isComplete}
+          disabled={false}
           endIcon={isFinishing ? <CircularProgress size={20} color='inherit' /> : <i className='ri-check-line' />}
           sx={{
             minWidth: 200,
             bgcolor: 'success.main',
-            '&:hover': {
-              bgcolor: 'success.dark'
-            }
+            '&:hover': { bgcolor: 'success.dark' }
           }}
         >
-          {isFinishing ? 'Finalizando...' : 'Finalizar Projeto'}
+          {isFinishing ? 'Finalizando...' : 'Concluir Configuração'}
         </Button>
       </Box>
     </Box>

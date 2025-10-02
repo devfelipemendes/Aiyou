@@ -21,11 +21,11 @@ const FooterContent = () => {
       className={classnames(horizontalLayoutClasses.footerContent, 'flex items-center justify-between flex-wrap gap-4')}
     >
       <p>
-        <span>{`© ${new Date().getFullYear()}, Made with `}</span>
+        <span>{`© ${new Date().getFullYear()}, Feito com `}</span>
         <span>{`❤️`}</span>
         <span>{` by `}</span>
         <Link href='https://mui.com/store/contributors/themeselection' target='_blank' className='text-primary'>
-          ThemeSelection
+          AiYou
         </Link>
       </p>
       {!isBreakpointReached && (
