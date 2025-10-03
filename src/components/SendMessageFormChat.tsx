@@ -27,8 +27,9 @@ import { useOperatorInterventionMutation } from '@/api/endpoints/chat/instructio
 
 type Props = {
   dispatch?: AppDispatch
-
+  isOperatorLoading: boolean
   isBelowSmScreen: boolean
+
   messageInputRef: RefObject<HTMLDivElement>
   placeholder: string
   isInstruction?: boolean
@@ -101,7 +102,7 @@ const SendMsgForm = ({
   disabled,
   onInstructionError,
   onInstructionSending,
-
+  isOperatorLoading,
   onInstructionSent
 }: Props) => {
   // States
@@ -109,12 +110,14 @@ const SendMsgForm = ({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const [openEmojiPicker, setOpenEmojiPicker] = useState(false)
 
-  const [operatorIntervention, { isLoading: isOperatorLoading }] = useOperatorInterventionMutation()
+  const [operatorIntervention, { isLoading: isInstructionLoading }] = useOperatorInterventionMutation()
 
   // Refs
   const anchorRef = useRef<HTMLButtonElement>(null)
 
   const open = Boolean(anchorEl)
+
+  const effectiveLoading = isInstruction ? isInstructionLoading : (isOperatorLoading ?? false)
 
   const handleToggle = () => {
     setOpenEmojiPicker(prevOpen => !prevOpen)
@@ -134,16 +137,16 @@ const SendMsgForm = ({
     if (msg.trim() === '') return
 
     try {
+      // 🎯 CENÁRIO 1: Callback customizado (Modal de Monitoramento)
       if (onSendMessage) {
-        console.log('Enviando mensagem via onSendMessage', msg)
-
+        console.log('📨 Enviando mensagem via callback')
         await onSendMessage(msg)
         setMsg('')
 
         return
       }
 
-      // 🎯 SE FOR INSTRUÇÃO DO OPERADOR
+      // 🎯 CENÁRIO 2: Instrução do operador (ChatLog - instruir IA)
       if (isInstruction && questionId) {
         console.log('📨 Enviando intervenção do operador:', { questionId, content: msg })
 
@@ -156,31 +159,25 @@ const SendMsgForm = ({
           content: msg
         }).unwrap()
 
-        console.log('✅ Intervenção do operador enviada com sucesso!')
-
+        console.log('✅ Intervenção enviada!')
         setMsg('')
 
         if (onInstructionSent) {
           onInstructionSent(questionId)
         }
 
-        // TODO: Fechar modal ou dar feedback visual
-        // onSuccess?.() // Se você tiver callback de sucesso
-      } else {
-        // 🎯 MENSAGEM NORMAL (lógica existente)
-        console.log('📨 Enviando mensagem normal:', msg)
-
-        setMsg('')
+        return
       }
+
+      // 🎯 CENÁRIO 3: Mensagem normal (fallback)
+      console.log('📨 Mensagem normal (sem handler)')
+      setMsg('')
     } catch (error) {
       console.error('❌ Erro ao enviar:', error)
 
       if (isInstruction && questionId && onInstructionError) {
         onInstructionError(questionId)
       }
-
-      // TODO: Mostrar toast/snackbar de erro
-      // showError('Erro ao enviar mensagem')
     }
   }
 
@@ -265,10 +262,10 @@ const SendMsgForm = ({
             variant='contained'
             color='primary'
             type='submit'
-            disabled={disabled || isOperatorLoading} // 👈 LOADING STATE
+            disabled={disabled || effectiveLoading} // 🔥 CORRIGIDO
           >
-            {disabled || isOperatorLoading ? (
-              <i className='ri-loader-4-line animate-spin' /> // 👈 LOADING ICON
+            {effectiveLoading ? ( // 🔥 CORRIGIDO
+              <i className='ri-loader-4-line animate-spin' />
             ) : (
               <i className='ri-send-plane-line' />
             )}
@@ -279,16 +276,12 @@ const SendMsgForm = ({
             size='small'
             color='primary'
             type='submit'
-            disabled={disabled || isOperatorLoading} // 👈 LOADING STATE
+            disabled={disabled || effectiveLoading}
             endIcon={
-              disabled || isOperatorLoading ? (
-                <i className='ri-loader-4-line animate-spin' /> // 👈 LOADING ICON
-              ) : (
-                <i className='ri-send-plane-line' />
-              )
+              effectiveLoading ? <i className='ri-loader-4-line animate-spin' /> : <i className='ri-send-plane-line' />
             }
           >
-            {disabled || isOperatorLoading ? 'Enviando...' : 'Enviar'} {/* 👈 TEXTO DINÂMICO */}
+            {effectiveLoading ? 'Enviando...' : 'Enviar'}
           </Button>
         )}
       </div>

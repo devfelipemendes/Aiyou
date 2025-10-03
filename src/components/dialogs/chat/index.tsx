@@ -17,6 +17,7 @@ import SendMsgForm from '@/components/SendMessageFormChat'
 import { useOperatorReplyMutation } from '@/api/endpoints/chat/operatorMode'
 import { useGetHistoryByProtocolQuery, type ProtocolHistoryMessage } from '@/api/endpoints/chat/protocolHistory'
 import { useMonitoringChatWithWebSocket } from '@/hooks/useMonitoringWithWebSocket'
+import { useAppSelector } from '@/redux-store'
 
 const LargeMonitoringDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -62,7 +63,9 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
   const [displayChatData, setDisplayChatData] = useState<ChatWithHistory | null>(chatData)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  const [operatorReply] = useOperatorReplyMutation()
+  const [operatorReply, { isLoading: isOperatorLoading }] = useOperatorReplyMutation()
+
+  const monitoringChats = useAppSelector((state: any) => state.monitoring?.chatsByProtocol || {})
 
   const messageInputRef = useRef<HTMLDivElement>(null)
 
@@ -116,10 +119,24 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
   }, [protocolHistoryData, convertHistoryMessage])
 
   const currentChat = useMemo(() => {
-    const foundChat = processedHistoryData.find(p => p.protocol === selectedProtocol)
+    // 1️⃣ Buscar no Redux (fonte da verdade para operator)
+    const reduxChat = monitoringChats[selectedProtocol]
 
-    return foundChat || displayChatData
-  }, [selectedProtocol, processedHistoryData, displayChatData])
+    // 2️⃣ Buscar nos dados processados da API (tem o histórico completo)
+    const apiChat = processedHistoryData.find(p => p.protocol === selectedProtocol)
+
+    // 3️⃣ MERGE: combinar ambos (operator do Redux + history da API)
+    if (reduxChat && apiChat) {
+      return {
+        ...apiChat,
+        operator: reduxChat.operator, // 🔥 Usar estado do Redux
+        question_operator: reduxChat.question_operator
+      }
+    }
+
+    // 4️⃣ Fallback
+    return reduxChat || apiChat || displayChatData
+  }, [selectedProtocol, monitoringChats, processedHistoryData, displayChatData])
 
   const isAssumed = currentChat?.operator || false
 
@@ -383,6 +400,7 @@ const ChatMonitoringModal = ({ open, onClose, chatData }: ChatMonitoringModalPro
                 placeholder='Digite sua mensagem como operador...'
                 onSendMessage={handleOperatorMessage} // 🔥 Nova prop
                 disabled={false}
+                isOperatorLoading={isOperatorLoading}
               />
             ) : (
               <Box p={2} textAlign='center'>
