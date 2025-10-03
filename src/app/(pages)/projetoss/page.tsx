@@ -158,8 +158,8 @@ export default function ProjectList() {
   return (
     <>
       <Card>
-        <CardHeader title='Projetos Cadastrados' />
-        <CardActions>
+        <CardActions className='flex justify-between px-12 flex-wrap'>
+          <CardHeader title='Projetos Cadastrados' />
           <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={CreateProjectDialog} />
         </CardActions>
         <CardContent>
@@ -168,7 +168,7 @@ export default function ProjectList() {
               <Box
                 sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
               >
-                <Typography>Nenhum assistente encontrado</Typography>
+                <Typography>Nenhum projeto encontrado</Typography>
               </Box>
             ) : (
               projects.map(project => (

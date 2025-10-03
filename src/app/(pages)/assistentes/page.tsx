@@ -51,8 +51,8 @@ export default function Assitentes() {
 
   return (
     <Card>
-      <CardHeader title='Assistentes cadastrados' />
-      <CardActions>
+      <CardActions className='flex justify-between px-12 flex-wrap'>
+        <CardHeader title='Assistentes cadastrados' />
         <OpenDialogOnElementClick element={Button} elementProps={buttonProps} dialog={CreateAssistant} />
       </CardActions>
       <CardContent>
