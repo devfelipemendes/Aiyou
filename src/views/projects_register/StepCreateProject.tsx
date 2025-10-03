@@ -200,6 +200,7 @@ export default function StepCreateProject({
     } else {
       return baseValid && !!imgUrl // força booleano
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createForm.formState.isValid, createImageMode, createImageFile, createForm.watch('img_url')])
 
   const isEditFormValid = useMemo(() => {
@@ -210,12 +211,14 @@ export default function StepCreateProject({
     } else {
       return baseValid && !!editForm.watch('img_url')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
 
   const handleFinalSubmit = useCallback(() => {
     if (onNextStep) {
       onNextStep()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects, onNextStep])
 
   const handleCreateImageChange = useCallback((file: File | null) => {

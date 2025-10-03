@@ -40,7 +40,7 @@ import CreditCard from '@/components/CreditCard'
 import { useUserMe } from '@/hooks/useUserMe'
 
 import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
-import InvoiceViewModal from '../invoiceViewInSistem'
+import { InvoiceViewModal } from '../invoiceViewInSistem'
 import { usePlanPolling } from '@/hooks/userPlanPolling'
 
 // Custom styles para as dots do pagination

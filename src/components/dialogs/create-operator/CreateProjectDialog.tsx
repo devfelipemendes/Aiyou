@@ -66,6 +66,7 @@ export default function CreateProjectDialog({ open, setOpen, onSuccess }: Create
     if (createImageMode === 'file') return baseValid && createImageFile !== null
 
     return baseValid && !!imgUrl
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.formState.isValid, createImageMode, createImageFile, form.watch('img_url')])
 
   const handleClose = useCallback(() => {

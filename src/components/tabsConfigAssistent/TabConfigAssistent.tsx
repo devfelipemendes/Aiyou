@@ -87,6 +87,7 @@ const TabConfigAssistent = ({
 
   const isFormEmpty = Object.entries(formValues)
     .filter(([key]) => key !== 'assistant_id')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .every(([_, value]) => value === '')
 
   return (

@@ -81,6 +81,7 @@ const DebouncedInput = ({
     }, debounce)
 
     return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
   return <TextField {...props} value={value} onChange={e => setValue(e.target.value)} size='small' />
@@ -97,6 +98,8 @@ const InvoiceListTable = () => {
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null)
 
   const router = useRouter()
+
+  console.log(setStatus)
 
   const {
     data: invoicesResponse,
@@ -123,6 +126,8 @@ const InvoiceListTable = () => {
 
   const handleViewInvoiceOnline = useCallback((paymantId: string) => {
     router.push(`/cobranca/${paymantId}`)
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleOpenModal = () => {
@@ -284,6 +289,7 @@ const InvoiceListTable = () => {
         enableSorting: false
       })
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
 

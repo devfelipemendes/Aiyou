@@ -4,13 +4,13 @@
 import Grid from '@mui/material/Grid2'
 
 // Type Imports
-import type { InvoiceType } from '@/types/apps/invoiceTypes'
 
 // Component Imports
 import PreviewActions from './PreviewActions'
-import PreviewCard from './PreviewCard'
+import type { InvoiceType } from '@/types/invoiceTypes'
+import PreviewCard from '@/app/(blank-layout-pages)/cobranca/fatura/PreviewInvoice'
 
-const Preview = ({ invoiceData, id }: { invoiceData?: InvoiceType; id: string }) => {
+const Preview = ({ id }: { invoiceData?: InvoiceType; id: string }) => {
   // Handle Print Button Click
   const handleButtonClick = () => {
     window.print()
@@ -19,7 +19,7 @@ const Preview = ({ invoiceData, id }: { invoiceData?: InvoiceType; id: string })
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12, md: 9 }}>
-        <PreviewCard invoiceData={invoiceData} id={id} />
+        <PreviewCard invoiceId={id} />
       </Grid>
       <Grid size={{ xs: 12, md: 3 }}>
         <PreviewActions id={id} onButtonClick={handleButtonClick} />

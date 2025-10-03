@@ -23,7 +23,7 @@ import { useBuildInvoiceQuery } from '@/api/endpoints/invoices/buildInvoice'
 import { useCopyToClipboard } from '@/utils/copyToClipbard'
 import { usePrintToPDF } from '@/hooks/usePrintToPDFOptions'
 
-const PreviewCard = ({ IdInvoice: IdInvoice }: { IdInvoice?: string | undefined }) => {
+const PreviewCard = ({ invoiceId: IdInvoice }: { invoiceId?: string | undefined }) => {
   const params = useParams()
 
   const { isCopied, copyText } = useCopyToClipboard({

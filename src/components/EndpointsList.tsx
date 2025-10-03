@@ -28,8 +28,10 @@ const EndpointsList = ({ tasks, apis, methods, onEdit, onDelete }: EndpointsList
     })
   }
 
-  const getMethodColor = (methodName: string) => {
-    const colors: Record<string, string> = {
+  const getMethodColor = (
+    methodName: string
+  ): 'error' | 'default' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' => {
+    const colors: Record<string, 'error' | 'default' | 'primary' | 'secondary' | 'success' | 'info' | 'warning'> = {
       GET: 'info',
       POST: 'success',
       PUT: 'warning',

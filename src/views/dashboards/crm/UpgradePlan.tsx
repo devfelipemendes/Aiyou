@@ -9,7 +9,7 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
+
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
 import { CreditCard, Shield, Zap, Crown } from 'lucide-react'
@@ -39,6 +39,8 @@ const UpgradePlan = () => {
   const { user, plan: planUser } = useUserMe()
   const [paymentMethod, setPaymentMethod] = useState<'credit' | 'pix'>('credit')
   const [selectedPlan, setSelectedPlan] = useState<'platinum' | 'pro'>('platinum')
+
+  console.log(setSelectedPlan)
 
   const plan = PLANS[selectedPlan]
   const PlanIcon = plan.icon

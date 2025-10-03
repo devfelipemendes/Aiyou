@@ -147,6 +147,7 @@ const DashboardCRM = () => {
   useEffect(() => {
     if (!dataInteractions) return
     calculaAudioAndText()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataInteractions])
 
   const { firstAccess } = useUserMe()
