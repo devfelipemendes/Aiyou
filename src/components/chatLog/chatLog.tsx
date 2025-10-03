@@ -366,6 +366,7 @@ const ChatLog = ({
                             onInstructionSending={handleInstructionSending}
                             onInstructionError={handleInstructionError}
                             disabled={isLoadingThisMessage}
+                            isOperatorLoading={false}
                           />
                         </div>
                       )}
