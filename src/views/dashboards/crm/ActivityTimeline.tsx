@@ -4,7 +4,8 @@
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
-import Avatar from '@mui/material/Avatar'
+
+// import Avatar from '@mui/material/Avatar'
 import { styled } from '@mui/material/styles'
 import TimelineDot from '@mui/lab/TimelineDot'
 import TimelineItem from '@mui/lab/TimelineItem'
@@ -127,69 +128,69 @@ const getSentenceActivity = (activity: Activity) => {
   return `O usuário ${activity.causer_name ?? '-'} ${getNameAction(activity.event) ?? '-'} um ${getNameModel(activity.subject_type)}`
 }
 
-const renderAttributes = (properties: any) => {
-  if (!properties) return null
-  const attrs = properties.attributes ?? {}
-  const oldAttrs = properties.old ?? {}
+// const renderAttributes = (properties: any) => {
+//   if (!properties) return null
+//   const attrs = properties.attributes ?? {}
+//   const oldAttrs = properties.old ?? {}
 
-  // 🔥 Remove qualquer chave que contenha "id" OU datas técnicas
-  const filterKeys = (key: string) => {
-    const lower = key.toLowerCase()
+//   // 🔥 Remove qualquer chave que contenha "id" OU datas técnicas
+//   const filterKeys = (key: string) => {
+//     const lower = key.toLowerCase()
 
-    return !lower.includes('id') && !['created_at', 'updated_at', 'deleted_at', 'img_url'].includes(lower)
-  }
+//     return !lower.includes('id') && !['created_at', 'updated_at', 'deleted_at', 'img_url'].includes(lower)
+//   }
 
-  return (
-    <>
-      {/* Imagem */}
-      {attrs.img_url && <Avatar src={attrs.img_url} className='bs-8 is-8 mb-2' />}
-      {/* Atributos atuais */}
-      {Object.entries(attrs)
-        .filter(([key]) => filterKeys(key))
-        .map(([key, value]) => {
-          if (!value) return null
-          const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+//   return (
+//     <>
+//       {/* Imagem */}
+//       {attrs.img_url && <Avatar src={attrs.img_url} className='bs-8 is-8 mb-2' />}
+//       {/* Atributos atuais */}
+//       {Object.entries(attrs)
+//         .filter(([key]) => filterKeys(key))
+//         .map(([key, value]) => {
+//           if (!value) return null
+//           const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
-          return (
-            <Typography key={key} className='flex flex-row text-wrap items-center gap-2'>
-              <Typography component='span' variant='body1'>
-                {label}:
-              </Typography>
-              {String(value)}
-            </Typography>
-          )
-        })}
-      {/* Atributos antigos */}
-      {Object.entries(oldAttrs)
-        .filter(([key]) => filterKeys(key))
-        .map(([key, value]) => {
-          if (!value) return null
-          const label = `Antigo ${key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+//           return (
+//             <Typography key={key} className='flex flex-row text-wrap items-center gap-2'>
+//               <Typography component='span' variant='body1'>
+//                 {label}:
+//               </Typography>
+//               {String(value)}
+//             </Typography>
+//           )
+//         })}
+//       {/* Atributos antigos */}
+//       {Object.entries(oldAttrs)
+//         .filter(([key]) => filterKeys(key))
+//         .map(([key, value]) => {
+//           if (!value) return null
+//           const label = `Antigo ${key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
 
-          return (
-            <Typography key={`old-${key}`} className='flex flex-row text-wrap items-center gap-2'>
-              <Typography component='span' variant='body1'>
-                {label}:
-              </Typography>
-              {String(value)}
-            </Typography>
-          )
-        })}
-      {/* Outras propriedades diretas */}
-      {['status', 'protocol'].map(
-        prop =>
-          properties[prop] && (
-            <Typography key={prop} className='flex flex-row text-wrap items-center gap-2'>
-              <Typography component='span' variant='body1'>
-                {prop.charAt(0).toUpperCase() + prop.slice(1)}:
-              </Typography>
-              {properties[prop]}
-            </Typography>
-          )
-      )}
-    </>
-  )
-}
+//           return (
+//             <Typography key={`old-${key}`} className='flex flex-row text-wrap items-center gap-2'>
+//               <Typography component='span' variant='body1'>
+//                 {label}:
+//               </Typography>
+//               {String(value)}
+//             </Typography>
+//           )
+//         })}
+//       {/* Outras propriedades diretas */}
+//       {['status', 'protocol'].map(
+//         prop =>
+//           properties[prop] && (
+//             <Typography key={prop} className='flex flex-row text-wrap items-center gap-2'>
+//               <Typography component='span' variant='body1'>
+//                 {prop.charAt(0).toUpperCase() + prop.slice(1)}:
+//               </Typography>
+//               {properties[prop]}
+//             </Typography>
+//           )
+//       )}
+//     </>
+//   )
+// }
 
 const ActivityTimeline = ({
   dataFiltered_3,
@@ -239,7 +240,7 @@ const ActivityTimeline = ({
                           {formatDateTime(activity.created_at)}
                         </Typography>
                       </div>
-                      <div className='flex flex-col flex-wrap gap-0.5'>{renderAttributes(activity.properties)}</div>
+                      {/* <div className='flex flex-col flex-wrap gap-0.5'>{renderAttributes(activity.properties)}</div> */}
                     </TimelineContent>
                   </TimelineItem>
                 ))}
