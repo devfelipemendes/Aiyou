@@ -27,13 +27,16 @@ import clientHistoriesReducer from './slices/clientHistoriesSlice'
 import { soundNotificationMiddleware } from './midleware/soundNotificationMiddleware'
 import firstAccessReducer from './slices/firstAccessSlice'
 
+import planPollingReducer from './slices/pollingMeSlice'
+
+import planPollingMiddleware from './midleware/userPollingMiddleware'
 import assistantsReducer from './slices/assistants'
 
 const persistConfig = {
   key: 'root',
   storage,
   whitelist: ['authReducer', 'monitoringReducer', 'firstAccess'],
-  blacklist: ['websocketReducer', 'chatReducer', 'activeChats', 'protocolsReducer', 'messagesReducer'] // WebSocket e chat sempre frescos
+  blacklist: ['websocketReducer', 'chatReducer', 'activeChats', 'protocolsReducer', 'messagesReducer', 'planPolling'] // WebSocket e chat sempre frescos
 }
 
 const rootReducer = combineReducers({
@@ -45,6 +48,7 @@ const rootReducer = combineReducers({
   protocolsReducer,
   questionsReducer,
   messagesReducer,
+  planPolling: planPollingReducer,
   activeChats: activeChatsReducer,
   clientHistories: clientHistoriesReducer,
   assistants: assistantsReducer,
@@ -79,7 +83,13 @@ export const store = configureStore({
         ],
         ignoredPaths: ['register', 'websocket.connection', 'websocket.channels', 'activeChatsReducer.connectedChannels']
       }
-    }).concat(apiSlice.middleware, externalApi.middleware, websocketMiddleware, soundNotificationMiddleware),
+    }).concat(
+      apiSlice.middleware,
+      externalApi.middleware,
+      websocketMiddleware,
+      soundNotificationMiddleware,
+      planPollingMiddleware
+    ),
 
   devTools: process.env.NODE_ENV !== 'production'
 })

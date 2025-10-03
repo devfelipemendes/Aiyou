@@ -14,7 +14,8 @@ import {
   IconButton,
   Box,
   Radio,
-  CircularProgress
+  CircularProgress,
+  Alert
 } from '@mui/material'
 
 import Grid from '@mui/material/Grid2'
@@ -39,6 +40,8 @@ import CreditCard from '@/components/CreditCard'
 import { useUserMe } from '@/hooks/useUserMe'
 
 import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import InvoiceViewModal from '../invoiceViewInSistem'
+import { usePlanPolling } from '@/hooks/userPlanPolling'
 
 // Custom styles para as dots do pagination
 const swiperPaginationStyles = `
@@ -106,10 +109,13 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
 
   const [selectedPlan, setSelectedPlan] = useState<string>('')
   const [selectedMethod, setSelectedMethod] = useState<string>(initialSelected)
-  const [showInstructiveModal, setShowInstructiveModal] = useState<boolean>(false)
+
   const [isProcessingBoleto, setIsProcessingBoleto] = useState<boolean>(false)
 
-  console.log(showInstructiveModal)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null)
+
+  const { startPlanPolling, isPolling } = usePlanPolling()
 
   const handleChange = (prop: string | ChangeEvent<HTMLInputElement>) => {
     if (typeof prop === 'string') {
@@ -124,6 +130,8 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
   const { user, userPlanId } = useUserMe()
   const [createUserPlan] = useCreateUserPlanMutation()
   const [updateUserPlan] = useUpdateUserPlanMutation()
+
+  const FREE_PLAN_ID = 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
 
   useEffect(() => {
     if (open) {
@@ -258,6 +266,18 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
         }
       }
 
+      if (plan.id === FREE_PLAN_ID && !plan.current) {
+        return {
+          ...baseStyles,
+          border: 1,
+          borderColor: 'divider',
+          backgroundColor: 'action.disabledBackground',
+          color: 'text.disabled',
+          cursor: 'not-allowed',
+          pointerEvents: 'none' // 🔴 impede clique
+        }
+      }
+
       if (isSelected) {
         return {
           ...baseStyles,
@@ -312,6 +332,26 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
           </Box>
         )}
 
+        {plan.id === FREE_PLAN_ID && !plan.current && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: '0%',
+              bgcolor: 'grey.500',
+              color: 'common.white',
+              px: 4,
+              py: 0.5,
+              borderBottomRightRadius: 10,
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              zIndex: 1
+            }}
+          >
+            INDISPONÍVEL
+          </Box>
+        )}
+
         {isSelected && (
           <Box
             sx={{
@@ -323,6 +363,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
               px: 4,
               py: 0.5,
               borderBottomLeftRadius: 10,
+
               fontSize: '0.75rem',
               fontWeight: 'bold',
               zIndex: 1
@@ -340,6 +381,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                 onChange={() => handlePlanSelection(plan.id, plan.current)}
                 value={plan.id}
                 color='primary'
+                disabled={plan.id === FREE_PLAN_ID}
                 size='medium'
               />
             </Box>
@@ -420,10 +462,16 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
               color={plan.current ? 'info' : 'primary'}
               fullWidth
               size='large'
-              disabled={plan.current}
+              disabled={plan.current || (plan.id === FREE_PLAN_ID && !plan.current)} // 🔴 só bloqueia free se não for o atual
               onClick={() => handlePlanSelection(plan.id, plan.current)}
             >
-              {plan.current ? 'Plano Atual' : isSelected ? 'Plano Selecionado' : 'Selecionar Plano'}
+              {plan.id === FREE_PLAN_ID && !plan.current
+                ? 'Indisponível'
+                : plan.current
+                  ? 'Plano Atual'
+                  : isSelected
+                    ? 'Plano Selecionado'
+                    : 'Selecionar Plano'}
             </Button>
           </Box>
         </CardContent>
@@ -431,6 +479,9 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     )
   }
 
+  // file: src/components/dialogs/plans/index.tsx
+
+  // Atualizar handleGenerateBoleto (linha ~510):
   const handleGenerateBoleto = async () => {
     if (!selectedPlan) {
       toast.error('Selecione um plano primeiro!')
@@ -443,31 +494,33 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
 
     try {
-      if (isFreePlan) {
-        // Criar novo plano para usuário do plano gratuito
-        await createUserPlan({
-          plan_id: selectedPlan,
-          subscription: false // Boleto não é recorrente
-        }).unwrap()
+      let result
 
-        toast.success('Solicitação criada! Boleto será enviado por email.')
+      if (isFreePlan) {
+        result = await createUserPlan({
+          plan_id: selectedPlan,
+          subscription: false
+        }).unwrap()
       } else {
-        // Atualizar plano existente
         if (!userPlanId) {
           throw new Error('ID do plano do usuário não encontrado')
         }
 
-        await updateUserPlan({
+        result = await updateUserPlan({
           id: userPlanId,
           plan_id: selectedPlan,
-          subscription: false // Boleto não é recorrente
+          subscription: false
         }).unwrap()
-
-        toast.success('Plano atualizado! Boleto será enviado por email.')
       }
 
-      // Mostrar modal de sucesso
-      setShowInstructiveModal(true)
+      // Abrir modal APENAS para boleto, usando payment_id da resposta
+      if (result?.data?.payment_id) {
+        setSelectedPaymentId(result.data.payment_id)
+        setShowInvoiceModal(true)
+        toast.success('Boleto gerado! Visualize sua fatura.')
+      }
+
+      startPlanPolling()
     } catch (error) {
       console.error('Erro ao gerar boleto:', error)
       toast.error('Erro ao processar solicitação. Tente novamente.')
@@ -632,6 +685,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                         {isProcessingBoleto ? 'Gerando Boleto...' : 'Gerar Boleto'}
                       </Button>
                     </Box>
+                    {isPolling && <Alert severity='info'>Aguardando confirmação de pagamento...</Alert>}
                   </AnimatedReveal>
                 )}
                 {selectedMethod === 'recorrencia' && (
@@ -646,6 +700,15 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
           </>
         )}
       </DialogContent>
+      <InvoiceViewModal
+        open={showInvoiceModal}
+        onClose={() => {
+          setShowInvoiceModal(false)
+          setSelectedPaymentId(null)
+        }}
+        paymentId={selectedPaymentId}
+        title='Fatura Gerada'
+      />
     </Dialog>
   )
 }

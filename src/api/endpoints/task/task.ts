@@ -72,7 +72,6 @@ export type Task = {
   instruction: string
   created_at: string
   updated_at: string
-
   pai_parameters?: TaskParameterFull[]
   returns?: TaskReturn[]
 }

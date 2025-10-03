@@ -63,6 +63,8 @@ export type User = {
   tokens_left: number
   plan: Plan
   plan_usage: PlanUsage
+  plan_order: string | null
+  type: 'admin' | 'operator' | 'client'
 }
 
 export type MeData = {
@@ -231,4 +233,10 @@ export const selectTokensUsage = createSelector([selectMeData], meData => {
   if (meData === undefined) return undefined // ainda carregando
 
   return meData.user.plan_usage.total_tokens // true ou false real da API
+})
+
+export const selectTypeUser = createSelector([selectMeData], meData => {
+  if (meData === undefined) return undefined
+
+  return meData.user.type
 })

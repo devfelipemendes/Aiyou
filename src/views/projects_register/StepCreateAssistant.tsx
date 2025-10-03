@@ -40,6 +40,7 @@ export interface UIAssistant extends ProcessedAssistant {}
 
 interface AssistantManagerProps {
   onNextStep?: () => void
+  onPrevStep?: () => void
   showFinishButton?: boolean
   finishButtonText?: string
 }
@@ -54,7 +55,8 @@ export type AssistantFormData = v.InferInput<typeof AssistantSchema>
 export default function StepCreateAssistant({
   onNextStep,
   showFinishButton = true,
-  finishButtonText = 'Finalizar Criação de Assistentes'
+  finishButtonText = 'Finalizar Criação de Assistentes',
+  onPrevStep
 }: AssistantManagerProps = {}) {
   const theme = useTheme()
 
@@ -462,7 +464,10 @@ export default function StepCreateAssistant({
           </Grid>
 
           {!isCreatingAssistant && onNextStep && showFinishButton && (
-            <Box className='flex flex-col w-full items-start mt-6'>
+            <Box className='flex justify-between w-full items-start mt-6'>
+              <Button variant='outlined' onClick={onPrevStep} startIcon={<i className='ri-arrow-left-line' />}>
+                Voltar
+              </Button>
               <Button variant='contained' color='primary' size='small' onClick={handleFinalSubmit}>
                 {finishButtonText}
               </Button>

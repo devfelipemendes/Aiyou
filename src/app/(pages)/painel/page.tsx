@@ -157,12 +157,12 @@ const DashboardCRM = () => {
   const apiFirstAccess = useAppSelector(selectFirstAccess)
 
   useEffect(() => {
-    if (apiFirstAccess === false) {
+    if (apiFirstAccess === true) {
       dispatch(setFirstAccess(true))
       dispatch(openModal())
     }
 
-    if (apiFirstAccess === true) {
+    if (apiFirstAccess === false) {
       dispatch(setFirstAccess(false))
     }
   }, [apiFirstAccess, dispatch])

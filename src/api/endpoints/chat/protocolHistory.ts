@@ -377,6 +377,25 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
       ],
 
       keepUnusedDataFor: 300 // 5 minutos - dados podem mudar frequentemente
+    }),
+    getHistoryByProtocol: builder.query<ProtocolHistoryApiResponse, string>({
+      query: protocol => ({
+        url: `/chat/${protocol}/history/protocol`,
+        method: 'GET'
+      }),
+
+      transformResponse: (response: ProtocolHistoryApiResponse) => {
+        console.log('📥 Histórico por protocolo:', response)
+
+        return response
+      },
+
+      transformErrorResponse: (response: any) => ({
+        status: response?.status || 500,
+        message: response?.data?.message || 'Erro ao buscar histórico do protocolo'
+      }),
+
+      providesTags: (result, error, protocol) => [{ type: 'ProtocolHistory' as const, id: protocol }]
     })
   })
 })
@@ -384,9 +403,10 @@ export const protocolHistoryApi = apiSlice.injectEndpoints({
 export const {
   useGetProtocolHistoryQuery,
   useGetMultipleProtocolHistoriesQuery,
-  useGetAllHistoryByProtocolQuery, // 🆕 NOVO HOOK
-
+  useGetAllHistoryByProtocolQuery,
+  useGetHistoryByProtocolQuery,
   useLazyGetProtocolHistoryQuery,
   useLazyGetMultipleProtocolHistoriesQuery,
-  useLazyGetAllHistoryByProtocolQuery
+  useLazyGetAllHistoryByProtocolQuery,
+  useLazyGetHistoryByProtocolQuery
 } = protocolHistoryApi

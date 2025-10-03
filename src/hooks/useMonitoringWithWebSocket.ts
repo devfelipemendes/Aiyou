@@ -883,11 +883,6 @@ export function useMonitoringWithWebSocket(
   }, [])
 
   useEffect(() => {
-    // Só inicia polling se:
-    // 1. Não está carregando dados iniciais
-    // 2. Não tem chats
-    // 3. Não tem erro na API
-    // 4. Ainda não está fazendo polling
     const shouldStartPolling =
       !apiLoading && (!data?.chats || data.chats.length === 0) && !apiError && !isPolling && !pollingIntervalRef.current
 
@@ -910,7 +905,7 @@ export function useMonitoringWithWebSocket(
           connectToProjectChannels()
           connectToProtocolChannels()
         }
-      }, 1000)
+      }, 100)
     }
 
     // Cleanup automático após 5 minutos (30 tentativas)

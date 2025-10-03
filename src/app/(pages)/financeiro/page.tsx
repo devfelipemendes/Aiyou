@@ -7,7 +7,7 @@ import Card from '@mui/material/Card'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import Tabs from '@mui/material/Tabs'
-import Tab from '@mui/material/Tab'
+
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid2'
 
@@ -235,9 +235,9 @@ const FinanceiroPage = () => {
       <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label='financeiro tabs'>
-            <Tab label='Cobranças' icon={<i className='ri-arrow-up-circle-line' />} />
-            <Tab label='Histórico de pagamentos' icon={<i className='ri-history-line' />} />
-            <Tab label='Métodos de Pagamento' icon={<i className='ri-bank-card-line' />} />
+            {/* <Tab label='Cobranças' icon={<i className='ri-arrow-up-circle-line' />} /> */}
+            {/* <Tab label='Histórico de pagamentos' icon={<i className='ri-history-line' />} />
+            <Tab label='Métodos de Pagamento' icon={<i className='ri-bank-card-line' />} /> */}
           </Tabs>
         </Box>
 

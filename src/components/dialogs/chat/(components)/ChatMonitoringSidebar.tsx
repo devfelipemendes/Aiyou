@@ -209,10 +209,10 @@ const ChatMonitoringSidebar = ({
       }
 
       // 4️⃣ Atualizar histórico após encerrar
-      onRefreshHistory()
 
       setActionState(prev => ({ ...prev, loading: null, success: 'end_chat' }))
       setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
+      onRefreshHistory()
     } catch (error) {
       console.error('❌ Erro ao encerrar chat:', error)
       setActionState(prev => ({
@@ -264,80 +264,48 @@ const ChatMonitoringSidebar = ({
   const isLoading = (action: ActionType) => actionState.loading === action
   const isSuccess = (action: ActionType) => actionState.success === action
 
-  // ===== FUNÇÕES DE BUSCA E FILTRO DE PROTOCOLOS =====
-  const filterProtocolsByStatus = useCallback((protocols: any[], status: string) => {
-    if (!protocols) return []
-
-    switch (status) {
-      case 'recent':
-        const weekAgo = new Date()
-
-        weekAgo.setDate(weekAgo.getDate() - 7)
-
-        return protocols.filter(p => new Date(p.createdAt) >= weekAgo)
-
-      case 'resolved':
-        return protocols.filter(p => p.status === 'resolved' || p.resolved === true)
-
-      case 'unresolved':
-        return protocols.filter(p => p.status !== 'resolved' && p.resolved !== true)
-
-      case 'all':
-      default:
-        return protocols
-    }
-  }, [])
-
-  const searchProtocols = useCallback((protocols: any[], searchTerm: string) => {
-    if (!searchTerm || !protocols) return protocols
-
-    const term = searchTerm.toLowerCase()
-
-    return protocols.filter(
-      protocol =>
-        protocol.protocol.toLowerCase().includes(term) ||
-        protocol.clientName?.toLowerCase().includes(term) ||
-        protocol.summary?.toLowerCase().includes(term) ||
-        (protocol.history && protocol.history.some((msg: any) => msg.content.toLowerCase().includes(term)))
-    )
-  }, [])
-
+  // Atualizar applyFilters
   const applyFilters = useCallback(() => {
-    if (!historyData?.data) {
+    if (!historyData || historyData.length === 0) {
       setFilteredProtocols([])
 
       return
     }
 
-    let filtered = [...historyData.data]
+    let filtered = [...historyData]
 
     // Aplicar filtro por status
-    filtered = filterProtocolsByStatus(filtered, filterStatus)
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter((protocol: any) => {
+        console.log(protocol)
+
+        return true
+      })
+    }
 
     // Aplicar busca por texto
     if (searchValue) {
-      filtered = searchProtocols(filtered, searchValue)
+      const term = searchValue.toLowerCase()
+
+      filtered = filtered.filter(
+        protocol =>
+          protocol.protocol?.toLowerCase().includes(term) ||
+          protocol.identifier?.toLowerCase().includes(term) ||
+          protocol.assistant?.name?.toLowerCase().includes(term) ||
+          protocol.history?.some((msg: any) => msg.content?.toLowerCase().includes(term))
+      )
     }
 
-    // Ordenar por data (mais recente primeiro)
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // Ordenar por data
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
 
-    // Fixar protocolo ativo do CardMonitor no topo
-    const activeProtocolFromMonitor = chatData?.protocol
-
-    if (activeProtocolFromMonitor) {
-      const activeProtocolIndex = filtered.findIndex(p => p.protocol === activeProtocolFromMonitor)
-
-      if (activeProtocolIndex > 0) {
-        const activeProtocol = filtered[activeProtocolIndex]
-        const otherProtocols = filtered.filter(p => p.protocol !== activeProtocolFromMonitor)
-
-        filtered = [activeProtocol, ...otherProtocols]
-      }
-    }
+      return dateB - dateA
+    })
 
     setFilteredProtocols(filtered)
-  }, [historyData?.data, filterStatus, searchValue, chatData?.protocol, filterProtocolsByStatus, searchProtocols])
+  }, [historyData, filterStatus, searchValue])
 
   useEffect(() => {
     applyFilters()
@@ -613,6 +581,8 @@ const ChatMonitoringSidebar = ({
                     }
                     disabled={!!actionState.loading}
                   />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControlLabel
                     value='resolved'
                     control={<Radio size='small' />}
@@ -635,6 +605,8 @@ const ChatMonitoringSidebar = ({
                     }
                     disabled={!!actionState.loading}
                   />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <FormControlLabel
                     value='unresolved'
                     control={<Radio size='small' />}

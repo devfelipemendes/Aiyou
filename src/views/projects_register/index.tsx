@@ -74,20 +74,11 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
       ) : step === 1 ? (
         <StepCreateAssistant onNextStep={handleNext} />
       ) : step === 2 ? (
-        <StepCreateApi />
+        <StepCreateApi onPrevStep={handlePrev} />
       ) : step === 3 ? (
-        <StepCreateEndpoints />
+        <StepCreateEndpoints onPrevStep={handlePrev} />
       ) : step === 4 ? (
-        <StepReviewProject
-          activeStep={0}
-          handleNext={function (): void {
-            throw new Error('Function not implemented.')
-          }}
-          handlePrev={function (): void {
-            throw new Error('Function not implemented.')
-          }}
-          steps={[]}
-        />
+        <StepReviewProject onPrevStep={handlePrev} />
       ) : (
         <Typography variant='h6' className='text-center'>
           Etapa não encontrada

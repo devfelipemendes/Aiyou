@@ -94,6 +94,9 @@ interface UrlVariable {
 
 type Props = {
   onNextStep?: () => void
+
+  onPrevStep: () => void
+
   isTela?: boolean
 }
 
@@ -111,7 +114,7 @@ const modalStyle = {
   overflow: 'auto'
 }
 
-const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
+const StepCreateEndpoints = ({ onNextStep, isTela, onPrevStep }: Props) => {
   const { data: tasksResponse, isLoading: loadingTasks, refetch } = useGetTasksQuery()
   const { data: apisResponse, isLoading: loadingApis } = useGetApisQuery()
   const { data: methodsResponse, isLoading: loadingMethods } = useGetMethodsQuery()
@@ -966,7 +969,10 @@ const StepCreateEndpoints = ({ onNextStep, isTela }: Props) => {
         </Grid>
 
         {tasks.length > 0 && !isTela && (
-          <Box className='flex items-end mt-4'>
+          <Box className='flex items-end mt-4 justify-between'>
+            <Button variant='outlined' onClick={onPrevStep} startIcon={<i className='ri-arrow-left-line' />}>
+              Voltar
+            </Button>
             <Button
               variant='contained'
               size='small'

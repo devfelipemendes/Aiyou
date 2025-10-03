@@ -728,27 +728,7 @@ const MonitoringPageComplete = () => {
 
       {/* ✅ MODAL */}
       {dialogOpen && modalData && (
-        <ChatMonitoringModal
-          open={dialogOpen}
-          onClose={handleCloseDialog}
-          chatData={modalData.chatData}
-          clientHistories={modalData.clientHistories}
-        />
-      )}
-
-      {/* ✅ DEBUG INFO */}
-      {process.env.NODE_ENV === 'development' && (
-        <Paper elevation={1} sx={{ p: 2, mt: 3, backgroundColor: '#f5f5f5' }}>
-          <Typography variant='h6' gutterBottom>
-            🚀 Performance Debug - OTIMIZADO
-          </Typography>
-          <Typography variant='body2'>
-            <strong>Protocolos:</strong> {filteredProtocols.length} |<strong>Total Chats:</strong> {chats.length} |
-            <strong>WebSocket:</strong> {isWebSocketConnected ? '✅ Conectado' : '❌ Desconectado'} |
-            <strong>Canais:</strong> {connectedChannels.length} |<strong>Carregando:</strong>{' '}
-            {isLoadingHistory ? '⏳ Sim' : '✅ Não'}
-          </Typography>
-        </Paper>
+        <ChatMonitoringModal open={dialogOpen} onClose={handleCloseDialog} chatData={modalData.chatData} />
       )}
     </Box>
   )
