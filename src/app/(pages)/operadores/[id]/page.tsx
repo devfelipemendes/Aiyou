@@ -10,7 +10,7 @@ import Grid from '@mui/material/Grid2'
 
 import UserLeftOverviewOperator from '@/views/operatorView/view/user-left-overview'
 import UserRightOperator from '@/views/operatorView/view/user-right'
-import { useGetOperatorByIdQuery } from '@/api/endpoints/operator/operator'
+import { useGetOperatorsQuery } from '@/api/endpoints/operator/operator'
 
 // Dinâmicos
 const HomeTab = dynamic(() => import('@views/operatorView/view/user-right/home'))
@@ -18,7 +18,9 @@ const HomeTab = dynamic(() => import('@views/operatorView/view/user-right/home')
 const OperatorTabView = () => {
   const searchParams = useSearchParams()
   const id = searchParams.get('id') || ''
-  const { data, isLoading, error } = useGetOperatorByIdQuery(id)
+
+  //@ts-ignore
+  const { isLoading, error } = useGetOperatorsQuery(id)
 
   const tabContentList: { [key: string]: ReactElement } = {
     hometab: <HomeTab />
@@ -43,7 +45,7 @@ const OperatorTabView = () => {
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12, lg: 4, md: 5 }}>
-        <UserLeftOverviewOperator operator={data} />
+        <UserLeftOverviewOperator />
       </Grid>
       <Grid size={{ xs: 12, lg: 8, md: 7 }}>
         <UserRightOperator tabContentList={tabContentList} />

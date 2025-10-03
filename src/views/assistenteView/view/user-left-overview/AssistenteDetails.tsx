@@ -4,37 +4,33 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 
-import Button from '@mui/material/Button'
-import type { ButtonProps } from '@mui/material/Button'
+// import type { ButtonProps } from '@mui/material/Button'
 
 // Type Imports
 
 // Component Imports
-import EditUserInfo from '@components/dialogs/edit-user-info'
-import ConfirmationDialog from '@components/dialogs/confirmation-dialog'
-import OpenDialogOnElementClick from '@components/dialogs/OpenDialogOnElementClick'
 
-import type { ThemeColor } from '@core/types'
+// import type { ThemeColor } from '@core/types'
 import CustomAvatar from '@core/components/mui/Avatar'
-import type { GetSingleAssistantResponse, ProcessedAssistant } from '@/api/endpoints/assistant/assistant'
+import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
 
 // Vars
-const userData = {
-  firstName: 'Assistente Bruno',
-  campanha: 'SDR Brasilia',
-  status: 'ATIVO',
-  tipo: 'VOZ',
-  numeroRegistrado: '+55 (61) 9 9999-9999',
-  language: ['English'],
-  useAsBillingAddress: true
-}
+// const userData = {
+//   firstName: 'Assistente Bruno',
+//   campanha: 'SDR Brasilia',
+//   status: 'ATIVO',
+//   tipo: 'VOZ',
+//   numeroRegistrado: '+55 (61) 9 9999-9999',
+//   language: ['English'],
+//   useAsBillingAddress: true
+// }
 
 const AssistenteDetails = ({ data }: { data: GetSingleAssistantResponse | undefined }) => {
-  const buttonProps = (children: string, color: ThemeColor, variant: ButtonProps['variant']): ButtonProps => ({
-    children,
-    color,
-    variant
-  })
+  // const buttonProps = (children: string, color: ThemeColor, variant: ButtonProps['variant']): ButtonProps => ({
+  //   children,
+  //   color,
+  //   variant
+  // })
 
   return (
     <>

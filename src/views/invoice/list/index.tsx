@@ -6,13 +6,11 @@ import Grid from '@mui/material/Grid2'
 // Component Imports
 import InvoiceListTable from './InvoiceListTable'
 
-import type { InvoiceType } from '@/types/invoiceTypes'
-
-const InvoiceList = ({ invoiceData }: { invoiceData?: InvoiceType[] }) => {
+const InvoiceList = () => {
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
-        <InvoiceListTable invoiceData={invoiceData} />
+        <InvoiceListTable />
       </Grid>
     </Grid>
   )

@@ -3,7 +3,7 @@
 
 import { Dialog, DialogContent, DialogTitle, IconButton, Box, useMediaQuery, useTheme } from '@mui/material'
 
-import PreviewCard from '@/views/invoice/preview/PreviewCard'
+import PreviewCard from '@/app/(blank-layout-pages)/cobranca/fatura/PreviewInvoice'
 
 interface InvoicePreviewDialogProps {
   open: boolean
@@ -42,7 +42,7 @@ export const InvoicePreviewDialog = ({ open, onClose, paymentId, title = 'Fatura
 
       <DialogContent dividers sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <Box sx={{ width: '100%' }}>
-          <PreviewCard id={paymentId} />
+          <PreviewCard invoiceId={paymentId} />
         </Box>
       </DialogContent>
     </Dialog>

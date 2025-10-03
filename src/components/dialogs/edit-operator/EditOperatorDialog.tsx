@@ -57,7 +57,7 @@ export default function EditOperatorDialog({
     try {
       const payload = {
         user_id, // vem do props
-        project_id: data.project_id // vem do formulário
+        project_ids: [data.project_id] // vem do formulário, agora como array
       }
 
       const response = await addUserToProject(payload).unwrap()

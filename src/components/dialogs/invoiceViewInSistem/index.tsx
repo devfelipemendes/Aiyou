@@ -3,18 +3,7 @@
 
 import React from 'react'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogActions,
-  DialogTitle,
-  IconButton,
-  Button,
-  Box,
-  CircularProgress,
-  Alert,
-  Typography
-} from '@mui/material'
+import { Dialog, DialogContent, DialogTitle, IconButton, Box, CircularProgress, Alert, Typography } from '@mui/material'
 
 import { useBuildInvoiceQuery } from '@/api/endpoints/invoices/buildInvoice'
 import PreviewCard from '@/app/(blank-layout-pages)/cobranca/fatura/PreviewInvoice'
@@ -35,8 +24,6 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
   onClose,
   paymentId,
   title = 'Visualizar Fatura',
-  showDownloadButton = true,
-  showCloseButton = true,
   maxWidth = 'lg',
   fullWidth = true
 }) => {
@@ -106,7 +93,7 @@ export const InvoiceViewModal: React.FC<InvoiceViewModalProps> = ({
             <Alert severity='warning'>Dados da fatura não encontrados</Alert>
           </Box>
         ) : (
-          <PreviewCard IdInvoice={paymentId} />
+          <PreviewCard invoiceId={paymentId} />
         )}
       </DialogContent>
     </Dialog>

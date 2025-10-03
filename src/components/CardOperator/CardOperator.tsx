@@ -27,7 +27,7 @@ const CardOperator = ({ operator, onClick }: { operator: any; onClick: () => voi
     setConfirmDialog({ ...confirmDialog, loading: true })
 
     try {
-      await deleteOperator({ project_operator_id: operator.id }).unwrap()
+      await deleteOperator({ user_id: operator.id }).unwrap()
 
       // Aqui você pode mostrar um toast/sucesso se quiser
       setConfirmDialog({ open: false, loading: false })

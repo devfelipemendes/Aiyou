@@ -95,7 +95,7 @@ interface UrlVariable {
 type Props = {
   onNextStep?: () => void
 
-  onPrevStep: () => void
+  onPrevStep?: () => void
 
   isTela?: boolean
 }
@@ -664,6 +664,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela, onPrevStep }: Props) => {
       handleCloseSubParam()
       toast.success('Subparâmetro adicionado')
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [subParamParentId, subParamForm]
   )
 
@@ -846,6 +847,7 @@ const StepCreateEndpoints = ({ onNextStep, isTela, onPrevStep }: Props) => {
     if (selectedApi) {
       setCurrentEndpoint(prev => prev || '')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskForm.watch('api_id'), apis])
 
   return (

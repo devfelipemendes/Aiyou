@@ -114,6 +114,7 @@ const FinanceiroPage = () => {
     if (isFreeplan) {
       handleOpenModal()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFreeplan])
 
   console.log('Testando resposta dos planos' + plan?.description)

@@ -14,11 +14,11 @@ import Button from '@mui/material/Button'
 import type { Locale } from '@configs/i18n'
 
 // Component Imports
-import AddPaymentDrawer from '@views/apps/invoice/shared/AddPaymentDrawer'
-import SendInvoiceDrawer from '@views/apps/invoice/shared/SendInvoiceDrawer'
 
 // Util Imports
 import { getLocalizedUrl } from '@/utils/i18n'
+import AddPaymentDrawer from '../shared/AddPaymentDrawer'
+import SendInvoiceDrawer from '../shared/SendInvoiceDrawer'
 
 const PreviewActions = ({ id, onButtonClick }: { id: string; onButtonClick: () => void }) => {
   // States

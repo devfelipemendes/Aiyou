@@ -292,6 +292,7 @@ const ChatLog = ({
         setActiveInstructionMessageId(null)
       }, 500)
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [scrollToBottom]
   )
 
