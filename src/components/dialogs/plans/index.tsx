@@ -39,6 +39,7 @@ import CreditCard from '@/components/CreditCard'
 import { useUserMe } from '@/hooks/useUserMe'
 
 import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
+import InvoiceViewModal from '../invoiceViewInSistem'
 
 // Custom styles para as dots do pagination
 const swiperPaginationStyles = `
@@ -108,6 +109,9 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
   const [selectedMethod, setSelectedMethod] = useState<string>(initialSelected)
   const [showInstructiveModal, setShowInstructiveModal] = useState<boolean>(false)
   const [isProcessingBoleto, setIsProcessingBoleto] = useState<boolean>(false)
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null)
 
   console.log(showInstructiveModal)
 
@@ -473,6 +477,9 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     )
   }
 
+  // file: src/components/dialogs/plans/index.tsx
+
+  // Atualizar handleGenerateBoleto (linha ~510):
   const handleGenerateBoleto = async () => {
     if (!selectedPlan) {
       toast.error('Selecione um plano primeiro!')
@@ -485,31 +492,31 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
     const isFreePlan = user?.plan?.id === 'c080995e-cf4f-4384-bfa6-3a6cc6abd800'
 
     try {
-      if (isFreePlan) {
-        // Criar novo plano para usuário do plano gratuito
-        await createUserPlan({
-          plan_id: selectedPlan,
-          subscription: false // Boleto não é recorrente
-        }).unwrap()
+      let result
 
-        toast.success('Solicitação criada! Boleto será enviado por email.')
+      if (isFreePlan) {
+        result = await createUserPlan({
+          plan_id: selectedPlan,
+          subscription: false
+        }).unwrap()
       } else {
-        // Atualizar plano existente
         if (!userPlanId) {
           throw new Error('ID do plano do usuário não encontrado')
         }
 
-        await updateUserPlan({
+        result = await updateUserPlan({
           id: userPlanId,
           plan_id: selectedPlan,
-          subscription: false // Boleto não é recorrente
+          subscription: false
         }).unwrap()
-
-        toast.success('Plano atualizado! Boleto será enviado por email.')
       }
 
-      // Mostrar modal de sucesso
-      setShowInstructiveModal(true)
+      // Abrir modal APENAS para boleto, usando payment_id da resposta
+      if (result?.data?.payment_id) {
+        setSelectedPaymentId(result.data.payment_id)
+        setShowInvoiceModal(true)
+        toast.success('Boleto gerado! Visualize sua fatura.')
+      }
     } catch (error) {
       console.error('Erro ao gerar boleto:', error)
       toast.error('Erro ao processar solicitação. Tente novamente.')
@@ -688,6 +695,15 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
           </>
         )}
       </DialogContent>
+      <InvoiceViewModal
+        open={showInvoiceModal}
+        onClose={() => {
+          setShowInvoiceModal(false)
+          setSelectedPaymentId(null)
+        }}
+        paymentId={selectedPaymentId}
+        title='Fatura Gerada'
+      />
     </Dialog>
   )
 }

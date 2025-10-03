@@ -59,14 +59,22 @@ export type GetUserPlansResponse = {
 export type CreateUserPlanResponse = {
   message: string
   status: number
-  data: UserPlan
+  data: {
+    payment_id: string
+    card_id: string | null
+    expiry_date: string
+  }
 }
 
 // 🎯 TIPOS PARA A RESPONSE DE UPDATE
 export type UpdateUserPlanResponse = {
   message: string
   status: number
-  data: UserPlan
+  data: {
+    payment_id: string
+    card_id: string | null
+    expiry_date: string
+  }
 }
 
 // 🎯 TIPOS PARA A RESPONSE DE GET SINGLE
@@ -162,31 +170,16 @@ export const userPlanApi = apiSlice.injectEndpoints({
 
       transformResponse: (response: any, meta: any) => {
         console.log('🔍 DEBUG - Resposta RAW do CREATE user plan:', response)
-        console.log('🔍 DEBUG - Meta do CREATE:', meta)
-        console.log('🔍 DEBUG - Status HTTP:', meta?.response?.status)
 
-        const httpStatus = meta?.response?.status
+        if (response?.status === 200 && response?.data?.payment_id) {
+          console.log('✅ Plano criado - payment_id:', response.data.payment_id)
 
-        // ✅ STATUS 201/200 com dados (estrutura padrão)
-        if (response && response.data && response.message) {
-          console.log('✅ CREATE estrutura padrão detectada (status', httpStatus, ')')
-          console.log('✅ Plano de usuário criado:', response.data.id, 'para usuário:', response.data.user_id)
-
-          // 🎯 Toast de sucesso
-          toast.success('Plano de usuário criado com sucesso!', {
-            position: 'top-right',
-            autoClose: 3000
-          })
-
-          return response
+          // NÃO disparar evento aqui - será disparado manualmente no componente
+          toast.success('Plano criado com sucesso!')
         }
-
-        // ⚠️ FALLBACK: Se não tem estrutura esperada, retornar como está
-        console.warn('⚠️ CREATE estrutura não padrão, retornando response original')
 
         return response
       },
-
       transformErrorResponse: (response: any): UserPlanError => {
         console.error('❌ Erro ao criar plano de usuário:', response)
 
@@ -222,15 +215,15 @@ export const userPlanApi = apiSlice.injectEndpoints({
           Accept: 'application/json'
         }
       }),
-
       transformResponse: (response: UpdateUserPlanResponse) => {
-        console.log('✅ Plano de usuário atualizado:', response)
+        console.log('✅ Plano atualizado:', response)
 
-        // 🎯 Toast de sucesso
-        toast.success('Plano de usuário atualizado com sucesso!', {
-          position: 'top-right',
-          autoClose: 3000
-        })
+        if (response?.status === 200 && response?.data?.payment_id) {
+          console.log('✅ Plano atualizado - payment_id:', response.data.payment_id)
+
+          // NÃO disparar evento aqui - será disparado manualmente no componente
+          toast.success('Plano atualizado com sucesso!')
+        }
 
         return response
       },
