@@ -14,7 +14,8 @@ import {
   IconButton,
   Box,
   Radio,
-  CircularProgress
+  CircularProgress,
+  Alert
 } from '@mui/material'
 
 import Grid from '@mui/material/Grid2'
@@ -40,6 +41,7 @@ import { useUserMe } from '@/hooks/useUserMe'
 
 import { useCreateUserPlanMutation, useUpdateUserPlanMutation } from '@/api/endpoints/userPlans/userPlans'
 import InvoiceViewModal from '../invoiceViewInSistem'
+import { usePlanPolling } from '@/hooks/userPlanPolling'
 
 // Custom styles para as dots do pagination
 const swiperPaginationStyles = `
@@ -107,13 +109,13 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
 
   const [selectedPlan, setSelectedPlan] = useState<string>('')
   const [selectedMethod, setSelectedMethod] = useState<string>(initialSelected)
-  const [showInstructiveModal, setShowInstructiveModal] = useState<boolean>(false)
+
   const [isProcessingBoleto, setIsProcessingBoleto] = useState<boolean>(false)
 
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null)
 
-  console.log(showInstructiveModal)
+  const { startPlanPolling, isPolling } = usePlanPolling()
 
   const handleChange = (prop: string | ChangeEvent<HTMLInputElement>) => {
     if (typeof prop === 'string') {
@@ -517,6 +519,8 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
         setShowInvoiceModal(true)
         toast.success('Boleto gerado! Visualize sua fatura.')
       }
+
+      startPlanPolling()
     } catch (error) {
       console.error('Erro ao gerar boleto:', error)
       toast.error('Erro ao processar solicitação. Tente novamente.')
@@ -681,6 +685,7 @@ const PricingPlansModal: React.FC<PricingPlansModalProps> = ({ open, onClose }) 
                         {isProcessingBoleto ? 'Gerando Boleto...' : 'Gerar Boleto'}
                       </Button>
                     </Box>
+                    {isPolling && <Alert severity='info'>Aguardando confirmação de pagamento...</Alert>}
                   </AnimatedReveal>
                 )}
                 {selectedMethod === 'recorrencia' && (

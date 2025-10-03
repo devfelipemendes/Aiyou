@@ -168,7 +168,7 @@ export const userPlanApi = apiSlice.injectEndpoints({
         }
       }),
 
-      transformResponse: (response: any, meta: any) => {
+      transformResponse: (response: any) => {
         console.log('🔍 DEBUG - Resposta RAW do CREATE user plan:', response)
 
         if (response?.status === 200 && response?.data?.payment_id) {
