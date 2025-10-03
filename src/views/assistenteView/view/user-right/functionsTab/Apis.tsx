@@ -150,11 +150,6 @@ const Apis = ({ data: dataAssistant }: { data: GetSingleAssistantResponse | unde
                       ) : (
                         <i className='ri-add-line text-[18px] text-primary' />
                       )}
-                      {expandedRows[task.id] ? (
-                        <i className='ri-subtract-line text-[18px] text-primary' />
-                      ) : (
-                        <i className='ri-add-line text-[18px] text-primary' />
-                      )}
                     </IconButton>
                   </TableCell>
 
