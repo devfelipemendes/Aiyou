@@ -13,7 +13,7 @@ import CardContent from '@mui/material/CardContent'
 import type { ApexOptions } from 'apexcharts'
 
 // Components Imports
-import OptionsMenu from '@core/components/option-menu'
+// import OptionsMenu from '@core/components/option-menu'
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
@@ -169,7 +169,8 @@ const RevenueReport = ({ series }: RevenueReportProps) => {
     <Card>
       <CardHeader
         title='Total de resoluções comparado com IA e operador'
-        action={<OptionsMenu iconClassName='text-textPrimary' options={['Last 28 Days', 'Last Month', 'Last Year']} />}
+
+        // action={<OptionsMenu iconClassName='text-textPrimary' options={['Last 28 Days', 'Last Month', 'Last Year']} />}
       />
       <CardContent>
         {hasData ? (
