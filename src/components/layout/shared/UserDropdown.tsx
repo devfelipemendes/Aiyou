@@ -8,7 +8,6 @@ import type { MouseEvent } from 'react'
 import { useRouter } from 'next/navigation'
 
 // MUI Imports
-
 import { styled } from '@mui/material/styles'
 import Badge from '@mui/material/Badge'
 import Avatar from '@mui/material/Avatar'
@@ -21,11 +20,15 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Hook Imports
 import Cookies from 'js-cookie'
 
 import { useSettings } from '@core/hooks/useSettings'
+import { useUserMe } from '@/hooks/useUserMe'
+import { useAppDispatch } from '@/redux-store'
+import { apiSlice } from '@/api/ApiCreate/apiSlice'
 
 // Styled component for badge content
 const BadgeContentSpan = styled('span')({
@@ -38,15 +41,19 @@ const BadgeContentSpan = styled('span')({
 })
 
 const UserDropdown = () => {
+  // ✅ OTIMIZAÇÃO: Buscar apenas os dados que precisamos para exibir
+  const { user } = useUserMe({ autoFetch: false })
+  const dispatch = useAppDispatch()
+
   // States
   const [open, setOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // Refs
   const anchorRef = useRef<HTMLDivElement>(null)
 
   // Hooks
   const router = useRouter()
-
   const { settings } = useSettings()
 
   const handleDropdownOpen = () => {
@@ -65,11 +72,29 @@ const UserDropdown = () => {
     setOpen(false)
   }
 
+  // 🔧 LOGOUT OTIMIZADO
   const handleUserLogout = async () => {
-    localStorage.removeItem('token')
-    Cookies.remove('token')
+    setIsLoggingOut(true)
 
-    router.push('/login')
+    try {
+      // ✅ LIMPAR CACHE SEM INVALIDAR (não refaz requests)
+      console.log('🗑️ Limpando cache do usuário...')
+      dispatch(apiSlice.util.resetApiState())
+
+      // ✅ Remover tokens
+      console.log('🚪 Removendo tokens...')
+      localStorage.removeItem('token')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userData')
+      Cookies.remove('token')
+
+      setOpen(false)
+      router.push('/login')
+    } catch (error) {
+      console.error('❌ Erro durante logout:', error)
+    } finally {
+      setIsLoggingOut(false)
+    }
   }
 
   return (
@@ -83,8 +108,8 @@ const UserDropdown = () => {
       >
         <Avatar
           ref={anchorRef}
-          alt='John Doe'
-          src='/images/avatars/1.png'
+          alt={user?.name || 'User'}
+          src={'/images/avatars/1.png'}
           onClick={handleDropdownOpen}
           className='cursor-pointer bs-[38px] is-[38px]'
         />
@@ -108,30 +133,39 @@ const UserDropdown = () => {
               <ClickAwayListener onClickAway={e => handleDropdownClose(e as MouseEvent | TouchEvent)}>
                 <MenuList>
                   <div className='flex items-center plb-2 pli-4 gap-2' tabIndex={-1}>
-                    <Avatar alt='John Doe' src='/images/avatars/1.png' />
+                    <Avatar alt={user?.name || 'User'} src={'/images/avatars/1.png'} />
                     <div className='flex items-start flex-col'>
                       <Typography className='font-medium' color='text.primary'>
-                        John Doe
+                        {user?.name || 'Carregando...'}
                       </Typography>
-                      <Typography variant='caption'>admin@materio.com</Typography>
+                      <Typography variant='caption'>{user?.email || 'Carregando...'}</Typography>
                     </div>
                   </div>
                   <Divider className='mlb-1' />
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
+                  <MenuItem
+                    className='gap-3'
+                    onClick={e => {
+                      router.push('/perfil')
+                      handleDropdownClose(e)
+                    }}
+                  >
                     <i className='ri-user-3-line' />
-                    <Typography color='text.primary'>My Profile</Typography>
+                    <Typography color='text.primary'>Meu Perfil</Typography>
                   </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
-                    <i className='ri-settings-4-line' />
-                    <Typography color='text.primary'>Settings</Typography>
-                  </MenuItem>
-                  <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
+
+                  <MenuItem
+                    className='gap-3'
+                    onClick={e => {
+                      router.push('/financeiro')
+                      handleDropdownClose(e)
+                    }}
+                  >
                     <i className='ri-money-dollar-circle-line' />
-                    <Typography color='text.primary'>Pricing</Typography>
+                    <Typography color='text.primary'>Financeiro</Typography>
                   </MenuItem>
                   <MenuItem className='gap-3' onClick={e => handleDropdownClose(e)}>
                     <i className='ri-question-line' />
-                    <Typography color='text.primary'>FAQ</Typography>
+                    <Typography color='text.primary'>Ajuda</Typography>
                   </MenuItem>
                   <div className='flex items-center plb-2 pli-4'>
                     <Button
@@ -139,11 +173,18 @@ const UserDropdown = () => {
                       variant='contained'
                       color='error'
                       size='small'
-                      endIcon={<i className='ri-logout-box-r-line' />}
+                      disabled={isLoggingOut}
+                      endIcon={
+                        isLoggingOut ? (
+                          <CircularProgress size={16} color='inherit' />
+                        ) : (
+                          <i className='ri-logout-box-r-line' />
+                        )
+                      }
                       onClick={handleUserLogout}
                       sx={{ '& .MuiButton-endIcon': { marginInlineStart: 1.5 } }}
                     >
-                      Logout
+                      {isLoggingOut ? 'Saindo...' : 'Sair'}
                     </Button>
                   </div>
                 </MenuList>

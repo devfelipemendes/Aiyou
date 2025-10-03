@@ -72,6 +72,9 @@ interface MessageEvent {
   id: string
   protocol: string
   content: string
+  message_type?: 'text' | 'audio' // Adicionar
+  audio_url?: string | null // Adicionar
+  operator_name?: string | null // Adicionar
   role: 'user' | 'assistant' | 'operator'
   operator: number | null
   created_at: string
@@ -79,7 +82,6 @@ interface MessageEvent {
 
 interface UseMonitoringWithWebSocketOptions {
   enableWebSocket?: boolean
-
   onError?: (error: any) => void
   onChatSelect?: (protocol: string, chat: ChatWithHistory) => void
 }
@@ -184,6 +186,9 @@ export function useMonitoringWithWebSocket(
     return {
       id: messageEvent.id,
       content: messageEvent.content,
+      message_type: messageEvent.message_type || 'text',
+      audio_url: messageEvent.audio_url || null,
+      operator_name: messageEvent.operator_name || null,
       role: messageEvent.role,
       operator: typeof messageEvent.operator === 'number' ? !!messageEvent.operator : null,
       created_at: messageEvent.created_at
@@ -493,7 +498,12 @@ export function useMonitoringWithWebSocket(
             dispatch(
               updateProtocolMessages({
                 protocolId,
-                messages: protocolData.history
+                messages: protocolData.history.map(msg => ({
+                  ...msg,
+                  message_type: msg.message_type || 'text',
+                  audio_url: msg.audio_url || null,
+                  operator_name: msg.operator_name || null
+                }))
               })
             )
             setTimeout(() => {
@@ -717,7 +727,7 @@ export function useMonitoringWithWebSocket(
 
           channel
             .listen('.protocol.created', (protocolEvent: any) => {
-              handleSoundNotifications.onProtocolCreated(protocolEvent) // ✅ Com parâmetro
+              handleSoundNotifications.onProtocolCreated() // ✅ Com parâmetro
               handleProtocolCreated(protocolEvent)
             })
             .listen('.protocol.updated', handleProtocolUpdated)
@@ -873,11 +883,6 @@ export function useMonitoringWithWebSocket(
   }, [])
 
   useEffect(() => {
-    // Só inicia polling se:
-    // 1. Não está carregando dados iniciais
-    // 2. Não tem chats
-    // 3. Não tem erro na API
-    // 4. Ainda não está fazendo polling
     const shouldStartPolling =
       !apiLoading && (!data?.chats || data.chats.length === 0) && !apiError && !isPolling && !pollingIntervalRef.current
 
@@ -900,7 +905,7 @@ export function useMonitoringWithWebSocket(
           connectToProjectChannels()
           connectToProtocolChannels()
         }
-      }, 1000)
+      }, 100)
     }
 
     // Cleanup automático após 5 minutos (30 tentativas)

@@ -64,6 +64,27 @@ const data: DataType[] = [
     subtitle: '05 Oct | 10:00-12:45',
     chipLabel: 'SDR',
     chipColor: 'primary'
+  },
+  {
+    avatarSrc: '/images/avatars/1.png',
+    title: 'Contato feito contato6',
+    subtitle: '05 Oct | 10:00-12:45',
+    chipLabel: 'SDR',
+    chipColor: 'primary'
+  },
+  {
+    avatarSrc: '/images/avatars/1.png',
+    title: 'Contato feito contato6',
+    subtitle: '05 Oct | 10:00-12:45',
+    chipLabel: 'SDR',
+    chipColor: 'primary'
+  },
+  {
+    avatarSrc: '/images/avatars/1.png',
+    title: 'Contato feito contato6',
+    subtitle: '05 Oct | 10:00-12:45',
+    chipLabel: 'SDR',
+    chipColor: 'primary'
   }
 ]
 

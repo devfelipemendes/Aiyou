@@ -2,19 +2,24 @@
 import Grid from '@mui/material/Grid2'
 
 import AssistenteDetails from '@/views/assistenteView/view/user-left-overview/AssistenteDetails'
-import TokensUsed from '@/views/assistenteView/view/user-left-overview/tokensUsed'
+import type { GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
 
 // Component Imports
 
-const UserLeftOverview = () => {
+const UserLeftOverview = ({ data }: { data: GetSingleAssistantResponse | undefined }) => {
   return (
     <Grid container spacing={6}>
       <Grid size={{ xs: 12 }}>
-        <AssistenteDetails />
+        <AssistenteDetails data={data} />
       </Grid>
-      <Grid size={{ xs: 12 }}>
-        <TokensUsed />
-      </Grid>
+      {/* <Grid size={{ xs: 12 }}>
+        <Card className='min-h-500'>
+          <CardHeader>
+            <Typography>chat</Typography>
+          </CardHeader>
+          <CardContent className='flex flex-col pbs-12 gap-6'>chat</CardContent>
+        </Card>
+      </Grid> */}
     </Grid>
   )
 }

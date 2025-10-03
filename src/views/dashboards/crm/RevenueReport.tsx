@@ -13,25 +13,21 @@ import CardContent from '@mui/material/CardContent'
 import type { ApexOptions } from 'apexcharts'
 
 // Components Imports
-import OptionsMenu from '@core/components/option-menu'
+// import OptionsMenu from '@core/components/option-menu'
 
 // Styled Component Imports
 const AppReactApexCharts = dynamic(() => import('@/libs/styles/AppReactApexCharts'))
 
-const series = [
-  {
-    name: 'Aiyou',
-    data: [95, 177, 284, 256, 105, 63, 168, 218, 72]
-  },
-  {
-    name: 'Operador',
-    data: [-145, -80, -60, -180, -100, -60, -85, -75, -100]
-  }
-]
+type RevenueReportProps = {
+  series: { name: string; data: number[] }[]
+}
 
-const RevenueReport = () => {
+const RevenueReport = ({ series }: RevenueReportProps) => {
   // Hook
   const theme = useTheme()
+  const hasData = series.some(s => s.data.some(v => v > 0))
+
+  console.log('seriesseries', series)
 
   const options: ApexOptions = {
     chart: {
@@ -173,10 +169,15 @@ const RevenueReport = () => {
     <Card>
       <CardHeader
         title='Total de resoluções comparado com IA e operador'
-        action={<OptionsMenu iconClassName='text-textPrimary' options={['Last 28 Days', 'Last Month', 'Last Year']} />}
+
+        // action={<OptionsMenu iconClassName='text-textPrimary' options={['Last 28 Days', 'Last Month', 'Last Year']} />}
       />
       <CardContent>
-        <AppReactApexCharts type='bar' height={238} width='100%' series={series} options={options} />
+        {hasData ? (
+          <AppReactApexCharts type='bar' height={238} width='100%' series={series} options={options} />
+        ) : (
+          <div className='flex justify-center items-center h-[238px] text-gray-400'>Sem resoluções</div>
+        )}
       </CardContent>
     </Card>
   )

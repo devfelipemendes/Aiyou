@@ -30,7 +30,7 @@ import classnames from 'classnames'
 import PerfectScrollbar from 'react-perfect-scrollbar'
 
 // Icon Imports
-import { MessageSquare, UserPlus, MessageCircle, User, XCircle, UserCheck, MessageCircleIcon } from 'lucide-react'
+import { MessageSquare, XCircle, UserCheck, MessageCircleIcon } from 'lucide-react'
 
 // Component Imports
 
@@ -39,12 +39,14 @@ import type { ChatWithHistory } from '@/api/endpoints/chat/history'
 import { ProtocolHistoryList } from './ProtocolHistoryList'
 import { useAppDispatch, useAppSelector } from '@/redux-store'
 import { useOperatorToggleMutation } from '@/api/endpoints/chat/operatorMode'
+
 import { toggleAssumeChat } from '@/redux-store/slices/monitoring'
+import { useUpdateChatStatusMutation } from '@/api/endpoints/chat/changeStatus'
 
 // Utils
 
 // ===== TIPOS ESPECÍFICOS PARA O SIDEBAR =====
-type ActionType = 'assume_chat' | 'transfer_operator' | 'add_comment' | 'client_details' | 'end_chat'
+type ActionType = 'assume_chat' | 'transfer_operator' | 'add_comment' | 'client_details' | 'end_chat' | 'update_status'
 
 interface ActionState {
   loading: ActionType | null
@@ -110,13 +112,11 @@ const ChatMonitoringSidebar = ({
   historyData,
   historyLoading,
   historyError,
+  onRefreshHistory,
   onProtocolSelect,
   isBelowLgScreen,
   isBelowMdScreen,
   isBelowSmScreen,
-  onTransferOperator,
-  onAddComment,
-  onClientDetails,
   onEndChat
 }: ChatMonitoringSidebarProps) => {
   // ===== ESTADOS INTERNOS =====
@@ -126,22 +126,17 @@ const ChatMonitoringSidebar = ({
     success: null
   })
 
-  // const [userSidebar, setUserSidebar] = useState(false)
   const [searchValue, setSearchValue] = useState<string | null>(null)
   const [filteredProtocols, setFilteredProtocols] = useState<any[]>([])
   const [filterStatus, setFilterStatus] = useState<'all' | 'recent' | 'resolved' | 'unresolved'>('all')
-
-  const [value, setValue] = useState<string>('controlled-checked')
+  const [chatStatus, setChatStatus] = useState<'active' | 'inactive' | 'resolved' | 'unresolved'>('active')
 
   const dispatch = useAppDispatch()
-
   const monitoringChats = useAppSelector((state: any) => state.monitoring?.chatsByProtocol || {})
 
+  // ===== API HOOKS =====
   const [operatorToggle] = useOperatorToggleMutation()
-
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setValue((event.target as HTMLInputElement).value)
-  }
+  const [updateChatStatus] = useUpdateChatStatusMutation()
 
   const currentChat = useMemo(() => {
     return monitoringChats[selectedProtocol]
@@ -189,151 +184,128 @@ const ChatMonitoringSidebar = ({
     }
   }, [selectedProtocol, isAssumed, dispatch, operatorToggle])
 
-  const handleTransferOperator = useCallback(async () => {
-    setActionState(prev => ({ ...prev, loading: 'transfer_operator', error: null }))
-
-    try {
-      if (onTransferOperator) {
-        await onTransferOperator()
-      }
-
-      setActionState(prev => ({ ...prev, loading: null, success: 'transfer_operator' }))
-      setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
-    } catch (error) {
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        error: 'Erro ao transferir chat.'
-      }))
-    }
-  }, [onTransferOperator])
-
-  const handleAddComment = useCallback(async () => {
-    setActionState(prev => ({ ...prev, loading: 'add_comment', error: null }))
-
-    try {
-      if (onAddComment) {
-        await onAddComment()
-      }
-
-      setActionState(prev => ({ ...prev, loading: null, success: 'add_comment' }))
-      setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
-    } catch (error) {
-      setActionState(prev => ({
-        ...prev,
-        loading: null,
-        error: 'Erro ao adicionar comentário.'
-      }))
-    }
-  }, [onAddComment])
-
   const handleEndChat = useCallback(async () => {
+    if (!selectedProtocol) {
+      console.warn('⚠️ Nenhum protocolo selecionado para encerrar')
+
+      return
+    }
+
     setActionState(prev => ({ ...prev, loading: 'end_chat', error: null }))
 
     try {
+      // 1️⃣ Alterar status para 'inactive' via API
+      await updateChatStatus({
+        protocol: selectedProtocol,
+        status: 'inactive'
+      }).unwrap()
+
+      // 2️⃣ Atualizar estado local
+      setChatStatus('inactive')
+
+      // 3️⃣ Chamar callback externo se existir
       if (onEndChat) {
         await onEndChat()
       }
 
+      // 4️⃣ Atualizar histórico após encerrar
+
       setActionState(prev => ({ ...prev, loading: null, success: 'end_chat' }))
+      setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 3000)
+      onRefreshHistory()
     } catch (error) {
+      console.error('❌ Erro ao encerrar chat:', error)
       setActionState(prev => ({
         ...prev,
         loading: null,
         error: 'Erro ao encerrar atendimento.'
       }))
     }
-  }, [onEndChat])
+  }, [selectedProtocol, updateChatStatus, onEndChat, onRefreshHistory])
+
+  // ===== HANDLER PARA MUDANÇA DE STATUS VIA RADIO =====
+  const handleStatusChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const newStatus = event.target.value as 'active' | 'inactive' | 'resolved' | 'unresolved'
+
+      if (!selectedProtocol) {
+        console.warn('⚠️ Nenhum protocolo selecionado para alterar status')
+
+        return
+      }
+
+      setActionState(prev => ({ ...prev, loading: 'update_status', error: null }))
+
+      try {
+        // Chamar API para alterar status
+        await updateChatStatus({
+          protocol: selectedProtocol,
+          status: newStatus
+        }).unwrap()
+
+        // Atualizar estado local
+        setChatStatus(newStatus)
+
+        setActionState(prev => ({ ...prev, loading: null, success: 'update_status' }))
+        setTimeout(() => setActionState(prev => ({ ...prev, success: null })), 2000)
+      } catch (error) {
+        console.error('❌ Erro ao alterar status:', error)
+        setActionState(prev => ({
+          ...prev,
+          loading: null,
+          error: 'Erro ao alterar status.'
+        }))
+      }
+    },
+    [selectedProtocol, updateChatStatus]
+  )
 
   // ===== HELPERS =====
   const isLoading = (action: ActionType) => actionState.loading === action
   const isSuccess = (action: ActionType) => actionState.success === action
 
-  // ===== FUNÇÕES DE BUSCA E FILTRO DE PROTOCOLOS =====
-
-  // Filtrar protocolos baseado no status
-  const filterProtocolsByStatus = useCallback((protocols: any[], status: string) => {
-    if (!protocols) return []
-
-    switch (status) {
-      case 'recent':
-        // Protocolos dos últimos 7 dias
-        const weekAgo = new Date()
-
-        weekAgo.setDate(weekAgo.getDate() - 7)
-
-        return protocols.filter(p => new Date(p.createdAt) >= weekAgo)
-
-      case 'resolved':
-        // Protocolos marcados como resolvidos
-        return protocols.filter(p => p.status === 'resolved' || p.resolved === true)
-
-      case 'unresolved':
-        // Protocolos não resolvidos
-        return protocols.filter(p => p.status !== 'resolved' && p.resolved !== true)
-
-      case 'all':
-      default:
-        return protocols
-    }
-  }, [])
-
-  // Buscar protocolos por texto
-  const searchProtocols = useCallback((protocols: any[], searchTerm: string) => {
-    if (!searchTerm || !protocols) return protocols
-
-    const term = searchTerm.toLowerCase()
-
-    return protocols.filter(
-      protocol =>
-        protocol.protocol.toLowerCase().includes(term) ||
-        protocol.clientName?.toLowerCase().includes(term) ||
-        protocol.summary?.toLowerCase().includes(term) ||
-        (protocol.history && protocol.history.some((msg: any) => msg.content.toLowerCase().includes(term)))
-    )
-  }, [])
-
-  // Aplicar filtros combinados
-  // Aplicar filtros combinados
-  // Aplicar filtros combinados
+  // Atualizar applyFilters
   const applyFilters = useCallback(() => {
-    if (!historyData?.data) {
+    if (!historyData || historyData.length === 0) {
       setFilteredProtocols([])
 
       return
     }
 
-    let filtered = [...historyData.data]
+    let filtered = [...historyData]
 
     // Aplicar filtro por status
-    filtered = filterProtocolsByStatus(filtered, filterStatus)
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter((protocol: any) => {
+        console.log(protocol)
+
+        return true
+      })
+    }
 
     // Aplicar busca por texto
     if (searchValue) {
-      filtered = searchProtocols(filtered, searchValue)
+      const term = searchValue.toLowerCase()
+
+      filtered = filtered.filter(
+        protocol =>
+          protocol.protocol?.toLowerCase().includes(term) ||
+          protocol.identifier?.toLowerCase().includes(term) ||
+          protocol.assistant?.name?.toLowerCase().includes(term) ||
+          protocol.history?.some((msg: any) => msg.content?.toLowerCase().includes(term))
+      )
     }
 
-    // Ordenar por data (mais recente primeiro)
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // Ordenar por data
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
 
-    // 🎯 NOVA LÓGICA CORRIGIDA: Fixar protocolo ativo do CardMonitor no topo
-    const activeProtocolFromMonitor = chatData?.protocol // <- Protocolo FIXO do CardMonitor
-
-    if (activeProtocolFromMonitor) {
-      const activeProtocolIndex = filtered.findIndex(p => p.protocol === activeProtocolFromMonitor)
-
-      if (activeProtocolIndex > 0) {
-        // Se o protocolo ativo existe e não está em primeiro lugar
-        const activeProtocol = filtered[activeProtocolIndex]
-        const otherProtocols = filtered.filter(p => p.protocol !== activeProtocolFromMonitor)
-
-        // Reorganizar: [protocoloAtivoDoCardMonitor, ...demaisProtocolos]
-        filtered = [activeProtocol, ...otherProtocols]
-      }
-    }
+      return dateB - dateA
+    })
 
     setFilteredProtocols(filtered)
-  }, [historyData?.data, filterStatus, searchValue, chatData?.protocol, filterProtocolsByStatus, searchProtocols])
+  }, [historyData, filterStatus, searchValue])
 
   useEffect(() => {
     applyFilters()
@@ -349,13 +321,12 @@ const ChatMonitoringSidebar = ({
 
       if (protocol) {
         onProtocolSelect(protocolId, protocol)
-        setSearchValue(null) // Limpar busca após seleção
+        setSearchValue(null)
       }
     },
     [filteredProtocols, onProtocolSelect]
   )
 
-  // Gerar opções para o autocomplete
   const autocompleteOptions = useMemo(() => {
     if (!filteredProtocols) return []
 
@@ -370,11 +341,8 @@ const ChatMonitoringSidebar = ({
 
   if (!chatData) return null
 
-  // const clientStatus = chatData.status === 'active' ? 'Ativo' : 'Inativo'
-
   return (
     <Box>
-      {/* ===== DRAWER PRINCIPAL (estrutura adaptada do SidebarLeft) ===== */}
       <Drawer
         open={open}
         onClose={onClose}
@@ -404,9 +372,7 @@ const ChatMonitoringSidebar = ({
       >
         {/* ===== HEADER DE BUSCA E FILTROS DE PROTOCOLOS ===== */}
         <div className='flex flex-col plb-[18px] pli-5 gap-4 border-be'>
-          {/* Linha 1: Avatar do cliente + Info básica */}
           <div className='flex gap-4 items-center'>
-            {/* Botão fechar em telas pequenas */}
             {isBelowMdScreen && (
               <IconButton className='p-0 mis-2' onClick={onClose}>
                 <i className='ri-close-line' />
@@ -414,7 +380,6 @@ const ChatMonitoringSidebar = ({
             )}
           </div>
 
-          {/* Linha 2: Busca de protocolos */}
           <div className='flex gap-2 items-center'>
             <Autocomplete
               fullWidth
@@ -435,10 +400,10 @@ const ChatMonitoringSidebar = ({
                   placeholder='Buscar nos protocolos...'
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 50 // ou use '8px' diretamente
+                      borderRadius: 50
                     },
                     '& fieldset': {
-                      borderRadius: 50 // também garante o arredondamento da borda do contorno
+                      borderRadius: 50
                     }
                   }}
                   slotProps={{
@@ -482,7 +447,6 @@ const ChatMonitoringSidebar = ({
             />
           </div>
 
-          {/* Info sobre filtros ativos */}
           {(searchValue || filterStatus !== 'all') && (
             <Box display='flex' alignItems='center' gap={1}>
               <Typography variant='caption' color='text.secondary'>
@@ -535,7 +499,7 @@ const ChatMonitoringSidebar = ({
                 size='small'
                 onClick={handleAssumeChat}
                 disabled={!!actionState.loading}
-                color={isAssumed ? 'warning' : 'info'} // 🔥 Cor muda baseado no estado
+                color={isAssumed ? 'warning' : 'info'}
               >
                 {isLoading('assume_chat')
                   ? isAssumed
@@ -547,71 +511,7 @@ const ChatMonitoringSidebar = ({
                       : 'Chat Assumido!'
                     : isAssumed
                       ? 'Liberar Chat'
-                      : 'Assumir Chat'}{' '}
-                {/* 🔥 Texto toggle */}
-              </Button>
-
-              {/* Botão: Transferir Operador */}
-              <Button
-                variant='contained'
-                startIcon={
-                  isLoading('transfer_operator') ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : isSuccess('transfer_operator') ? (
-                    <UserCheck size={16} />
-                  ) : (
-                    <UserPlus size={16} />
-                  )
-                }
-                fullWidth
-                size='small'
-                onClick={handleTransferOperator}
-                disabled={!!actionState.loading}
-                color={'primary'}
-              >
-                {isLoading('transfer_operator')
-                  ? 'Transferindo...'
-                  : isSuccess('transfer_operator')
-                    ? 'Transferido!'
-                    : 'Transferir Para Outro Operador'}
-              </Button>
-
-              {/* Botão: Adicionar Comentário */}
-              <Button
-                variant='contained'
-                startIcon={
-                  isLoading('add_comment') ? (
-                    <CircularProgress size={16} color='inherit' />
-                  ) : isSuccess('add_comment') ? (
-                    <UserCheck size={16} />
-                  ) : (
-                    <MessageCircle size={16} />
-                  )
-                }
-                fullWidth
-                size='small'
-                onClick={handleAddComment}
-                disabled={!!actionState.loading}
-                color={'primary'}
-              >
-                {isLoading('add_comment')
-                  ? 'Adicionando...'
-                  : isSuccess('add_comment')
-                    ? 'Comentário Adicionado!'
-                    : 'Adicionar Comentário'}
-              </Button>
-
-              {/* Botão: Detalhes do Cliente */}
-              <Button
-                variant='contained'
-                startIcon={isSuccess('client_details') ? <UserCheck size={16} /> : <User size={16} />}
-                fullWidth
-                size='small'
-                onClick={onClientDetails}
-                disabled={!!actionState.loading}
-                color={'primary'}
-              >
-                {isSuccess('client_details') ? 'Abrindo Detalhes!' : 'Ir Para Detalhes Do Cliente'}
+                      : 'Assumir Chat'}
               </Button>
 
               {/* Botão: Encerrar Atendimento */}
@@ -643,21 +543,83 @@ const ChatMonitoringSidebar = ({
 
           {/* ===== SEÇÃO DE STATUS ===== */}
           <Box sx={{ padding: 4 }}>
-            <Typography variant='h6' color='textPrimary'>
-              Status
+            <Typography variant='h6' color='textPrimary' mb={2}>
+              Status do Chat
             </Typography>
-            <Grid container spacing={6}>
-              <RadioGroup row aria-label='controlled' name='controlled' value={value} onChange={handleChange}>
+
+            {/* Indicador de carregamento para mudanças de status */}
+            {isLoading('update_status') && (
+              <Box display='flex' alignItems='center' gap={1} mb={2}>
+                <CircularProgress size={16} />
+                <Typography variant='body2' color='text.secondary'>
+                  Atualizando status...
+                </Typography>
+              </Box>
+            )}
+
+            <RadioGroup
+              row
+              aria-label='chat-status'
+              name='chat-status'
+              value={chatStatus}
+              onChange={handleStatusChange}
+              sx={{
+                gap: 1,
+                opacity: isLoading('update_status') ? 0.6 : 1,
+                pointerEvents: isLoading('update_status') ? 'none' : 'auto'
+              }}
+            >
+              <Grid container spacing={1}>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormControlLabel value='controlled-checked' control={<Radio />} label='Ativo' />
-                  <FormControlLabel value='controlled-unchecked' control={<Radio />} label='Encerrado' />
+                  <FormControlLabel
+                    value='active'
+                    control={<Radio size='small' />}
+                    label={
+                      <Typography variant='body2'>
+                        Ativo {isSuccess('update_status') && chatStatus === 'active' && '✓'}
+                      </Typography>
+                    }
+                    disabled={!!actionState.loading}
+                  />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormControlLabel value='uncontrolled-checked' control={<Radio />} label='Inativo' />
-                  <FormControlLabel value='uncontrolled-unchecked' control={<Radio />} label='Campanha' />
+                  <FormControlLabel
+                    value='resolved'
+                    control={<Radio size='small' />}
+                    label={
+                      <Typography variant='body2'>
+                        Resolvido {isSuccess('update_status') && chatStatus === 'resolved' && '✓'}
+                      </Typography>
+                    }
+                    disabled={!!actionState.loading}
+                  />
                 </Grid>
-              </RadioGroup>
-            </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControlLabel
+                    value='inactive'
+                    control={<Radio size='small' />}
+                    label={
+                      <Typography variant='body2'>
+                        Inativo {isSuccess('update_status') && chatStatus === 'inactive' && '✓'}
+                      </Typography>
+                    }
+                    disabled={!!actionState.loading}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControlLabel
+                    value='unresolved'
+                    control={<Radio size='small' />}
+                    label={
+                      <Typography variant='body2'>
+                        Não Resolvido {isSuccess('update_status') && chatStatus === 'unresolved' && '✓'}
+                      </Typography>
+                    }
+                    disabled={!!actionState.loading}
+                  />
+                </Grid>
+              </Grid>
+            </RadioGroup>
           </Box>
 
           {/* ===== HISTÓRICO DE INTERAÇÕES COM FILTROS ===== */}

@@ -14,16 +14,26 @@ const CardStatWithImage = (props: CardStatsCharacterProps) => {
   return (
     <Card>
       <CardContent>
-        <Typography color='text.primary' className='font-medium'>
-          {title}
-        </Typography>
-        <div className='flex items-center gap-2 pbs-4 pbe-1.5 is-1/2 flex-wrap'>
-          <Typography variant='h4'>{stats}</Typography>
-          <Typography color={trend === 'negative' ? 'error.main' : 'success.main'}>
-            {`${trend === 'negative' ? '-' : '+'}${trendNumber}`}
+        {/* Título */}
+        {title && (
+          <Typography color='text.primary' className='font-medium'>
+            {title}
           </Typography>
+        )}
+
+        {/* Stats e Trend */}
+        <div className='flex items-center gap-2 pbs-4 pbe-1.5 is-1/2 flex-wrap'>
+          {stats !== undefined && <Typography variant='h4'>{stats}</Typography>}
+
+          {trendNumber !== undefined && (
+            <Typography color={trend === 'negative' ? 'error.main' : 'success.main'}>
+              {`${trend === 'negative' ? '-' : '+'}${trendNumber}`}
+            </Typography>
+          )}
         </div>
-        <Chip label={chipText} color={chipColor} variant='tonal' size='small' />
+
+        {/* Chip */}
+        {chipText && chipColor && <Chip label={chipText} color={chipColor} variant='tonal' size='small' />}
       </CardContent>
     </Card>
   )

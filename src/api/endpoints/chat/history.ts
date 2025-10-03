@@ -3,8 +3,11 @@ import { apiSlice } from '@/api/ApiCreate/apiSlice'
 export interface ChatHistoryMessage {
   id: string
   content: string
-  role: 'assistant' | 'user' | 'operator'
+  message_type?: 'text' | 'audio'
+  audio_url?: string | null
+  role: 'user' | 'assistant' | 'operator'
   operator: boolean | null
+  operator_name: string | null
   created_at: string
 }
 
@@ -158,9 +161,21 @@ export const chatHistoryApi = apiSlice.injectEndpoints({
                 lastMessage: historyData[historyData.length - 1]?.content?.slice(0, 30) || 'Vazia'
               })
 
-              const sortedHistory = historyData.sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              )
+              // const sortedHistory = historyData.sort(
+              //   (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              // )
+              const sortedHistory = historyData
+                .map(msg => ({
+                  ...msg,
+                  message_type: msg.message_type || 'text', // Garantir que tem tipo
+                  audio_url: msg.audio_url || null // Garantir que tem URL
+                }))
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+              console.log(`✅ ${sortedHistory.length} mensagens para ${chat.protocol}:`, {
+                audioCount: sortedHistory.filter(m => m.message_type === 'audio').length,
+                textCount: sortedHistory.filter(m => m.message_type === 'text').length
+              })
 
               console.log(`  ✅ ${sortedHistory.length} mensagens carregadas para ${chat.protocol}`)
               console.log(`🔍 [${chatIndex}] Resultado final:`, {

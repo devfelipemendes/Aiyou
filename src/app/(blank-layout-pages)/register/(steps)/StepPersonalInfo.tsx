@@ -2,6 +2,8 @@
 'use client'
 import { forwardRef, useEffect, useState, useCallback } from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
 import TextField, { type TextFieldProps } from '@mui/material/TextField'
@@ -144,8 +146,9 @@ const maskDate = (value: any) => (!!value ? mask(value, ['99/99/9999']) : '')
 
 export type StepPersonalInfoType = v.InferInput<typeof StepPersonalInfoSchema>
 
-const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalInfoProps) => {
+const StepPersonalInfo = ({ handlePrev, activeStep }: StepPersonalInfoProps) => {
   registerLocale('pt-BR', ptBR)
+  const router = useRouter()
 
   //states
   const [cepValue, setCepValue] = useState('')
@@ -390,10 +393,10 @@ const StepPersonalInfo = ({ handleNext, handlePrev, activeStep }: StepPersonalIn
       if (response.data?.token) {
         localStorage.setItem('token', response.data.token)
         toast.success('Cadastro realizado com sucesso!')
-        handleNext()
+        router.push('/login')
       } else {
         toast.success('Cadastro realizado! Prosseguindo...')
-        handleNext()
+        router.push('/login')
       }
     } catch (error: any) {
       console.error('💥 Erro:', error)

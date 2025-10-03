@@ -1,510 +1,421 @@
-// React Imports
-import { useState, useMemo } from 'react'
+// file: src/views/projects_register/StepReviewConfigs.tsx
+'use client'
 
-// MUI Imports
+import React, { useState, useMemo } from 'react'
+
+import {
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Chip,
+  Alert,
+  IconButton,
+  Collapse,
+  CircularProgress,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Skeleton
+} from '@mui/material'
 import Grid from '@mui/material/Grid2'
-import Button from '@mui/material/Button'
-import Typography from '@mui/material/Typography'
-import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import CardHeader from '@mui/material/CardHeader'
-import Chip from '@mui/material/Chip'
-import Collapse from '@mui/material/Collapse'
-import Alert from '@mui/material/Alert'
-import Paper from '@mui/material/Paper'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableContainer from '@mui/material/TableContainer'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
-import IconButton from '@mui/material/IconButton'
-import Badge from '@mui/material/Badge'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
+import { toast } from 'react-toastify'
 
-// Component Imports
-import DirectionalIcon from '@components/DirectionalIcon'
+// API Hooks
+import { useGetProjectsQuery } from '@/api/endpoints/Projects/project'
+import { useGetAssistantsQuery } from '@/api/endpoints/assistant/assistant'
+import { useGetApisQuery } from '@/api/endpoints/fdc/api'
+import { useGetTasksQuery } from '@/api/endpoints/task/task'
+import { useGetMethodsQuery } from '@/api/endpoints/method/method'
+import { useCompleteFirstAccessMutation } from '@/api/endpoints/firstAccess/firstAcess'
 
-// Types (você pode mover para um arquivo separado)
-interface Parameter {
-  id: string
-  name: string
-  description?: string
-  type: 'String' | 'Number' | 'Boolean' | 'Array' | 'Object'
-  required: boolean
-  in_api: boolean
-  is_header: boolean
-  is_subparameter: boolean
-  example_value?: string
+import { useAppDispatch } from '@/redux-store'
+import { completeFirstAccess as completeFirstAccessAction } from '@/redux-store/slices/firstAccessSlice'
+
+interface StepReviewProjectProps {
+  onPrevStep: () => void
 }
 
-interface ApiFunction {
-  name: string
-  description?: string
-  endpoint: string
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
-  return_message?: string
-  method_id: string
-  api_id: string
-  active: boolean
-  working: boolean
-  parameters: Parameter[]
-  paramReturns: string[]
-}
+const StepReviewProject: React.FC<StepReviewProjectProps> = ({ onPrevStep }) => {
+  const [isFinishing, setIsFinishing] = useState(false)
 
-interface Assistant {
-  id: string
-  name: string
-  client_id: string
-  status: 'pending' | 'success' | 'error'
-  functions?: ApiFunction[]
-}
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    projects: true,
+    assistants: true,
+    apis: false,
+    endpoints: false
+  })
 
-interface Project {
-  id: string
-  name: string
-  cnpj: string
-  email: string
-  description?: string
-  assistants?: Assistant[]
-}
+  // Buscar dados diretamente das APIs
+  const { data: projectsData, isLoading: loadingProjects } = useGetProjectsQuery()
+  const { data: assistantsData, isLoading: loadingAssistants } = useGetAssistantsQuery()
+  const { data: apisData, isLoading: loadingApis } = useGetApisQuery()
+  const { data: tasksData, isLoading: loadingTasks } = useGetTasksQuery()
+  const { data: methodsData } = useGetMethodsQuery()
 
-type Props = {
-  activeStep: number
-  handleNext: () => void
-  handlePrev: () => void
-  steps: { title: string; subtitle: string }[]
-}
+  const [completeFirstAccess] = useCompleteFirstAccessMutation()
+  const dispatch = useAppDispatch()
 
-// Mock data - você substituirá por dados reais do seu store/context
-const mockProjectData: Project = {
-  id: '1',
-  name: 'Sistema de E-commerce',
-  cnpj: '12.345.678/0001-90',
-  email: 'contato@ecommerce.com',
-  description: 'Sistema completo de e-commerce com IA',
-  assistants: [
-    {
-      id: '1',
-      name: 'Assistente de Vendas',
-      client_id: '1',
-      status: 'success',
-      functions: [
-        {
-          name: 'Buscar Produto',
-          description: 'Busca produtos no catálogo',
-          endpoint: 'https://api.ecommerce.com/produtos',
-          method: 'GET',
-          return_message: 'Produtos encontrados com sucesso',
-          method_id: 'method_1',
-          api_id: 'api_1',
-          active: true,
-          working: true,
-          parameters: [
-            {
-              id: '1',
-              name: 'categoria',
-              type: 'String',
-              required: true,
-              in_api: true,
-              is_header: false,
-              is_subparameter: false,
-              example_value: 'eletronicos'
-            },
-            {
-              id: '2',
-              name: 'authorization',
-              type: 'String',
-              required: true,
-              in_api: true,
-              is_header: true,
-              is_subparameter: false,
-              example_value: 'Bearer token123'
-            }
-          ],
-          paramReturns: ['id', 'nome', 'preco', 'categoria']
-        }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Assistente de Suporte',
-      client_id: '1',
-      status: 'success',
-      functions: []
-    }
-  ]
-}
+  // Processar dados
+  const reviewData = useMemo(() => {
+    const projects = projectsData?.data || []
+    const assistants = assistantsData?.data || []
+    const apis = apisData?.data || []
+    const tasks = tasksData?.data || []
+    const methods = methodsData?.data || []
 
-const StepReviewProject = ({ handleNext, handlePrev }: Props) => {
-  // States para controlar expansão dos cards
-  const [expandedProject, setExpandedProject] = useState(true)
+    // Ordenar projetos por data de criação (mais recente primeiro)
+    const sortedProjects = [...projects].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
 
-  // const [expandedAssistants, setExpandedAssistants] = useState<Record<string, boolean>>({})
-  const [expandedFunctions, setExpandedFunctions] = useState<Record<string, boolean>>({})
-
-  // Dados do projeto (substituir por dados reais do seu store)
-  const projectData = mockProjectData
-
-  // Estatísticas calculadas
-  const statistics = useMemo(() => {
-    const totalAssistants = projectData.assistants?.length || 0
-    const successfulAssistants = projectData.assistants?.filter(a => a.status === 'success').length || 0
-
-    const totalFunctions =
-      projectData.assistants?.reduce((acc, assistant) => acc + (assistant.functions?.length || 0), 0) || 0
-
-    const totalParameters =
-      projectData.assistants?.reduce(
-        (acc, assistant) =>
-          acc + (assistant.functions?.reduce((funcAcc, func) => funcAcc + func.parameters.length, 0) || 0),
-        0
-      ) || 0
+    // Mapear cada projeto com seus assistentes
+    const projectsWithAssistants = sortedProjects.map(project => ({
+      ...project,
+      assistants: assistants.filter(a => a.project_id === project.id)
+    }))
 
     return {
-      totalAssistants,
-      successfulAssistants,
-      totalFunctions,
-      totalParameters,
-      hasIssues: totalAssistants !== successfulAssistants
+      projects: projectsWithAssistants,
+      apis: apis,
+      endpoints: tasks,
+      methods: methods,
+      statistics: {
+        totalProjects: projects.length,
+        totalAssistants: assistants.length,
+        totalApis: apis.length,
+        totalEndpoints: tasks.length,
+        totalParameters: tasks.reduce((acc, task) => acc + (task.pai_parameters?.length || 0), 0),
+        isComplete: projects.length > 0 && assistants.length > 0
+      }
     }
-  }, [projectData])
+  }, [projectsData, assistantsData, apisData, tasksData, methodsData])
 
-  // Handlers
-  // const toggleAssistantExpansion = () => {
-  //   // setExpandedAssistants(prev => ({
-  //   //   ...prev,
-  //   //   [assistantId]: !prev[assistantId]
-  //   // }))
-  // }
+  const isLoading = loadingProjects || loadingAssistants || loadingApis || loadingTasks
 
-  const toggleFunctionExpansion = (functionId: string) => {
-    setExpandedFunctions(prev => ({
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
       ...prev,
-      [functionId]: !prev[functionId]
+      [section]: !prev[section]
     }))
   }
 
-  const handleFinalSubmit = () => {
-    // Aqui você enviará todos os dados para o backend
-    const finalData = {
-      project: projectData,
-      statistics
+  const handleFinishProject = async () => {
+    setIsFinishing(true)
+
+    try {
+      await completeFirstAccess().unwrap()
+      dispatch(completeFirstAccessAction())
+      toast.success('Configuração inicial concluída com sucesso!')
+    } catch (error: any) {
+      toast.error(error?.message || 'Erro ao finalizar configuração')
+    } finally {
+      setIsFinishing(false)
     }
-
-    console.log('📦 Dados finais para submissão:', finalData)
-
-    // Simular envio
-    alert('Projeto criado com sucesso! 🎉')
-    handleNext()
   }
 
-  // Componente de estatísticas
-  const StatisticsCard = () => (
-    <Card sx={{ mb: 3 }}>
-      <CardHeader
-        title='📊 Resumo do Projeto'
-        action={
-          <Chip
-            label={statistics.hasIssues ? 'Com Pendências' : 'Tudo OK'}
-            color={statistics.hasIssues ? 'warning' : 'success'}
-          />
-        }
-      />
-      <CardContent>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Box textAlign='center'>
-              <Typography variant='h4' color='primary.main'>
-                {statistics.totalAssistants}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Assistentes
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Box textAlign='center'>
-              <Typography variant='h4' color='success.main'>
-                {statistics.successfulAssistants}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Criados
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Box textAlign='center'>
-              <Typography variant='h4' color='info.main'>
-                {statistics.totalFunctions}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Funções
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 6, sm: 3 }}>
-            <Box textAlign='center'>
-              <Typography variant='h4' color='secondary.main'>
-                {statistics.totalParameters}
-              </Typography>
-              <Typography variant='body2' color='text.secondary'>
-                Parâmetros
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
-  )
+  const getMethodName = (methodId: string) => {
+    const method = reviewData.methods.find(m => m.id === methodId)
 
-  // Componente de detalhes do projeto
-  const ProjectDetailsCard = () => (
-    <Card sx={{ mb: 3 }}>
-      <CardHeader
-        title='🏢 Detalhes do Projeto'
-        action={
-          <IconButton onClick={() => setExpandedProject(!expandedProject)}>
-            <i className={expandedProject ? 'ri-eye-off-line' : 'ri-eye-line'} />
-          </IconButton>
-        }
-      />
-      <Collapse in={expandedProject}>
-        <CardContent>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant='body2' color='text.secondary'>
-                Nome
-              </Typography>
-              <Typography variant='body1' sx={{ mb: 2 }}>
-                {projectData.name}
-              </Typography>
+    return method?.name || 'N/A'
+  }
 
-              <Typography variant='body2' color='text.secondary'>
-                Email
-              </Typography>
-              <Typography variant='body1'>{projectData.email}</Typography>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant='body2' color='text.secondary'>
-                CNPJ
-              </Typography>
-              <Typography variant='body1' sx={{ mb: 2 }}>
-                {projectData.cnpj}
-              </Typography>
+  const getApiName = (apiId: string) => {
+    const api = reviewData.apis.find(a => a.id === apiId)
 
-              {projectData.description && (
-                <>
-                  <Typography variant='body2' color='text.secondary'>
-                    Descrição
-                  </Typography>
-                  <Typography variant='body1'>{projectData.description}</Typography>
-                </>
-              )}
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Collapse>
-    </Card>
-  )
+    return api?.name || 'N/A'
+  }
 
-  // Componente de parâmetros de uma função
-  const ParametersTable = ({ parameters }: { parameters: Parameter[] }) => (
-    <TableContainer component={Paper} sx={{ mt: 2 }}>
-      <Table size='small'>
-        <TableHead>
-          <TableRow>
-            <TableCell>
-              <strong>Nome</strong>
-            </TableCell>
-            <TableCell>
-              <strong>Tipo</strong>
-            </TableCell>
-            <TableCell>
-              <strong>Configurações</strong>
-            </TableCell>
-            <TableCell>
-              <strong>Exemplo</strong>
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {parameters.map(param => (
-            <TableRow key={param.id}>
-              <TableCell>
-                <Typography variant='body2' fontWeight='medium'>
-                  {param.name}
-                </Typography>
-                {param.description && (
-                  <Typography variant='caption' color='text.secondary'>
-                    {param.description}
-                  </Typography>
-                )}
-              </TableCell>
-              <TableCell>
-                <Chip size='small' label={param.type} variant='outlined' />
-              </TableCell>
-              <TableCell>
-                <Box display='flex' gap={0.5} flexWrap='wrap'>
-                  {param.required && <Chip size='small' label='Obrigatório' color='error' />}
-                  {param.is_header && <Chip size='small' label='Header' color='info' />}
-                  {!param.in_api && <Chip size='small' label='Não incluso' color='warning' />}
-                </Box>
-              </TableCell>
-              <TableCell>
-                <Typography variant='body2' sx={{ fontFamily: 'monospace' }}>
-                  {param.example_value || '-'}
-                </Typography>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
+  if (isLoading) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Skeleton variant='rectangular' height={100} sx={{ mb: 2 }} />
+        <Skeleton variant='rectangular' height={200} sx={{ mb: 2 }} />
+        <Skeleton variant='rectangular' height={200} />
+      </Box>
+    )
+  }
 
   return (
-    <Box sx={{ mx: 'auto' }}>
+    <Box sx={{ p: 2, maxWidth: '100%' }}>
       {/* Header */}
       <Box textAlign='center' mb={4}>
         <Typography variant='h4' gutterBottom>
-          🎯 Revisão Final do Projeto
+          Revisão Final do Projeto
         </Typography>
         <Typography variant='body1' color='text.secondary'>
-          Revise todas as configurações antes de finalizar
+          Confirme todas as configurações antes de finalizar
         </Typography>
       </Box>
 
-      {/* Estatísticas */}
-      <StatisticsCard />
-
-      {/* Alertas */}
-      {statistics.hasIssues && (
-        <Alert severity='warning' sx={{ mb: 3 }}>
-          Existem assistentes com problemas. Verifique os detalhes abaixo.
-        </Alert>
-      )}
-
-      {/* Detalhes do Projeto */}
-      <ProjectDetailsCard />
-
-      {/* Assistentes */}
-      <Card>
-        <CardHeader title='🤖 Assistentes e Funções' />
-        <CardContent>
-          {projectData.assistants?.map(assistant => (
-            <Accordion key={assistant.id} sx={{ mb: 2 }}>
-              <AccordionSummary
-                expandIcon={<i className='ri-arrow-down-s-line' />}
-
-                // onClick={() => toggleAssistantExpansion(assistant.id)}
-              >
-                <Box display='flex' alignItems='center' justifyContent='space-between' width='100%'>
-                  <Box display='flex' alignItems='center' gap={2}>
-                    <Typography variant='h6'>{assistant.name}</Typography>
-                    <Chip
-                      size='small'
-                      label={assistant.status === 'success' ? 'Criado' : 'Erro'}
-                      color={assistant.status === 'success' ? 'success' : 'error'}
-                    />
-                  </Box>
-                  <Badge badgeContent={assistant.functions?.length || 0} color='primary'>
-                    <Typography variant='body2' color='text.secondary'>
-                      Funções
-                    </Typography>
-                  </Badge>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                {assistant.functions && assistant.functions.length > 0 ? (
-                  assistant.functions.map(func => (
-                    <Card key={func.method_id} variant='outlined' sx={{ mb: 2 }}>
-                      <CardContent>
-                        <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-                          <Typography variant='h6'>{func.name}</Typography>
-                          <Box display='flex' gap={1}>
-                            <Chip size='small' label={func.method} color='primary' />
-                            <Chip
-                              size='small'
-                              label={func.active ? 'Ativo' : 'Inativo'}
-                              color={func.active ? 'success' : 'default'}
-                            />
-                          </Box>
-                        </Box>
-
-                        <Typography variant='body2' color='text.secondary' gutterBottom>
-                          {func.endpoint}
-                        </Typography>
-
-                        {func.description && (
-                          <Typography variant='body2' sx={{ mb: 2 }}>
-                            {func.description}
-                          </Typography>
-                        )}
-
-                        <Box display='flex' justifyContent='space-between' alignItems='center'>
-                          <Typography variant='body2' color='text.secondary'>
-                            {func.parameters.length} parâmetros configurados
-                          </Typography>
-                          <Button
-                            size='small'
-                            onClick={() => toggleFunctionExpansion(func.method_id)}
-                            startIcon={<i className='ri-list-check' />}
-                          >
-                            {expandedFunctions[func.method_id] ? 'Ocultar' : 'Ver'} Parâmetros
-                          </Button>
-                        </Box>
-
-                        <Collapse in={expandedFunctions[func.method_id]}>
-                          <ParametersTable parameters={func.parameters} />
-                        </Collapse>
-                      </CardContent>
-                    </Card>
-                  ))
-                ) : (
-                  <Alert severity='info'>Este assistente não possui funções configuradas</Alert>
-                )}
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Navegação */}
-      <Box sx={{ mt: 4 }}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12 }}>
-            <Box display='flex' justifyContent='space-between' alignItems='center'>
-              <Button
-                variant='outlined'
-                color='secondary'
-                onClick={handlePrev}
-                startIcon={<DirectionalIcon ltrIconClass='ri-arrow-left-line' rtlIconClass='ri-arrow-right-line' />}
-              >
-                Voltar
-              </Button>
-
-              <Box display='flex' gap={2}>
-                <Button variant='outlined' color='info' startIcon={<i className='ri-save-line' />}>
-                  Salvar Rascunho
-                </Button>
-
-                <Button
-                  variant='contained'
-                  color='success'
-                  onClick={handleFinalSubmit}
-                  endIcon={<i className='ri-check-line' />}
-                  size='large'
-                >
-                  Finalizar Projeto
-                </Button>
-              </Box>
+      {/* Status Geral */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems='center'>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Typography variant='h6' gutterBottom>
+              Status da Configuração
+            </Typography>
+            <Typography variant='body2'>
+              {reviewData.statistics.isComplete
+                ? 'Todas as configurações obrigatórias foram preenchidas'
+                : 'Complete todas as etapas antes de finalizar'}
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Box display='flex' gap={1} flexWrap='wrap' justifyContent='flex-end'>
+              <Chip label={`${reviewData.statistics.totalProjects} Projeto(s)`} size='small' />
+              <Chip label={`${reviewData.statistics.totalAssistants} Assistente(s)`} size='small' />
+              <Chip label={`${reviewData.statistics.totalApis} API(s)`} size='small' />
+              <Chip label={`${reviewData.statistics.totalEndpoints} Endpoint(s)`} size='small' />
             </Box>
           </Grid>
         </Grid>
+      </Paper>
+
+      {/* Seção Projetos */}
+      <Card sx={{ mb: 2 }}>
+        <CardHeader
+          title={`Projetos (${reviewData.projects.length})`}
+          action={
+            <IconButton onClick={() => toggleSection('projects')}>
+              <i className={expandedSections.projects ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+            </IconButton>
+          }
+        />
+        <Collapse in={expandedSections.projects}>
+          <CardContent>
+            {reviewData.projects.map(project => (
+              <Card key={project.id} variant='outlined' sx={{ mb: 2 }}>
+                <CardHeader
+                  title={project.name}
+                  action={
+                    <IconButton onClick={() => toggleSection(`project-${project.id}`)}>
+                      <i
+                        className={
+                          expandedSections[`project-${project.id}`] ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'
+                        }
+                      />
+                    </IconButton>
+                  }
+                />
+                <Collapse in={expandedSections[`project-${project.id}`]}>
+                  <CardContent>
+                    <Grid container spacing={2}>
+                      <Grid size={{ xs: 12, md: 6 }}>
+                        <Typography variant='caption' color='text.secondary'>
+                          Nome
+                        </Typography>
+                        <Typography variant='body1' fontWeight='medium'>
+                          {project.name}
+                        </Typography>
+                      </Grid>
+                      <Grid size={{ xs: 12, md: 6 }}>
+                        <Typography variant='caption' color='text.secondary'>
+                          Descrição
+                        </Typography>
+                        <Typography variant='body1'>{project.description || 'Sem descrição'}</Typography>
+                      </Grid>
+                      {project.img_url && (
+                        <Grid size={{ xs: 12 }}>
+                          <Typography variant='caption' color='text.secondary'>
+                            Imagem
+                          </Typography>
+                          <Box mt={1}>
+                            <img src={project.img_url} alt={project.name} style={{ maxHeight: 100, borderRadius: 8 }} />
+                          </Box>
+                        </Grid>
+                      )}
+                    </Grid>
+
+                    {/* Assistentes deste projeto */}
+                    {project.assistants.length > 0 && (
+                      <Box mt={3}>
+                        <Typography variant='subtitle2' gutterBottom>
+                          🤖 Assistentes ({project.assistants.length})
+                        </Typography>
+                        <List dense>
+                          {project.assistants.map(assistant => (
+                            <ListItem key={assistant.id}>
+                              <ListItemText
+                                primaryTypographyProps={{ component: 'span' }}
+                                secondaryTypographyProps={{ component: 'span' }}
+                                primary={assistant.name}
+                              />
+                              <Chip label='Configurado' color='success' size='small' />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    )}
+                  </CardContent>
+                </Collapse>
+              </Card>
+            ))}
+          </CardContent>
+        </Collapse>
+      </Card>
+
+      {/* Seção Assistentes (visão geral de todos) */}
+      {reviewData.statistics.totalAssistants > 0 && (
+        <Card sx={{ mb: 2 }}>
+          <CardHeader
+            title={`Todos os Assistentes (${reviewData.statistics.totalAssistants})`}
+            action={
+              <IconButton onClick={() => toggleSection('assistants')}>
+                <i className={expandedSections.assistants ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+              </IconButton>
+            }
+          />
+          <Collapse in={expandedSections.assistants}>
+            <CardContent>
+              <List>
+                {reviewData.projects.map(project =>
+                  project.assistants.map(assistant => (
+                    <ListItem key={assistant.id}>
+                      <ListItemText
+                        primaryTypographyProps={{ component: 'span' }}
+                        secondaryTypographyProps={{ component: 'span' }}
+                        primary={assistant.name}
+                        secondary={`Projeto: ${project.name}`}
+                      />
+                      <Chip label='Configurado' color='success' size='small' />
+                    </ListItem>
+                  ))
+                )}
+              </List>
+            </CardContent>
+          </Collapse>
+        </Card>
+      )}
+
+      {/* Seção APIs */}
+      {reviewData.apis.length > 0 && (
+        <Card sx={{ mb: 2 }}>
+          <CardHeader
+            title={`APIs Configuradas (${reviewData.apis.length})`}
+            action={
+              <IconButton onClick={() => toggleSection('apis')}>
+                <i className={expandedSections.apis ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+              </IconButton>
+            }
+          />
+          <Collapse in={expandedSections.apis}>
+            <CardContent>
+              <TableContainer>
+                <Table size='small'>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nome</TableCell>
+                      <TableCell>URL</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {reviewData.apis.map(api => (
+                      <TableRow key={api.id}>
+                        <TableCell>{api.name}</TableCell>
+                        <TableCell>
+                          <Typography variant='caption' sx={{ fontFamily: 'monospace' }}>
+                            {api.url}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label='Ativa' color='success' size='small' />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Collapse>
+        </Card>
+      )}
+
+      {/* Seção Endpoints */}
+      {reviewData.endpoints.length > 0 && (
+        <Card sx={{ mb: 2 }}>
+          <CardHeader
+            title={`🔗 Endpoints Configurados (${reviewData.endpoints.length})`}
+            action={
+              <IconButton onClick={() => toggleSection('endpoints')}>
+                <i className={expandedSections.endpoints ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} />
+              </IconButton>
+            }
+          />
+          <Collapse in={expandedSections.endpoints}>
+            <CardContent>
+              <TableContainer>
+                <Table size='small'>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nome</TableCell>
+                      <TableCell>Endpoint</TableCell>
+                      <TableCell>Método</TableCell>
+                      <TableCell>API</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {reviewData.endpoints.map(endpoint => (
+                      <TableRow key={endpoint.id}>
+                        <TableCell>{endpoint.name}</TableCell>
+                        <TableCell>
+                          <Typography variant='caption' sx={{ fontFamily: 'monospace' }}>
+                            {endpoint.endpoint}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={getMethodName(endpoint.method_id)} size='small' color='primary' />
+                        </TableCell>
+                        <TableCell>{getApiName(endpoint.api_id)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </CardContent>
+          </Collapse>
+        </Card>
+      )}
+
+      {/* Mensagem caso não haja dados */}
+      {reviewData.projects.length === 0 && (
+        <Alert severity='warning' sx={{ mb: 3 }}>
+          Você precisa configurar pelo menos um projeto e um assistente antes de finalizar.
+        </Alert>
+      )}
+
+      {/* Botões de Ação */}
+      <Divider sx={{ my: 3 }} />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Button variant='outlined' onClick={onPrevStep} startIcon={<i className='ri-arrow-left-line' />}>
+          Voltar
+        </Button>
+
+        <Button
+          variant='contained'
+          size='large'
+          onClick={handleFinishProject}
+          disabled={isFinishing || !reviewData.statistics.isComplete}
+          endIcon={isFinishing ? <CircularProgress size={20} color='inherit' /> : <i className='ri-check-line' />}
+          sx={{
+            minWidth: 200,
+            bgcolor: 'success.main',
+            '&:hover': { bgcolor: 'success.dark' }
+          }}
+        >
+          {isFinishing ? 'Finalizando...' : 'Concluir Configuração'}
+        </Button>
       </Box>
     </Box>
   )

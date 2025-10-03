@@ -1,430 +1,728 @@
 // MUI Imports
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+
+import Image from 'next/image'
 
 import Grid from '@mui/material/Grid2'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
-import FormControl from '@mui/material/FormControl'
-import FormHelperText from '@mui/material/FormHelperText'
-import FormLabel from '@mui/material/FormLabel'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import Select from '@mui/material/Select'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
-import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
 import Collapse from '@mui/material/Collapse'
-import * as v from 'valibot'
+import FormControl from '@mui/material/FormControl'
+import FormLabel from '@mui/material/FormLabel'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 
+import Skeleton from '@mui/material/Skeleton'
+import { useTheme } from '@mui/material'
+import * as v from 'valibot'
 import { Controller, useForm } from 'react-hook-form'
 import { valibotResolver } from '@hookform/resolvers/valibot'
 
-interface Assistant {
-  id: string
-  name: string
-  client_id: string
-  status: 'pending' | 'success' | 'error'
+import {
+  useGetProjectsQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+  type Project,
+  type CreateProjectRequest,
+  type UpdateProjectRequest
+} from '@/api/endpoints/Projects/project'
+import ImageDropzone from '@/components/dropDonwLogo'
+
+import ConfirmDialog, { useConfirmDialog } from '@/components/dialogs/confirmation-dialog'
+import { FirstModulePresentation, type StepData } from '@/components/FirstModulePresentation'
+import ProjectCard from '@/components/cardProject'
+import EditProjectDialog from '@/components/dialogs/edit-project/ProjectEditDialog'
+
+const ONBOARDING_COOKIE_NAME = 'first_project_onboarding_completed'
+const COOKIE_EXPIRY_DAYS = 365
+
+const setCookie = (name: string, value: string, days: number) => {
+  const expires = new Date()
+
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`
 }
 
-interface Project {
-  id: string
-  name: string
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + '='
+  const ca = document.cookie.split(';')
+
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i]
+
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length)
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
+  }
+
+  return null
 }
 
-type Props = {
-  activeStep: number
-  handleNext: () => void
-  handlePrev: () => void
-  steps: { title: string; subtitle: string }[]
-}
-
-// Schemas
-const ProjectSchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1, 'Nome é obrigatório')),
-  cnpj: v.pipe(
-    v.string(),
-    v.minLength(1, 'CNPJ é obrigatório'),
-    v.regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$|^\d{14}$/, 'CNPJ deve ter formato válido')
-  ),
-  email: v.pipe(v.string(), v.minLength(1, 'Email é obrigatório'), v.email('Email deve ter formato válido')),
-  description: v.optional(v.string())
-})
-
-const AssistantSchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1, 'Nome do assistente é obrigatório')),
-  client_id: v.pipe(v.string(), v.minLength(1, 'Projeto é obrigatório'))
-})
-
-type ProjectFormData = v.InferInput<typeof ProjectSchema>
-type AssistantFormData = v.InferInput<typeof AssistantSchema>
-
-const mockProjects: Project[] = [
-  { id: '9f0354a0-c009-4693-a227-b98daf6bbb68', name: 'Project Teste 1' },
-  { id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', name: 'Project Teste 2' },
-  { id: 'b2c3d4e5-f6g7-8901-bcde-f23456789012', name: 'Project Teste 3' }
+const onboardingSteps: StepData[] = [
+  {
+    title: 'Bem-vindo à primeira criação de projetos! ',
+    description:
+      'Os Projetos são como pastas de organização onde você pode atribuir assistentes Aiyou para cumprir objetivos específicos. Se o seu plano permite até 10 assistentes, você pode criar quantos projetos quiser e atribuir um ou mais assistentes a cada um deles.',
+    icon: (
+      <Image
+        src='/images/illustrations/characters/3.png'
+        alt='Personagem de boas-vindas'
+        width={144}
+        height={144}
+        className='w-36 h-auto'
+        priority
+      />
+    ),
+    information: 'info',
+    tips: [
+      'Se você quer que um assistente cuide do seu SAC, basta criar um projeto chamado SAC e atribuir um ou mais assistentes a ele.',
+      'Se nesse caso você atribuir apenas 1 assistente, ainda terá 9 disponíveis para outros projetos.',
+      'Você pode distribuir esses assistentes da forma que preferir: todos em um único projeto ou divididos entre vários.'
+    ]
+  },
+  {
+    title: 'IMPORTANTE!',
+    description:
+      'Se tiver dúvidas ou quiser mais informações, fale com um dos assistentes ou entre em contato com nossa equipe de atendimento.',
+    icon: <i className='ri-alert-line text-yellow-500 text-8xl' />,
+    information: 'alert',
+    tips: [
+      'Um projeto sem assistente não funcionará.',
+      'Ao migrar um assistente para outro projeto, ele deixará de atuar no projeto anterior.',
+      'Sempre verifique as especificações do assistente antes de movê-lo.'
+    ]
+  }
 ]
 
-const StepCreateProject = ({ activeStep, handleNext, steps }: Props) => {
-  const [assistants, setAssistants] = useState<Assistant[]>([])
-  const [isCreatingAssistant, setIsCreatingAssistant] = useState(false)
-  const [isSubmittingAssistant, setIsSubmittingAssistant] = useState(false)
+export interface UIProject extends Project {
+  status?: 'pending' | 'success' | 'error'
+  imageFile?: File | null | undefined
+}
 
-  const projectForm = useForm<ProjectFormData>({
+interface ProjectManagerProps {
+  onNextStep?: () => void
+  showFinishButton?: boolean
+  finishButtonText?: string
+}
+
+const ProjectSchema = v.object({
+  name: v.pipe(v.string(), v.minLength(1, 'Nome do projeto é obrigatório')),
+  description: v.pipe(
+    v.string(),
+    v.minLength(1, 'Descrição é obrigatória'),
+    v.maxLength(255, 'Descrição deve ter no máximo 255 caracteres')
+  ),
+  imageMode: v.picklist(['file', 'url'], 'Selecione o modo de imagem'),
+  img_url: v.optional(v.pipe(v.string(), v.url('Deve ser uma URL válida')))
+})
+
+export type ProjectFormData = v.InferInput<typeof ProjectSchema>
+
+export default function StepCreateProject({
+  onNextStep,
+  showFinishButton = true,
+  finishButtonText = 'Finalizar Criação de Projetos'
+}: ProjectManagerProps = {}) {
+  const theme = useTheme()
+
+  const {
+    data: projectsResponse,
+    isLoading: isLoadingProjects,
+    isError: isErrorProjects,
+    error: projectsError,
+    refetch: refetchProjects
+  } = useGetProjectsQuery()
+
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const [createProject, { isLoading: isCreating }] = useCreateProjectMutation()
+  const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation()
+  const [deleteProject] = useDeleteProjectMutation()
+
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [editingProject, setEditingProject] = useState<UIProject | null>(null)
+  const [projectToDelete, setProjectToDelete] = useState<UIProject | null>(null)
+
+  const confirmDialog = useConfirmDialog()
+
+  const [createImageFile, setCreateImageFile] = useState<File | null>(null)
+  const [createImageMode, setCreateImageMode] = useState<'file' | 'url'>('file')
+
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editImageMode, setEditImageMode] = useState<'file' | 'url'>('file')
+
+  const createForm = useForm<ProjectFormData>({
     resolver: valibotResolver(ProjectSchema),
     defaultValues: {
       name: '',
-      cnpj: '',
-      email: '',
-      description: ''
+      description: '',
+      imageMode: 'file',
+      img_url: ''
     },
     mode: 'onChange'
   })
 
-  const assistantForm = useForm<AssistantFormData>({
-    resolver: valibotResolver(AssistantSchema),
+  const editForm = useForm<ProjectFormData>({
+    resolver: valibotResolver(ProjectSchema),
     defaultValues: {
       name: '',
-      client_id: ''
+      description: '',
+      imageMode: 'file',
+      img_url: ''
     },
     mode: 'onChange'
   })
 
-  const projectName = useMemo(() => {
-    return (clientId: string) => mockProjects.find(project => project.id === clientId)?.name || 'Projeto desconhecido'
+  const projects: UIProject[] = useMemo(() => {
+    if (!projectsResponse?.data) return []
+
+    return projectsResponse.data.map(project => ({
+      ...project,
+      status: 'success' as const
+    }))
+  }, [projectsResponse])
+
+  const isCreateFormValid = useMemo(() => {
+    const baseValid = createForm.formState.isValid
+    const imgUrl = createForm.watch('img_url')
+
+    console.log('baseValid:', baseValid)
+    console.log('createImageMode:', createImageMode)
+    console.log('createImageFile:', createImageFile)
+    console.log('img_url:', imgUrl)
+
+    if (createImageMode === 'file') {
+      return baseValid && createImageFile !== null
+    } else {
+      return baseValid && !!imgUrl // força booleano
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createForm.formState.isValid, createImageMode, createImageFile, createForm.watch('img_url')])
+
+  const isEditFormValid = useMemo(() => {
+    const baseValid = editForm.formState.isValid
+
+    if (editImageMode === 'file') {
+      return baseValid && (!!editImageFile || !!editingProject?.img_url)
+    } else {
+      return baseValid && !!editForm.watch('img_url')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editForm.formState.isValid, editForm, editImageMode, editImageFile, editingProject])
+
+  const handleFinalSubmit = useCallback(() => {
+    if (onNextStep) {
+      onNextStep()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, onNextStep])
+
+  const handleCreateImageChange = useCallback((file: File | null) => {
+    setCreateImageFile(file)
   }, [])
 
-  const assistantStats = useMemo(() => {
-    const total = assistants.length
-    const success = assistants.filter(a => a.status === 'success').length
-    const errors = assistants.filter(a => a.status === 'error').length
+  const handleCreateImageModeChange = useCallback(
+    (_: React.MouseEvent<HTMLElement>, newMode: 'file' | 'url') => {
+      if (newMode !== null) {
+        setCreateImageMode(newMode)
+        setCreateImageFile(null)
 
-    return { total, success, errors }
-  }, [assistants])
-
-  // Handlers
-  const handleProjectSubmit = useCallback(
-    (data: ProjectFormData) => {
-      console.log('Projeto submetido:', data)
-      handleNext()
+        if (newMode === 'file') {
+          createForm.resetField('img_url')
+        }
+      }
     },
-    [handleNext]
+    [createForm]
   )
 
-  const handleToggleAssistantForm = useCallback(() => {
-    setIsCreatingAssistant(prev => {
-      if (prev) {
-        assistantForm.reset()
+  const handleEditImageChange = useCallback((file: File | null) => {
+    setEditImageFile(file)
+  }, [])
+
+  const handleEditImageModeChange = useCallback(
+    (_: React.MouseEvent<HTMLElement>, newMode: 'file' | 'url') => {
+      if (newMode !== null) {
+        setEditImageMode(newMode)
+        setEditImageFile(null)
+        editForm.setValue('img_url', '')
       }
+    },
+    [editForm]
+  )
 
-      return !prev
-    })
-  }, [assistantForm])
+  const handleToggleCreateForm = useCallback(() => {
+    setIsCreatingProject(prev => !prev)
 
-  const handleAssistantSubmit = useCallback(
-    async (data: AssistantFormData) => {
-      setIsSubmittingAssistant(true)
+    // ✅ Fazer reset FORA do setState
+    if (isCreatingProject) {
+      createForm.reset()
+      setCreateImageFile(null)
+      setCreateImageMode('file')
+    }
+  }, [createForm, isCreatingProject])
+
+  const handleOpenEditModal = useCallback(
+    (project: UIProject) => {
+      setEditingProject(project)
+
+      editForm.reset({
+        name: project.name,
+        description: project.description,
+        imageMode: project.img_url ? 'url' : 'file',
+        img_url: project.img_url || ''
+      })
+
+      if (project.img_url) {
+        setEditImageMode('url')
+        setEditImageFile(null)
+      } else {
+        setEditImageMode('file')
+        setEditImageFile(project.imageFile || null)
+      }
+    },
+    [editForm]
+  )
+
+  const handleCloseEditModal = useCallback(() => {
+    setEditingProject(null)
+    editForm.reset()
+    setEditImageFile(null)
+    setEditImageMode('file')
+  }, [editForm])
+
+  const handleCreateSubmit = useCallback(
+    async (data: ProjectFormData) => {
+      try {
+        if (createImageMode === 'file' && !createImageFile) {
+          alert('Selecione uma imagem ou mude para modo URL')
+
+          return
+        }
+
+        if (createImageMode === 'url' && !data.img_url) {
+          alert('Digite a URL da imagem ou mude para modo arquivo')
+
+          return
+        }
+
+        const requestData: CreateProjectRequest = {
+          name: data.name,
+          description: data.description
+        }
+
+        if (createImageMode === 'file' && createImageFile) {
+          requestData.image = createImageFile
+        } else if (createImageMode === 'url' && data.img_url) {
+          requestData.img_url = data.img_url
+        }
+
+        const result = await createProject(requestData)
+
+        if (result.error) {
+          console.error('❌ Erro na API:', result.error)
+          alert('Erro ao criar projeto')
+
+          return
+        }
+
+        createForm.reset()
+        setIsCreatingProject(false)
+        setCreateImageFile(null)
+        setCreateImageMode('file')
+
+        console.log('✅ Projeto criado com sucesso!')
+      } catch (error: any) {
+        console.error('❌ Erro inesperado:', error)
+        alert('Erro inesperado ao criar projeto')
+      }
+    },
+    [createProject, createForm, createImageMode, createImageFile]
+  )
+
+  const handleEditSubmit = useCallback(
+    async (data: ProjectFormData) => {
+      if (!editingProject) return
 
       try {
-        // Simular API call
-        const response = await fetch('/api/assistants', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: data.name, client_id: data.client_id })
-        })
+        if (editImageMode === 'file' && !editImageFile && !editingProject.img_url) {
+          alert('Selecione uma imagem ou mude para modo URL')
 
-        const newAssistant: Assistant = {
-          id: `assistant_${Date.now()}`,
+          return
+        }
+
+        if (editImageMode === 'url' && !data.img_url) {
+          alert('Digite a URL da imagem')
+
+          return
+        }
+
+        const requestData: UpdateProjectRequest = {
+          id: editingProject.id,
           name: data.name,
-          client_id: data.client_id,
-          status: response.ok ? 'success' : 'error'
+          description: data.description
         }
 
-        setAssistants(prev => [...prev, newAssistant])
-
-        if (response.ok) {
-          assistantForm.reset()
-          setIsCreatingAssistant(false)
-        }
-      } catch (error) {
-        const errorAssistant: Assistant = {
-          id: `assistant_${Date.now()}`,
-          name: data.name,
-          client_id: data.client_id,
-          status: 'error'
+        if (editImageMode === 'file' && editImageFile) {
+          requestData.image = editImageFile
+        } else if (editImageMode === 'url' && data.img_url) {
+          requestData.img_url = data.img_url
         }
 
-        setAssistants(prev => [...prev, errorAssistant])
-      } finally {
-        setIsSubmittingAssistant(false)
+        const result = await updateProject(requestData)
+
+        if (result.error) {
+          console.error('❌ Erro na API:', result.error)
+          alert('Erro ao atualizar projeto')
+
+          return
+        }
+
+        handleCloseEditModal()
+        console.log('✅ Projeto atualizado com sucesso!')
+      } catch (error: any) {
+        console.error('❌ Erro inesperado:', error)
+        alert('Erro inesperado ao atualizar projeto')
       }
     },
-    [assistantForm]
+    [updateProject, editImageMode, editImageFile, editingProject, handleCloseEditModal]
   )
 
-  const handleRemoveAssistant = useCallback((id: string) => {
-    setAssistants(prev => prev.filter(assistant => assistant.id !== id))
+  // 🎯 DELETE PROJECT
+  const handleDeleteProject = useCallback(
+    (id: string) => {
+      const project = projects.find(p => p.id === id)
+
+      if (!project) return
+
+      setProjectToDelete(project)
+      confirmDialog.openDialog()
+    },
+    [projects, confirmDialog]
+  )
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!projectToDelete) return
+
+    try {
+      confirmDialog.setLoading(true)
+
+      const result = await deleteProject({ id: projectToDelete.id })
+
+      if (result.error) {
+        console.error('❌ Erro na API:', result.error)
+        alert('Erro ao deletar projeto')
+
+        return
+      }
+
+      console.log('✅ Projeto deletado com sucesso!')
+
+      confirmDialog.closeDialog()
+      setProjectToDelete(null)
+    } catch (error: any) {
+      console.error('❌ Erro inesperado:', error)
+      alert('Erro inesperado ao deletar projeto')
+    } finally {
+      confirmDialog.setLoading(false)
+    }
+  }, [projectToDelete, deleteProject, confirmDialog])
+
+  const handleCancelDelete = useCallback(() => {
+    confirmDialog.closeDialog()
+    setProjectToDelete(null)
+  }, [confirmDialog])
+
+  const markOnboardingAsCompleted = () => {
+    setCookie(ONBOARDING_COOKIE_NAME, 'true', COOKIE_EXPIRY_DAYS)
+  }
+
+  const handleOnboardingComplete = () => {
+    markOnboardingAsCompleted()
+    setModalOpen(false)
+  }
+
+  const handleModalClose = () => {
+    setModalOpen(false)
+  }
+
+  const hasCompletedOnboarding = (): boolean => {
+    if (typeof window === 'undefined') return false
+
+    return getCookie(ONBOARDING_COOKIE_NAME) === 'true'
+  }
+
+  useEffect(() => {
+    const completed = hasCompletedOnboarding()
+
+    setModalOpen(!completed)
   }, [])
 
+  const renderLoadingSkeleton = () => (
+    <Grid container spacing={3}>
+      {[1, 2, 3].map(item => (
+        <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item}>
+          <Skeleton variant='rounded' height={400} />
+        </Grid>
+      ))}
+    </Grid>
+  )
+
+  if (isErrorProjects) {
+    return (
+      <Box sx={{ mx: 'auto', p: 3 }}>
+        <Alert
+          severity='error'
+          action={
+            <Button color='inherit' size='small' onClick={() => refetchProjects()}>
+              Tentar Novamente
+            </Button>
+          }
+        >
+          Erro ao carregar projetos: {(projectsError as any)?.message || 'Erro desconhecido'}
+        </Alert>
+      </Box>
+    )
+  }
+
   return (
-    <Box sx={{ mx: 'auto' }}>
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant='h5' gutterBottom>
-            Informações do Projeto
+    <Box sx={{ mx: 'auto', p: 3, width: '100%' }}>
+      <Box sx={{ mb: 3 }}>
+        <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+          <Box className='flex items-center gap-2'>
+            <Typography variant='h4' component='h1'>
+              Crie seus primeiros projetos
+            </Typography>
+            <i
+              className='ri-information-2-line text-info hover:text-gray-400 cursor-pointer'
+              onClick={() => setModalOpen(true)}
+            />
+          </Box>
+
+          <Box display='flex' gap={2} alignItems='center'>
+            {(projects.length > 0 || isLoadingProjects) && (
+              <Button
+                variant='contained'
+                onClick={handleToggleCreateForm}
+                disabled={isCreating || isLoadingProjects || confirmDialog.loading}
+                endIcon={<i className='ri-add-line' />}
+              >
+                Criar Projeto
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Box>
+
+      <Collapse in={isCreatingProject}>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant='h6' gutterBottom>
+            Criar Novo Projeto
           </Typography>
 
-          <form onSubmit={projectForm.handleSubmit(handleProjectSubmit)}>
+          <form onSubmit={createForm.handleSubmit(handleCreateSubmit)}>
             <Grid container spacing={3}>
+              <Grid size={{ xs: 12 }}>
+                <FormControl component='fieldset' sx={{ width: '100%' }}>
+                  <FormLabel component='legend' sx={{ mb: 2 }}>
+                    Imagem do Projeto
+                  </FormLabel>
+
+                  <ToggleButtonGroup
+                    value={createImageMode}
+                    exclusive
+                    onChange={handleCreateImageModeChange}
+                    sx={{ mb: 3 }}
+                    disabled={isCreating}
+                  >
+                    <ToggleButton value='file'>📁 Upload de Arquivo</ToggleButton>
+                    <ToggleButton value='url'>🔗 URL da Imagem</ToggleButton>
+                  </ToggleButtonGroup>
+
+                  {createImageMode === 'file' ? (
+                    <Box display='flex' justifyContent='center' sx={{ mb: 2 }}>
+                      <ImageDropzone
+                        onImageChange={handleCreateImageChange}
+                        size='lg'
+                        placeholder='Imagem do projeto'
+                        maxSizeMB={10}
+                        disabled={isCreating}
+                      />
+                    </Box>
+                  ) : (
+                    <Controller
+                      name='img_url'
+                      control={createForm.control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label='URL da Imagem'
+                          disabled={isCreating}
+                          error={!!createForm.formState.errors.img_url}
+                          helperText={createForm.formState.errors.img_url?.message}
+                          placeholder='https://exemplo.com/imagem.jpg'
+                        />
+                      )}
+                    />
+                  )}
+                </FormControl>
+              </Grid>
+
               <Grid size={{ xs: 12 }}>
                 <Controller
                   name='name'
-                  control={projectForm.control}
+                  control={createForm.control}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       fullWidth
                       label='Nome do Projeto'
                       required
-                      variant='outlined'
-                      error={!!projectForm.formState.errors.name}
-                      helperText={projectForm.formState.errors.name?.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormLabel component='legend' sx={{ mb: 1, display: 'block' }}>
-                  CNPJ (se diferente da conta de usuário):
-                </FormLabel>
-                <Controller
-                  name='cnpj'
-                  control={projectForm.control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='CNPJ'
-                      required
-                      variant='outlined'
-                      placeholder='00.000.000/0000-00'
-                      error={!!projectForm.formState.errors.cnpj}
-                      helperText={projectForm.formState.errors.cnpj?.message}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <FormLabel component='legend' sx={{ mb: 1, display: 'block' }}>
-                  Email (se diferente da conta de usuário):
-                </FormLabel>
-                <Controller
-                  name='email'
-                  control={projectForm.control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label='Email do projeto'
-                      type='email'
-                      required
-                      variant='outlined'
-                      error={!!projectForm.formState.errors.email}
-                      helperText={projectForm.formState.errors.email?.message}
+                      disabled={isCreating}
+                      error={!!createForm.formState.errors.name}
+                      helperText={createForm.formState.errors.name?.message}
+                      placeholder='Ex: Sistema E-commerce'
                     />
                   )}
                 />
               </Grid>
 
               <Grid size={{ xs: 12 }}>
-                <FormLabel component='legend' sx={{ mb: 1, display: 'block' }}>
-                  Descrição do projeto:
-                </FormLabel>
                 <Controller
                   name='description'
-                  control={projectForm.control}
+                  control={createForm.control}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       fullWidth
                       label='Descrição'
+                      required
                       multiline
-                      rows={3}
-                      variant='outlined'
-                      placeholder='Descreva brevemente o objetivo e escopo deste projeto...'
+                      rows={4}
+                      disabled={isCreating}
+                      error={!!createForm.formState.errors.description}
+                      helperText={
+                        createForm.formState.errors.description?.message || `${field.value?.length || 0}/255 caracteres`
+                      }
+                      placeholder='Ex: Plataforma completa de e-commerce'
                     />
                   )}
                 />
               </Grid>
 
               <Grid size={{ xs: 12 }}>
-                <Box display='flex' justifyContent='flex-end'>
+                <Box display='flex' gap={2} justifyContent='flex-end'>
+                  <Button variant='outlined' onClick={handleToggleCreateForm} disabled={isCreating}>
+                    Cancelar
+                  </Button>
                   <Button
-                    variant='outlined'
                     type='submit'
-                    fullWidth
-                    disabled={!projectForm.formState.isValid}
-                    startIcon={<i className='ri-add-line' />}
+                    variant='contained'
+                    color='success'
+                    disabled={!isCreateFormValid || isCreating}
+                    startIcon={isCreating ? <CircularProgress size={16} /> : <i className='ri-check-line' />}
                   >
-                    {activeStep === steps.length - 1 ? 'Finalizar' : 'Cadastrar Projeto'}
+                    {isCreating ? 'Criando...' : 'Criar Projeto'}
                   </Button>
                 </Box>
               </Grid>
             </Grid>
           </form>
-        </CardContent>
-      </Card>
+        </Box>
+      </Collapse>
 
-      {/* Assistants Section */}
-      <Card>
-        <CardContent>
-          <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-            <Typography variant='h5'>Assistentes do Projeto</Typography>
-            {assistantStats.total > 0 && (
-              <Box display='flex' gap={1}>
-                <Chip label={`${assistantStats.success} criados`} color='success' size='small' />
-                {assistantStats.errors > 0 && (
-                  <Chip label={`${assistantStats.errors} com erro`} color='error' size='small' />
-                )}
-              </Box>
-            )}
-          </Box>
+      {isLoadingProjects ? (
+        renderLoadingSkeleton()
+      ) : projects.length > 0 ? (
+        <>
+          <Grid container spacing={3}>
+            {projects.map(project => (
+              <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={project.id}>
+                <ProjectCard
+                  project={project}
+                  onEdit={handleOpenEditModal}
+                  onRemove={id => handleDeleteProject(id)}
+                  isUpdating={isUpdating || confirmDialog.loading}
+                  backgroundColor={theme.palette.primary.main}
+                  backgroundImage='/images/iaImages/projects.png'
+                />
+              </Grid>
+            ))}
+          </Grid>
 
-          <Collapse in={assistants.length > 0}>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              {assistants.map(assistant => (
-                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={assistant.id}>
-                  <Card variant='outlined' sx={{ height: '100%' }}>
-                    <CardContent>
-                      <Box display='flex' justifyContent='space-between' alignItems='flex-start' mb={1}>
-                        <Typography variant='subtitle1' component='div' noWrap>
-                          {assistant.name}
-                        </Typography>
-                        <Chip
-                          size='small'
-                          label={assistant.status === 'success' ? 'Criado' : 'Erro'}
-                          color={assistant.status === 'success' ? 'success' : 'error'}
-                          onDelete={() => handleRemoveAssistant(assistant.id)}
-                        />
-                      </Box>
-                      <Typography variant='body2' color='text.secondary' noWrap>
-                        {projectName(assistant.client_id)}
-                      </Typography>
-                      {assistant.status === 'error' && (
-                        <Alert severity='error' sx={{ mt: 1 }}>
-                          Falha na criação
-                        </Alert>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Collapse>
-
-          {/* Create Assistant Button */}
-          {!isCreatingAssistant && (
-            <Button
-              variant='outlined'
-              color='primary'
-              onClick={handleToggleAssistantForm}
-              disabled={isSubmittingAssistant}
-              startIcon={<i className='ri-add-line' />}
-              fullWidth
-            >
-              Adicionar Assistente
-            </Button>
-          )}
-
-          {/* Assistant Form */}
-          <Collapse in={isCreatingAssistant}>
-            <Box sx={{ mt: 3, p: 3, borderRadius: 1 }}>
-              <Typography variant='h6' gutterBottom>
-                Novo Assistente
-              </Typography>
-
-              <form onSubmit={assistantForm.handleSubmit(handleAssistantSubmit)}>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Controller
-                      name='name'
-                      control={assistantForm.control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          label='Nome do Assistente'
-                          required
-                          variant='outlined'
-                          disabled={isSubmittingAssistant}
-                          error={!!assistantForm.formState.errors.name}
-                          helperText={assistantForm.formState.errors.name?.message}
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Controller
-                      name='client_id'
-                      control={assistantForm.control}
-                      render={({ field }) => (
-                        <FormControl fullWidth required error={!!assistantForm.formState.errors.client_id}>
-                          <InputLabel>Projeto</InputLabel>
-                          <Select {...field} label='Projeto' disabled={isSubmittingAssistant}>
-                            {mockProjects.map(project => (
-                              <MenuItem key={project.id} value={project.id}>
-                                {project.name}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                          {assistantForm.formState.errors.client_id && (
-                            <FormHelperText>{assistantForm.formState.errors.client_id.message}</FormHelperText>
-                          )}
-                        </FormControl>
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid size={{ xs: 12 }}>
-                    <Divider sx={{ my: 2 }} />
-                    <Box display='flex' justifyContent='space-between' gap={2}>
-                      <Button
-                        variant='outlined'
-                        onClick={handleToggleAssistantForm}
-                        disabled={isSubmittingAssistant}
-                        fullWidth
-                      >
-                        Cancelar
-                      </Button>
-
-                      <Button
-                        type='submit'
-                        variant='contained'
-                        color='success'
-                        disabled={!assistantForm.formState.isValid || isSubmittingAssistant}
-                        startIcon={
-                          isSubmittingAssistant ? <CircularProgress size={16} /> : <i className='ri-check-line' />
-                        }
-                        fullWidth
-                      >
-                        {isSubmittingAssistant ? 'Criando...' : 'Criar Assistente'}
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </form>
+          {!isCreatingProject && onNextStep && showFinishButton && (
+            <Box className='flex   items-start justify-end mt-6'>
+              <Button variant='contained' color='primary' size='small' onClick={handleFinalSubmit}>
+                {finishButtonText}
+              </Button>
             </Box>
-          </Collapse>
-        </CardContent>
-      </Card>
+          )}
+        </>
+      ) : (
+        <>
+          {!isCreatingProject && (
+            <Box sx={{ textAlign: 'center', py: 6 }}>
+              <Typography variant='h6' color='text.secondary' gutterBottom>
+                Você ainda não tem projetos criados
+              </Typography>
+              <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
+                Comece criando seu primeiro projeto
+              </Typography>
+              <Button
+                variant='contained'
+                color='primary'
+                onClick={handleToggleCreateForm}
+                disabled={isCreating || confirmDialog.loading}
+                startIcon={<i className='ri-add-line' />}
+                size='large'
+              >
+                Criar Novo Projeto
+              </Button>
+            </Box>
+          )}
+        </>
+      )}
+
+      <EditProjectDialog
+        editingProject={editingProject}
+        editForm={editForm}
+        editImageMode={editImageMode}
+        editImageFile={editImageFile}
+        isUpdating={isUpdating}
+        handleEditImageChange={handleEditImageChange}
+        handleEditImageModeChange={handleEditImageModeChange}
+        handleCloseEditModal={handleCloseEditModal}
+        handleEditSubmit={handleEditSubmit}
+        isEditFormValid={isEditFormValid}
+      />
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        loading={confirmDialog.loading}
+        type='error'
+        title='Deletar Projeto'
+        message={projectToDelete ? `Tem certeza que deseja deletar o projeto "${projectToDelete.name}"?` : ''}
+        subtitle='Esta ação não pode ser desfeita.'
+        confirmText='Deletar'
+        cancelText='Cancelar'
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
+      <Box sx={{ mb: 4 }}>
+        <FirstModulePresentation
+          open={modalOpen}
+          steps={onboardingSteps}
+          onFinaly={handleOnboardingComplete}
+          onClose={handleModalClose}
+          size='large'
+          variant='default'
+          allowCloseOnlyAtEnd={true}
+        />
+      </Box>
     </Box>
   )
 }
-
-export default StepCreateProject

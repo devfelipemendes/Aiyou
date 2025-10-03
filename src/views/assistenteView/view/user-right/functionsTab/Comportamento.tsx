@@ -1,0 +1,248 @@
+'use client'
+
+import React, { useEffect, useState } from 'react'
+
+import {
+  Typography,
+  Grid2 as Grid,
+  TextField,
+  MenuItem,
+  FormControlLabel,
+  Switch,
+  Divider,
+  Box,
+  CircularProgress
+} from '@mui/material'
+import { useForm, Controller } from 'react-hook-form'
+import LoadingButton from '@mui/lab/LoadingButton'
+
+import {
+  useGetConfigurationsQuery,
+  useUpdateConfigurationMutation
+} from '@/api/endpoints/assistantBehavior/assistantBehavior'
+import type { Assistant, GetSingleAssistantResponse } from '@/api/endpoints/assistant/assistant'
+import AvailableSoon from '@/components/AvailableSoon'
+
+const Comportamento = ({ data: dataAssistent }: { data: GetSingleAssistantResponse | undefined }) => {
+  const [assistente] = useState<Assistant | undefined>(dataAssistent?.data)
+
+  const { control, handleSubmit, watch, reset } = useForm({
+    defaultValues: {
+      tempo_inatividade: 'não definido',
+      tentativas_reconexao: 'não definido',
+      notificacao_inatividade: false,
+      duracao_interacao: 'não definido',
+      notificacao_finalizacao: false,
+      notificacao_falha: false
+    }
+  })
+
+  const values = watch()
+
+  // Monta o objeto filtrando selects e checkboxes
+  const mappedData = assistente?.id
+    ? Object.entries(values)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        .filter(([_, value]) => {
+          if (typeof value === 'boolean') {
+            return value
+          }
+
+          return value !== 'não definido'
+        })
+        .map(([key, value]) => ({
+          assistant_id: assistente.id, // agora sempre string
+          type: typeof value === 'boolean' ? 'checkbox' : 'options',
+          name: key,
+          value: typeof value === 'boolean' ? 0 : value
+        }))
+    : []
+
+  const [updateConfiguration, { isLoading }] = useUpdateConfigurationMutation()
+
+  const { data, isLoading: isLoadingGet } = useGetConfigurationsQuery(assistente?.id ?? '', { skip: !assistente?.id })
+
+  const onSubmit = async () => {
+    try {
+      await updateConfiguration({
+        id: assistente?.id ?? '',
+        body: { data: mappedData }
+      }).unwrap()
+    } catch (err) {
+      console.error('❌ Erro ao atualizar:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (data?.data && Array.isArray(data.data)) {
+      const mappedDefaults: any = {
+        tempo_inatividade: 'não definido',
+        tentativas_reconexao: 'não definido',
+        notificacao_inatividade: false,
+        duracao_interacao: 'não definido',
+        notificacao_finalizacao: false,
+        notificacao_falha: false
+      }
+
+      data.data.forEach((item: any) => {
+        if (item.type === 'options') {
+          mappedDefaults[item.name] = item.value || 'não definido'
+        }
+
+        if (item.type === 'checkbox') {
+          mappedDefaults[item.name] = item.value === '0' ? true : false
+        }
+      })
+
+      reset(mappedDefaults)
+    }
+  }, [data, reset])
+
+  return (
+    <>
+      {isLoadingGet ? (
+        <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box sx={{ width: '100%', p: 2 }} component='form' onSubmit={handleSubmit(onSubmit)}>
+          <Typography fontWeight='bold' gutterBottom>
+            Comportamento de inatividade
+          </Typography>
+
+          <Grid container spacing={4} sx={{ mb: 3 }}>
+            <Grid size={{ xs: 12, md: 12 }}>
+              <Typography variant='body2' color='text.secondary' gutterBottom>
+                Defina o comportamento do assistente quando o cliente ficar inativo
+              </Typography>
+            </Grid>
+
+            <Grid className='p-2' size={{ xs: 12, md: 6 }}>
+              <Controller
+                name='tempo_inatividade'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label='Tempo de inatividade'
+                    helperText='Defina o tempo limite para detectar inatividade do cliente'
+                  >
+                    <MenuItem value='não definido'>Não definido</MenuItem>
+                    <MenuItem value='30'>30 minutos</MenuItem>
+                    <MenuItem value='60'>1 hora</MenuItem>
+                    <MenuItem value='120'>2 horas</MenuItem>
+                  </TextField>
+                )}
+              />
+            </Grid>
+
+            <Grid className='relative p-2' size={{ xs: 12, md: 6 }}>
+              <AvailableSoon />
+              <Controller
+                name='tentativas_reconexao'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label='Tentativas de Reconexão'
+                    helperText='Defina a quantidade de tentativas de comunicação que o assistente irá realizar'
+                  >
+                    <MenuItem value='não definido'>Não definido</MenuItem>
+                    <MenuItem value='3 tentativas'>3 tentativas</MenuItem>
+                    <MenuItem value='5 tentativas'>5 tentativas</MenuItem>
+                    <MenuItem value='10 tentativas'>10 tentativas</MenuItem>
+                  </TextField>
+                )}
+              />
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 5 }} orientation='horizontal' />
+
+          <Grid container spacing={4} sx={{ mb: 3 }}>
+            <Grid className='relative p-2' size={{ xs: 12 }}>
+              <AvailableSoon />
+              <Typography fontWeight='bold' gutterBottom>
+                Duração da interação
+              </Typography>
+              <Typography variant='body2' color='text.secondary' gutterBottom>
+                Defina quanto tempo uma interação irá durar
+              </Typography>
+              <Controller
+                name='duracao_interacao'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label='Tempo de duração'
+                    helperText='Defina o tempo limite para que uma interação fique ativa'
+                  >
+                    <MenuItem value='não definido'>Não definido</MenuItem>
+                    <MenuItem value='30'>30 minutos</MenuItem>
+                    <MenuItem value='60'>1 hora</MenuItem>
+                    <MenuItem value='120'>2 horas</MenuItem>
+                  </TextField>
+                )}
+              />
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 5 }} orientation='horizontal' />
+
+          {/* Ações Pós Encerramento */}
+          <Grid container spacing={4} sx={{ mb: 3 }}>
+            <Grid className='relative p-2' size={{ xs: 12 }}>
+              <AvailableSoon />
+              <Typography fontWeight='bold' gutterBottom>
+                Ações pós encerramento
+              </Typography>
+              <Typography variant='body2' color='text.secondary' gutterBottom>
+                Habilite ou desabilite as opções que desejar
+              </Typography>
+
+              <Controller
+                name='notificacao_finalizacao'
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Switch {...field} checked={field.value} />}
+                    label='Habilitar notificação de finalização'
+                  />
+                )}
+              />
+
+              <Controller
+                name='notificacao_falha'
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={<Switch {...field} checked={field.value} />}
+                    label='Habilitar notificação de falha de contato'
+                  />
+                )}
+              />
+            </Grid>
+          </Grid>
+
+          <LoadingButton
+            loading={isLoading}
+            disabled={mappedData.length === 0}
+            type='submit'
+            variant='contained'
+            color='primary'
+          >
+            Salvar Configurações
+          </LoadingButton>
+        </Box>
+      )}
+    </>
+  )
+}
+
+export default Comportamento

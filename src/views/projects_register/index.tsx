@@ -3,6 +3,9 @@
 // React Imports
 import { useState } from 'react'
 
+// Next.js Imports
+import Image from 'next/image'
+
 // MUI Imports
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -13,14 +16,17 @@ import StepConnector from '@mui/material/StepConnector'
 import Typography from '@mui/material/Typography'
 import { styled } from '@mui/material/styles'
 
-// Component Imports
-import StepCreateProject from './StepCreateProject'
-
 // Styled Component Imports
+
 import StepperWrapper from '@core/styles/stepper'
 import StepperCustomDot from '@components/stepper-dot'
-import StepCreateFunction from './StepCreateFunctions'
+
 import StepReviewProject from './StepReviewConfigs'
+
+import StepCreateProject from './StepCreateProject'
+import StepCreateAssistant from './StepCreateAssistant'
+import StepCreateApi from './StepCreateApi'
+import StepCreateEndpoints from './StepCreateEndpoints'
 
 // Vars
 const steps = [
@@ -29,43 +35,55 @@ const steps = [
     subtitle: 'Criar projeto'
   },
   {
-    title: 'Cadastrar funções',
-    subtitle: 'Cadastro das funções'
+    title: 'Assistente',
+    subtitle: 'Crie e vincule um assistente ao projeto'
   },
   {
-    title: 'Visualização',
+    title: "Suas Api's",
+    subtitle: 'Cadastro de funções externas'
+  },
+  {
+    title: 'Seus Endpoints',
+    subtitle: 'Visualize a ordem dos seus projetos'
+  },
+  {
+    title: 'Visualização geral',
     subtitle: 'Visualize a ordem dos seus projetos'
   }
 ]
 
 const getStepContent = (step: number, handleNext: () => void, handlePrev: () => void) => {
-  // Definir imagens diferentes para cada step
-  const stepImages: Record<number, string> = {
-    0: '/images/iaImages/icons.png',
-    1: '/images/iaImages/icons.png',
-    2: '/images/iaImages/icons.png'
-  }
-
-  const Tag =
-    step === 0
-      ? StepCreateProject
-      : step === 1
-        ? StepCreateFunction
-        : step === 2
-          ? StepReviewProject
-          : StepCreateProject
-
   return (
     <>
-      <div className='mb-6'>
-        <img
-          src={stepImages[step] || stepImages[0]}
+      <div className='mb-6 relative'>
+        <Image
+          src='/images/iaImages/icons.png'
           alt={`Step ${step + 1} Header`}
+          width={800}
+          height={208}
           className='w-full h-52 object-cover rounded-lg'
+          sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+          quality={85}
         />
       </div>
 
-      <Tag activeStep={step} handleNext={handleNext} handlePrev={handlePrev} steps={steps} />
+      {step === 0 ? (
+        <StepCreateProject
+          onNextStep={handleNext} // ✅ Passa a prop correta
+        />
+      ) : step === 1 ? (
+        <StepCreateAssistant onNextStep={handleNext} />
+      ) : step === 2 ? (
+        <StepCreateApi onPrevStep={handlePrev} />
+      ) : step === 3 ? (
+        <StepCreateEndpoints onPrevStep={handlePrev} />
+      ) : step === 4 ? (
+        <StepReviewProject onPrevStep={handlePrev} />
+      ) : (
+        <Typography variant='h6' className='text-center'>
+          Etapa não encontrada
+        </Typography>
+      )}
     </>
   )
 }
@@ -96,7 +114,7 @@ const PropertyListingWizard = () => {
   }
 
   return (
-    <Card className='flex flex-col lg:flex-row '>
+    <Card className='flex flex-col lg:flex-row'>
       <CardContent className='max-lg:border-be lg:border-ie lg:min-is-[300px]'>
         <StepperWrapper className='bs-full'>
           <Stepper activeStep={activeStep} connector={<ConnectorHeight />} orientation='vertical'>
@@ -127,7 +145,6 @@ const PropertyListingWizard = () => {
           </Stepper>
         </StepperWrapper>
       </CardContent>
-
       <CardContent className='flex-1 !pbs-5 w-full'>{getStepContent(activeStep, handleNext, handlePrev)}</CardContent>
     </Card>
   )

@@ -28,7 +28,7 @@ import classnames from 'classnames'
 import type { Locale } from '@/configs/i18n'
 import StepAccountDetails from './StepAccountDetails'
 import StepPersonalInfo from './StepPersonalInfo'
-import StepBillingDetails from './StepBillingDetails'
+
 import { useSettings } from '@/@core/hooks/useSettings'
 import { getLocalizedUrl } from '@/utils/i18n'
 import StepperWrapper from '@/@core/styles/stepper'
@@ -46,10 +46,6 @@ const steps = [
   {
     title: 'Dados Pessoais',
     subtitle: 'Informações importantes!'
-  },
-  {
-    title: 'Cobrança',
-    subtitle: 'Detalhes para o pagamento'
   }
 ]
 
@@ -59,9 +55,6 @@ const getStepContent = (step: number, handleNext: () => void, handlePrev: () => 
       return <StepAccountDetails activeStep={step} handleNext={handleNext} />
     case 1:
       return <StepPersonalInfo activeStep={step} handleNext={handleNext} handlePrev={handlePrev} />
-    case 2:
-      return <StepBillingDetails activeStep={step} handlePrev={handlePrev} />
-
     default:
       return null
   }

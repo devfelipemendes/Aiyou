@@ -8,7 +8,7 @@ export const handleSoundNotifications = {
   },
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onProtocolCreated: (eventData: any) => {
+  onProtocolCreated: () => {
     console.log('📋 [WebSocket] Novo protocolo! Reproduzindo som...')
     soundNotificationManager.playNotification('new_protocol')
   }
