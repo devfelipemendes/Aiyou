@@ -207,9 +207,12 @@ const ActivityTimeline = ({
           <CircularProgress />
         </Box>
       ) : dataFiltered_3 && dataFiltered_3.length === 0 ? (
-        <Box className='w-full h-full justify-center items-center flex p-4'>
-          <Typography>Sem atividades</Typography>
-        </Box>
+        <CardContent>
+          <CardHeader title='Linha do tempo de atividades' />
+          <Box className='w-full h-full justify-center items-center flex'>
+            <Typography>Sem atividades</Typography>
+          </Box>
+        </CardContent>
       ) : (
         <>
           <CardHeader title='Linha do tempo de atividades' />

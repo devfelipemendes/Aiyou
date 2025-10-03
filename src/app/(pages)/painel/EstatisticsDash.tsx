@@ -47,11 +47,7 @@ const EstatisticsDash = ({ data, isLoading }: { data: GetStatisticsResponse | un
               <div>
                 <Typography>Total Projetos</Typography>
                 <Typography variant='h5'>
-                  {isLoading ? (
-                    <CircularProgress size={15} />
-                  ) : (
-                    (data?.data.overall_total.total_called_operators ?? '0')
-                  )}
+                  {isLoading ? <CircularProgress size={15} /> : (data?.data.overall_total.total_projects ?? '0')}
                 </Typography>
               </div>
             </div>
