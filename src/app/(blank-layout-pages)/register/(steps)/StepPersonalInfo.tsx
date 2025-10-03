@@ -228,11 +228,10 @@ const StepPersonalInfo = ({ handlePrev, activeStep }: StepPersonalInfoProps) => 
 
     if (radioValue === 'cpf') {
       // Validar CPF obrigatório
-      if (!formData.cpf || formData.cpf.trim() === '') {
-        setError('cpf', { message: 'CPF é obrigatório' })
-
-        return false
-      }
+      // if (!formData.cpf || formData.cpf.trim() === '') {
+      //   // setError('cpf', { message: 'CPF é obrigatório' })
+      //   return false
+      // }
     } else if (radioValue === 'cnpj') {
       // Validar campos empresariais
       const cnpjErrors: Array<{ field: keyof StepPersonalInfoType; message: string }> = []

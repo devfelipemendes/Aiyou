@@ -117,7 +117,7 @@ export const protocolApi = apiSlice.injectEndpoints({
     }),
     getProtocolHistory: builder.query<GetProtocolHistoryResponse, ProtocolHistoryParams>({
       query: ({ protocol }) => ({
-        url: `/chat/${protocol}/history`,
+        url: `/chat/${protocol}/messages`,
         method: 'GET',
         headers: { Accept: 'application/json' }
       }),
