@@ -38,6 +38,9 @@ import { FirstModulePresentation, type StepData } from '@/components/FirstModule
 import ProjectCard from '@/components/cardProject'
 import EditProjectDialog from '@/components/dialogs/edit-project/ProjectEditDialog'
 
+// Security Imports
+import { sanitizedString, sanitizedUrl } from '@/utils/security'
+
 const ONBOARDING_COOKIE_NAME = 'first_project_onboarding_completed'
 const COOKIE_EXPIRY_DAYS = 365
 
@@ -110,14 +113,13 @@ interface ProjectManagerProps {
 }
 
 const ProjectSchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1, 'Nome do projeto é obrigatório')),
+  name: sanitizedString('Nome do projeto é obrigatório'),
   description: v.pipe(
-    v.string(),
-    v.minLength(1, 'Descrição é obrigatória'),
+    sanitizedString('Descrição é obrigatória'),
     v.maxLength(255, 'Descrição deve ter no máximo 255 caracteres')
   ),
   imageMode: v.picklist(['file', 'url'], 'Selecione o modo de imagem'),
-  img_url: v.optional(v.pipe(v.string(), v.url('Deve ser uma URL válida')))
+  img_url: v.optional(sanitizedUrl('Deve ser uma URL válida'))
 })
 
 export type ProjectFormData = v.InferInput<typeof ProjectSchema>

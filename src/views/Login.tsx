@@ -49,6 +49,9 @@ import { usePostLoginMutation } from '@/api/endpoints/authUser/login'
 import SimpleLoadingButton from '@/components/ButtonLoading/ButtonLoading'
 import VersionDisplay from '@/components/VersionDisplay'
 
+// Security Imports
+import { sanitizedEmail, sanitizedPassword } from '@/utils/security'
+
 const shimmerAnimation = keyframes`
   0% { 
     background-position: -300px 0;
@@ -66,12 +69,8 @@ const shimmerAnimation = keyframes`
 // ✅ NOVA: Animação de pulse para background
 
 const loginSchema = v.object({
-  email: v.pipe(v.string('Email é obrigatório'), v.nonEmpty('Email é obrigatório'), v.email('Email inválido')),
-  password: v.pipe(
-    v.string('Senha é obrigatória'),
-    v.nonEmpty('Senha é obrigatória'),
-    v.minLength(6, 'Senha deve ter pelo menos 6 caracteres')
-  ),
+  email: sanitizedEmail(),
+  password: sanitizedPassword(6, 'Senha é obrigatória'),
   rememberMe: v.boolean()
 })
 

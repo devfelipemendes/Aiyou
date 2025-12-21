@@ -25,6 +25,9 @@ import type { AppDispatch } from '@/redux-store'
 import CustomIconButton from '@core/components/mui/IconButton'
 import { useOperatorInterventionMutation } from '@/api/endpoints/chat/instructionOperator'
 
+// Security Imports
+import { sanitizeInput, TEXT_FIELD_CONFIG } from '@/utils/security'
+
 type Props = {
   dispatch?: AppDispatch
   isOperatorLoading: boolean
@@ -136,11 +139,16 @@ const SendMsgForm = ({
 
     if (msg.trim() === '') return
 
+    // 🔒 SANITIZAÇÃO de segurança (preserva emojis)
+    const sanitizedMsg = sanitizeInput(msg, TEXT_FIELD_CONFIG)
+
+    if (sanitizedMsg.trim() === '') return
+
     try {
       // 🎯 CENÁRIO 1: Callback customizado (Modal de Monitoramento)
       if (onSendMessage) {
         console.log('📨 Enviando mensagem via callback')
-        await onSendMessage(msg)
+        await onSendMessage(sanitizedMsg)
         setMsg('')
 
         return
@@ -148,7 +156,7 @@ const SendMsgForm = ({
 
       // 🎯 CENÁRIO 2: Instrução do operador (ChatLog - instruir IA)
       if (isInstruction && questionId) {
-        console.log('📨 Enviando intervenção do operador:', { questionId, content: msg })
+        console.log('📨 Enviando intervenção do operador:', { questionId, content: sanitizedMsg })
 
         if (onInstructionSending) {
           onInstructionSending(questionId)
@@ -156,7 +164,7 @@ const SendMsgForm = ({
 
         await operatorIntervention({
           questionId,
-          content: msg
+          content: sanitizedMsg
         }).unwrap()
 
         console.log('✅ Intervenção enviada!')

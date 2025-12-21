@@ -21,16 +21,19 @@ import DirectionalIcon from '@components/DirectionalIcon'
 import { useAppSelector, type RootState } from '@/redux-store'
 import { selectAccountDetails, setAccountDetails } from '@/redux-store/slices/register'
 
+// Security Imports
+import { sanitizedName, sanitizedEmail, sanitizedPassword } from '@/utils/security'
+
 type StepAccountDetailsProps = {
   handleNext: () => void
   activeStep: number
 }
 
 const AccountDetailsRegisterSchema = v.object({
-  name: v.pipe(v.string(), v.minLength(1, 'Nome é obrigatório')),
-  email: v.pipe(v.string(), v.minLength(1, 'Email é obrigatório'), v.email('Email inválido')),
-  password: v.pipe(v.string(), v.minLength(6, 'Senha deve ter pelo menos 6 caracteres')),
-  confirmePassword: v.pipe(v.string(), v.minLength(6, 'Confirmação de senha deve ter pelo menos 6 caracteres'))
+  name: sanitizedName('Nome é obrigatório'),
+  email: sanitizedEmail(),
+  password: sanitizedPassword(6),
+  confirmePassword: sanitizedPassword(6, 'Confirmação de senha deve ter pelo menos 6 caracteres')
 })
 
 export type RegisterUserType = v.InferInput<typeof AccountDetailsRegisterSchema>

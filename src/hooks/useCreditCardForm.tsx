@@ -2,6 +2,9 @@ import { valibotResolver } from '@hookform/resolvers/valibot'
 import { useForm } from 'react-hook-form'
 import * as v from 'valibot'
 
+// Security Imports
+import { sanitizeInput } from '@/utils/security'
+
 // Utils para validação de cartões
 const validateLuhn = (cardNumber: string): boolean => {
   const digits = cardNumber.replace(/\D/g, '').split('').map(Number)
@@ -81,12 +84,14 @@ const CreditCardSchema = v.object({
   ),
   nameOnCard: v.pipe(
     v.string('Nome é obrigatório'),
+    v.transform(input => sanitizeInput(input, { xss: true, sql: true, nosql: true, path: false, command: false })),
     v.minLength(2, 'Mínimo 2 caracteres'),
     v.maxLength(50, 'Máximo 50 caracteres'),
     v.regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Apenas letras e espaços')
   ),
   nameCard: v.pipe(
     v.string('Nome é obrigatório'),
+    v.transform(input => sanitizeInput(input, { xss: true, sql: true, nosql: true, path: false, command: false })),
     v.minLength(2, 'Mínimo 2 caracteres'),
     v.maxLength(50, 'Máximo 50 caracteres'),
     v.regex(/^[a-zA-ZÀ-ÿ\s]+$/, 'Apenas letras e espaços')

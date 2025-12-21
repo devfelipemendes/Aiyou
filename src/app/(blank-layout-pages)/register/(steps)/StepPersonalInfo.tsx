@@ -39,6 +39,9 @@ import { useAppDispatch, useAppSelector, type RootState } from '@/redux-store'
 import { selectAccountDetails, selectPersonalInfo, setPersonalInfo } from '@/redux-store/slices/register'
 import { useRegisterUserMutation } from '@/api/endpoints/authUser/register'
 
+// Security Imports
+import { sanitizedString, numericString, sanitizeInput } from '@/utils/security'
+
 type StepPersonalInfoProps = {
   handleNext: () => void
   handlePrev: () => void
@@ -51,54 +54,73 @@ const CustomInput = forwardRef<HTMLInputElement, TextFieldProps>(({ label, value
 
 const StepPersonalInfoSchema = v.object({
   radio: v.pipe(v.string(), v.minLength(1, 'Selecione uma opção')),
-  dataNascimento: v.pipe(v.string(), v.minLength(1, 'Data de nascimento é obrigatória')),
+  dataNascimento: numericString('Data de nascimento é obrigatória'),
 
-  // CPF - sempre validado, mas será condicional no form
+  // CPF - sanitização apenas XSS para preservar máscara
   cpf: v.pipe(
     v.string(),
+    v.transform(input => sanitizeInput(input, { xss: true, sql: false, nosql: false, path: false, command: false })),
     v.custom((value: any) => {
-      if (!value || value.trim() === '') return true // Permite vazio, validação condicional no form
+      if (!value || value.trim() === '') return true
       const cleanValue = unmaskValue(typeof value === 'string' ? value : '')
 
       return cpf.isValid(cleanValue)
     }, 'CPF inválido')
   ),
 
-  // CNPJ - sempre validado, mas será condicional no form
+  // CNPJ - sanitização apenas XSS para preservar máscara
   cnpj: v.pipe(
     v.string(),
+    v.transform(input => sanitizeInput(input, { xss: true, sql: false, nosql: false, path: false, command: false })),
     v.custom((value: any) => {
-      if (!value || value.trim() === '') return true // Permite vazio, validação condicional no form
+      if (!value || value.trim() === '') return true
       const cleanValue = unmaskValue(typeof value === 'string' ? value : '')
 
       return cnpj.isValid(cleanValue)
     }, 'CNPJ inválido')
   ),
 
-  whatsApp: v.pipe(v.string(), v.minLength(1, 'WhatsApp é obrigatório')),
-  celular: v.pipe(v.string(), v.minLength(1, 'Celular é obrigatório')),
-  cep: v.pipe(v.string(), v.minLength(1, 'CEP é obrigatório')),
-  uf: v.pipe(v.string(), v.minLength(1, 'UF é obrigatória')),
-  cidade: v.pipe(v.string(), v.minLength(1, 'Cidade é obrigatória')),
-  logradouro: v.pipe(v.string(), v.minLength(1, 'Logradouro é obrigatório')),
-  numero: v.pipe(v.string(), v.minLength(1, 'Número é obrigatório')),
-  complemento: v.pipe(v.string()), // Opcional
-  bairro: v.pipe(v.string(), v.minLength(1, 'Bairro é obrigatório')),
+  whatsApp: numericString('WhatsApp é obrigatório'),
+  celular: numericString('Celular é obrigatório'),
+  cep: numericString('CEP é obrigatório'),
+  uf: v.pipe(
+    v.string(),
+    v.transform(input => sanitizeInput(input, { xss: true, sql: false, nosql: false, path: false, command: false })),
+    v.minLength(1, 'UF é obrigatória')
+  ),
+  cidade: sanitizedString('Cidade é obrigatória'),
+  logradouro: sanitizedString('Logradouro é obrigatório'),
+  numero: numericString('Número é obrigatório'),
+  complemento: v.pipe(
+    v.string(),
+    v.transform(input => (input ? sanitizeInput(input) : ''))
+  ),
+  bairro: sanitizedString('Bairro é obrigatório'),
 
-  // Campos empresariais - sem validação condicional no schema
-  razaoSocial: v.string(),
-  dataFundacao: v.string(),
+  // Campos empresariais
+  razaoSocial: v.pipe(
+    v.string(),
+    v.transform(input => (input ? sanitizeInput(input) : ''))
+  ),
+  dataFundacao: v.pipe(
+    v.string(),
+    v.transform(input => (input ? sanitizeInput(input, { xss: true, sql: false, nosql: false, path: false, command: false }) : ''))
+  ),
   emailCorp: v.pipe(
     v.string(),
+    v.transform(input => (input ? sanitizeInput(input, { xss: true, sql: true, nosql: false, path: false, command: false }) : '')),
     v.custom((value: any) => {
-      if (!value || value.trim() === '') return true // Permite vazio
+      if (!value || value.trim() === '') return true
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
       return emailRegex.test(value)
     }, 'Email corporativo inválido')
   ),
-  whatsAppCorp: v.string()
+  whatsAppCorp: v.pipe(
+    v.string(),
+    v.transform(input => (input ? sanitizeInput(input, { xss: true, sql: false, nosql: false, path: false, command: false }) : ''))
+  )
 })
 
 const Content = styled(Typography, {
